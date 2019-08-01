@@ -224,7 +224,7 @@ def search_endpoint():
                 found = True
 
         if found:
-            dataset_results.append(d)
+            dataset_results.append({"id": d, "data_type": "variant"})
 
     return jsonify({"results": dataset_results})
 
