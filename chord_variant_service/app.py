@@ -119,7 +119,7 @@ def data_type_404(data_type_id):
 def data_type_list():
     # Data types are basically stand-ins for schema blocks
 
-    return jsonify([{"id": "variants", "schema": VARIANT_SCHEMA}])
+    return jsonify([{"id": "variant", "schema": VARIANT_SCHEMA}])
 
 
 @application.route("/data-types/variant", methods=["GET"])
