@@ -3,6 +3,11 @@
     <words>
       <w>datasets</w>
       <w>distributedgenomics</w>
+      <w>indel</w>
+      <w>mvncall</w>
+      <w>shapeit</w>
+      <w>vcfs</w>
+      <w>ychr</w>
     </words>
   </dictionary>
 </component>

@@ -2,6 +2,9 @@ import chord_variant_service
 import datetime
 import os
 import pysam
+import requests
+import tqdm
+import uuid
 
 from flask import Flask, json, jsonify, request
 
@@ -37,8 +40,70 @@ application.config.from_mapping(
 )
 
 data_path = os.environ.get("DATA", "data/")
-datasets = {d: [os.listdir(os.path.join(data_path, d))] for d in os.listdir(data_path)
-            if os.path.isdir(os.path.join(data_path, d))}
+datasets = {}
+
+
+def update_datasets():
+    global datasets
+    datasets = {d: [file for file in os.listdir(os.path.join(data_path, d)) if file[-6:] == "vcf.gz"]
+                for d in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, d))}
+
+
+update_datasets()
+print(datasets)
+if len(datasets.keys()) == 0:
+    # Add some fake data
+    new_id_1 = str(uuid.uuid4())
+    new_id_2 = str(uuid.uuid4())
+
+    os.makedirs(os.path.join(data_path, new_id_1))
+    os.makedirs(os.path.join(data_path, new_id_2))
+
+    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
+                      "CEU.trio.2010_07.indel.sites.vcf.gz", stream=True) as r:
+        with open(os.path.join(data_path, new_id_1, "ceu.vcf.gz"), "wb") as f:
+            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
+                if not data:
+                    break
+
+                f.write(data)
+                f.flush()
+
+    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
+                      "CEU.trio.2010_07.indel.sites.vcf.gz.tbi",
+                      stream=True) as r:
+        with open(os.path.join(data_path, new_id_1, "ceu.vcf.gz.tbi"), "wb") as f:
+            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
+                if not data:
+                    break
+
+                f.write(data)
+                f.flush()
+
+    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
+                      "YRI.trio.2010_07.indel.sites.vcf.gz",
+                      stream=True) as r:
+        with open(os.path.join(data_path, new_id_2, "yri.vcf.gz"), "wb") as f:
+            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
+                if not data:
+                    break
+
+                f.write(data)
+                f.flush()
+
+    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
+                      "YRI.trio.2010_07.indel.sites.vcf.gz.tbi",
+                      stream=True) as r:
+        with open(os.path.join(data_path, new_id_2, "yri.vcf.gz.tbi"), "wb") as f:
+            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
+                if not data:
+                    break
+
+                f.write(data)
+                f.flush()
+
+    update_datasets()
+    print(datasets)
 
 
 def data_type_404(data_type_id):
@@ -75,7 +140,7 @@ def dataset_list():
     dt = request.args.get("data-type", default="")
 
     if dt != "variant":
-        return data_type_404("variant")
+        return data_type_404(dt)
 
     return jsonify([{
         "id": d,
@@ -106,24 +171,62 @@ def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
     # TODO: PROBABLY VULNERABLE IN SOME WAY
 
-    # dt = request.json["dataTypeID"]
-    # conditions = request.json["conditions"]
-    # conditions_filtered = [c for c in conditions if c["searchField"].split(".")[-1] in ("id", "content") and
-    #                        c["negation"] in SEARCH_NEGATION and c["condition"] in SEARCH_CONDITIONS]
-    # query = ("SELECT * FROM datasets AS d WHERE d.data_type = ? AND d.id IN ("
-    #          "SELECT dataset FROM entries WHERE {})".format(
-    #              " AND ".join(["{}({} {} ?)".format("NOT " if c["negation"] == "neg" else "",
-    #                                                 c["searchField"].split(".")[-1],
-    #                                                 SQL_SEARCH_CONDITIONS[c["condition"]])
-    #                            for c in conditions_filtered])))
-    #
-    # db = get_db()
-    # c = db.cursor()
-    #
-    # c.execute(query, (dt,) + tuple([f"%{c['searchValue']}%" if c["condition"] == "co" else c["searchValue"]
-    #                                 for c in conditions_filtered]))
-    #
-    return jsonify({"results": []})
+    dt = request.json["dataTypeID"]
+    if dt != "variant":
+        # TODO: Error
+        return jsonify({"results": []})
+
+    conditions = request.json["conditions"]
+    conditions_filtered = [c for c in conditions
+                           if c["searchField"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
+                           c["negation"] in SEARCH_NEGATION and c["condition"] in SEARCH_CONDITIONS]
+
+    condition_fields = [c["searchField"].split(".")[-1] for c in conditions_filtered]
+
+    if "chromosome" not in condition_fields or "start" not in condition_fields or "end" not in condition_fields:
+        # TODO: Error
+        # TODO: Not hardcoded?
+        # TODO: More conditions
+        return jsonify({"results": []})
+
+    # TODO: Handle non-equality
+
+    condition_dict = {c["searchField"].split(".")[-1]: c for c in conditions_filtered}
+    dataset_results = []
+    for d in datasets:
+        vcfs = [os.path.join(data_path, d, vf) for vf in datasets[d]]
+        found = False
+        for vcf in vcfs:
+            if found:
+                break
+
+            tbx = pysam.TabixFile(vcf)
+            try:
+                for row in tbx.fetch(condition_dict["chromosome"]["searchValue"],
+                                     int(condition_dict["start"]["searchValue"]),
+                                     int(condition_dict["end"]["searchValue"]), parser=pysam.asTuple()):
+                    print(row)
+                    if found:
+                        break
+
+                    if "ref" in condition_dict and "alt" not in condition_dict:
+                        found = found or row[3] == condition_dict["ref"]["searchValue"]
+                    elif "ref" not in condition_dict and "alt" in condition_dict:
+                        found = found or row[3] == condition_dict["alt"]["searchValue"]
+                    elif "ref" in condition_dict and "alt" in condition_dict:
+                        found = found or (row[3] == condition_dict["ref"]["searchValue"] and
+                                          row[3] == condition_dict["alt"]["searchValue"])
+                    else:
+                        found = True
+
+            except ValueError:
+                # TODO
+                found = True
+
+        if found:
+            dataset_results.append(d)
+
+    return jsonify({"results": dataset_results})
 
 
 @application.route("/service-info", methods=["GET"])
