@@ -210,12 +210,12 @@ def search_endpoint():
                         break
 
                     if "ref" in condition_dict and "alt" not in condition_dict:
-                        found = found or row[3] == condition_dict["ref"]["searchValue"]
+                        found = found or row[3].upper() == condition_dict["ref"]["searchValue"].upper()
                     elif "ref" not in condition_dict and "alt" in condition_dict:
-                        found = found or row[3] == condition_dict["alt"]["searchValue"]
+                        found = found or row[3].upper() == condition_dict["alt"]["searchValue"].upper()
                     elif "ref" in condition_dict and "alt" in condition_dict:
-                        found = found or (row[3] == condition_dict["ref"]["searchValue"] and
-                                          row[3] == condition_dict["alt"]["searchValue"])
+                        found = found or (row[3].upper() == condition_dict["ref"]["searchValue"].upper() and
+                                          row[3].upper() == condition_dict["alt"]["searchValue"].upper())
                     else:
                         found = True
 
