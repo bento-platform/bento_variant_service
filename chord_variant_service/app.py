@@ -205,7 +205,6 @@ def search_endpoint():
                 for row in tbx.fetch(condition_dict["chromosome"]["searchValue"],
                                      int(condition_dict["start"]["searchValue"]),
                                      int(condition_dict["end"]["searchValue"]), parser=pysam.asTuple()):
-                    print(row)
                     if found:
                         break
 
