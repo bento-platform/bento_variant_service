@@ -12,7 +12,7 @@ setuptools.setup(
     version=__version__,
 
     python_requires=">=3.6",
-    install_requires=["Flask", "pysam", "requests", "tqdm"],
+    install_requires=["Flask", "tabix", "requests", "tqdm"],
 
     author="David Lougheed",
     author_email="david.lougheed@mail.mcgill.ca",
