@@ -8,6 +8,7 @@
       <w>mvncall</w>
       <w>pysam</w>
       <w>shapeit</w>
+      <w>tabix</w>
       <w>tqdm</w>
       <w>vcfs</w>
       <w>ychr</w>

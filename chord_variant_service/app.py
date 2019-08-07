@@ -35,9 +35,6 @@ VARIANT_SCHEMA = {
 
 
 application = Flask(__name__)
-application.config.from_mapping(
-    DATABASE=os.environ.get("DATABASE", "chord_example_service.db")
-)
 
 data_path = os.environ.get("DATA", "data/")
 datasets = {}
