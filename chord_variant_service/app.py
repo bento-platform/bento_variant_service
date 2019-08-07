@@ -1,8 +1,8 @@
 import chord_variant_service
 import datetime
 import os
-import pysam
 import requests
+import tabix
 import tqdm
 import uuid
 
@@ -146,7 +146,7 @@ def dataset_list():
 
 
 @application.route("/datasets/<uuid:dataset_id>", methods=["GET"])
-def dataset_detail(dataset_id):
+def dataset_detail():
     # Not implementing this
     pass
 
@@ -190,38 +190,49 @@ def search_endpoint():
 
     condition_dict = {c["searchField"].split(".")[-1]: c for c in conditions_filtered}
     dataset_results = []
-    for d in datasets:
-        vcfs = [os.path.join(data_path, d, vf) for vf in datasets[d]]
-        found = False
-        for vcf in vcfs:
+
+    try:
+        chromosome = condition_dict["chromosome"]["searchValue"]
+        start_pos = int(condition_dict["start"]["searchValue"])
+        end_pos = int(condition_dict["end"]["searchValue"])
+        ref_query = "ref" in condition_dict
+        alt_query = "alt" in condition_dict
+
+        for d in datasets:
+            vcfs = [os.path.join(data_path, d, vf) for vf in datasets[d]]
+            found = False
+            for vcf in vcfs:
+                if found:
+                    break
+
+                tbx = tabix.open(vcf)
+
+                try:
+                    for row in tbx.query(chromosome, start_pos, end_pos):
+                        if found:
+                            break
+
+                        if ref_query and not alt_query:
+                            found = found or row[3].upper() == condition_dict["ref"]["searchValue"].upper()
+                        elif not ref_query and alt_query:
+                            found = found or row[4].upper() == condition_dict["alt"]["searchValue"].upper()
+                        elif ref_query and alt_query:
+                            found = found or (row[3].upper() == condition_dict["ref"]["searchValue"].upper() and
+                                              row[4].upper() == condition_dict["alt"]["searchValue"].upper())
+                        else:
+                            found = True
+
+                except ValueError as e:
+                    # TODO
+                    print(str(e))
+                    found = True
+
             if found:
-                break
+                dataset_results.append({"id": d, "data_type": "variant"})
 
-            tbx = pysam.TabixFile(vcf)
-            try:
-                for row in tbx.fetch(condition_dict["chromosome"]["searchValue"],
-                                     int(condition_dict["start"]["searchValue"]),
-                                     int(condition_dict["end"]["searchValue"]), parser=pysam.asTuple()):
-                    if found:
-                        break
-
-                    if "ref" in condition_dict and "alt" not in condition_dict:
-                        found = found or row[3].upper() == condition_dict["ref"]["searchValue"].upper()
-                    elif "ref" not in condition_dict and "alt" in condition_dict:
-                        found = found or row[4].upper() == condition_dict["alt"]["searchValue"].upper()
-                    elif "ref" in condition_dict and "alt" in condition_dict:
-                        found = found or (row[3].upper() == condition_dict["ref"]["searchValue"].upper() and
-                                          row[4].upper() == condition_dict["alt"]["searchValue"].upper())
-                    else:
-                        found = True
-
-            except ValueError as e:
-                # TODO
-                print(str(e))
-                found = True
-
-        if found:
-            dataset_results.append({"id": d, "data_type": "variant"})
+    except ValueError as e:
+        # TODO
+        print(str(e))
 
     return jsonify({"results": dataset_results})
 
