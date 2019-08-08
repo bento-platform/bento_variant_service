@@ -2,6 +2,7 @@ import chord_variant_service
 import datetime
 import os
 import requests
+# noinspection PyUnresolvedReferences
 import tabix
 import tqdm
 import uuid
@@ -47,7 +48,6 @@ def update_datasets():
 
 
 update_datasets()
-print(datasets)
 if len(datasets.keys()) == 0:
     # Add some fake data
     new_id_1 = str(uuid.uuid4())
@@ -100,7 +100,6 @@ if len(datasets.keys()) == 0:
                 f.flush()
 
     update_datasets()
-    print(datasets)
 
 
 def data_type_404(data_type_id):
@@ -145,10 +144,11 @@ def dataset_list():
     } for d in datasets.keys()])
 
 
-@application.route("/datasets/<uuid:dataset_id>", methods=["GET"])
-def dataset_detail():
-    # Not implementing this
-    pass
+# TODO: Implement
+# @application.route("/datasets/<uuid:dataset_id>", methods=["GET"])
+# def dataset_detail():
+#     # Not implementing this
+#     pass
 
 
 SEARCH_NEGATION = ("pos", "neg")
