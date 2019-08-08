@@ -7,7 +7,10 @@ import tabix
 import tqdm
 import uuid
 
-from flask import Flask, json, jsonify, request
+from flask import Flask, g, json, jsonify, request
+from multiprocessing import Pool
+
+WORKERS = len(os.sched_getaffinity(0))
 
 VARIANT_SCHEMA = {
     "$id": "TODO",
@@ -37,14 +40,30 @@ VARIANT_SCHEMA = {
 
 application = Flask(__name__)
 
-data_path = os.environ.get("DATA", "data/")
+DATA_PATH = os.environ.get("DATA", "data/")
 datasets = {}
+
+
+def get_pool():
+    if "pool" not in g:
+        g.pool = Pool(processes=WORKERS)
+
+    return g.pool
+
+
+@application.teardown_appcontext
+def teardown_pool(err):
+    if err is not None:
+        print(err)
+    pool = g.pop("pool", None)
+    if pool is not None:
+        pool.close()
 
 
 def update_datasets():
     global datasets
-    datasets = {d: [file for file in os.listdir(os.path.join(data_path, d)) if file[-6:] == "vcf.gz"]
-                for d in os.listdir(data_path) if os.path.isdir(os.path.join(data_path, d))}
+    datasets = {d: [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"]
+                for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
 
 
 update_datasets()
@@ -53,12 +72,12 @@ if len(datasets.keys()) == 0:
     new_id_1 = str(uuid.uuid4())
     new_id_2 = str(uuid.uuid4())
 
-    os.makedirs(os.path.join(data_path, new_id_1))
-    os.makedirs(os.path.join(data_path, new_id_2))
+    os.makedirs(os.path.join(DATA_PATH, new_id_1))
+    os.makedirs(os.path.join(DATA_PATH, new_id_2))
 
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "CEU.trio.2010_07.indel.sites.vcf.gz", stream=True) as r:
-        with open(os.path.join(data_path, new_id_1, "ceu.vcf.gz"), "wb") as f:
+        with open(os.path.join(DATA_PATH, new_id_1, "ceu.vcf.gz"), "wb") as f:
             for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
                 if not data:
                     break
@@ -69,7 +88,7 @@ if len(datasets.keys()) == 0:
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "CEU.trio.2010_07.indel.sites.vcf.gz.tbi",
                       stream=True) as r:
-        with open(os.path.join(data_path, new_id_1, "ceu.vcf.gz.tbi"), "wb") as f:
+        with open(os.path.join(DATA_PATH, new_id_1, "ceu.vcf.gz.tbi"), "wb") as f:
             for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
                 if not data:
                     break
@@ -80,7 +99,7 @@ if len(datasets.keys()) == 0:
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "YRI.trio.2010_07.indel.sites.vcf.gz",
                       stream=True) as r:
-        with open(os.path.join(data_path, new_id_2, "yri.vcf.gz"), "wb") as f:
+        with open(os.path.join(DATA_PATH, new_id_2, "yri.vcf.gz"), "wb") as f:
             for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
                 if not data:
                     break
@@ -91,7 +110,7 @@ if len(datasets.keys()) == 0:
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "YRI.trio.2010_07.indel.sites.vcf.gz.tbi",
                       stream=True) as r:
-        with open(os.path.join(data_path, new_id_2, "yri.vcf.gz.tbi"), "wb") as f:
+        with open(os.path.join(DATA_PATH, new_id_2, "yri.vcf.gz.tbi"), "wb") as f:
             for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
                 if not data:
                     break
@@ -160,6 +179,43 @@ SQL_SEARCH_CONDITIONS = {
 }
 
 
+def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, condition_dict):
+    vcfs = [os.path.join(DATA_PATH, d, vf) for vf in datasets[d]]
+    found = False
+    for vcf in vcfs:
+        if found:
+            break
+
+        tbx = tabix.open(vcf)
+
+        try:
+            # TODO: Security of passing this? Verify values
+            for row in tbx.query(chromosome, start_pos, end_pos):
+                if found:
+                    break
+
+                if ref_query and not alt_query:
+                    found = found or row[3].upper() == condition_dict["ref"]["searchValue"].upper()
+                elif not ref_query and alt_query:
+                    found = found or row[4].upper() == condition_dict["alt"]["searchValue"].upper()
+                elif ref_query and alt_query:
+                    found = found or (row[3].upper() == condition_dict["ref"]["searchValue"].upper() and
+                                      row[4].upper() == condition_dict["alt"]["searchValue"].upper())
+                else:
+                    found = True
+
+        except ValueError as e:
+            # TODO
+            print(str(e))
+            break
+
+    return {"id": d, "data_type": "variant"} if found else None
+
+
+def search_worker(args):
+    return search_worker_prime(*args)
+
+
 @application.route("/search", methods=["POST"])
 def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
@@ -195,38 +251,11 @@ def search_endpoint():
         ref_query = "ref" in condition_dict
         alt_query = "alt" in condition_dict
 
-        for d in datasets:
-            vcfs = [os.path.join(data_path, d, vf) for vf in datasets[d]]
-            found = False
-            for vcf in vcfs:
-                if found:
-                    break
-
-                tbx = tabix.open(vcf)
-
-                try:
-                    # TODO: Security of passing this? Verify values
-                    for row in tbx.query(chromosome, start_pos, end_pos):
-                        if found:
-                            break
-
-                        if ref_query and not alt_query:
-                            found = found or row[3].upper() == condition_dict["ref"]["searchValue"].upper()
-                        elif not ref_query and alt_query:
-                            found = found or row[4].upper() == condition_dict["alt"]["searchValue"].upper()
-                        elif ref_query and alt_query:
-                            found = found or (row[3].upper() == condition_dict["ref"]["searchValue"].upper() and
-                                              row[4].upper() == condition_dict["alt"]["searchValue"].upper())
-                        else:
-                            found = True
-
-                except ValueError as e:
-                    # TODO
-                    print(str(e))
-                    break
-
-            if found:
-                dataset_results.append({"id": d, "data_type": "variant"})
+        pool = get_pool()
+        dataset_results = [d for d in pool.imap_unordered(
+            search_worker,
+            ((d, chromosome, start_pos, end_pos, ref_query, alt_query, condition_dict) for d in datasets)
+        ) if d is not None]
 
     except ValueError as e:
         # TODO
@@ -243,7 +272,7 @@ def service_info():
         "id": "ca.distributedgenomics.chord_variant_service",  # TODO: Should be globally unique?
         "name": "CHORD Variant Service",                       # TODO: Should be globally unique?
         "type": "urn:ga4gh:search",                            # TODO
-        "description": "Example service for a CHORD application.",
+        "description": "Variant service for a CHORD application.",
         "organization": "GenAP",
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
         "version": chord_variant_service.__version__,
