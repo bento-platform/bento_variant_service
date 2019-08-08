@@ -146,9 +146,6 @@ def dataset_list():
 
 # TODO: Implement
 # @application.route("/datasets/<uuid:dataset_id>", methods=["GET"])
-# def dataset_detail():
-#     # Not implementing this
-#     pass
 
 
 SEARCH_NEGATION = ("pos", "neg")
@@ -208,6 +205,7 @@ def search_endpoint():
                 tbx = tabix.open(vcf)
 
                 try:
+                    # TODO: Security of passing this? Verify values
                     for row in tbx.query(chromosome, start_pos, end_pos):
                         if found:
                             break
@@ -225,7 +223,7 @@ def search_endpoint():
                 except ValueError as e:
                     # TODO
                     print(str(e))
-                    found = True
+                    break
 
             if found:
                 dataset_results.append({"id": d, "data_type": "variant"})
