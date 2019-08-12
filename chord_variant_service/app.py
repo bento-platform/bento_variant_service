@@ -13,6 +13,7 @@ from multiprocessing import Pool
 WORKERS = len(os.sched_getaffinity(0))
 
 # Possible operations: eq, lt, gt, le, ge, co
+# TODO: Regex verification with schema, to front end
 
 VARIANT_SCHEMA = {
     "$id": "TODO",
@@ -20,37 +21,54 @@ VARIANT_SCHEMA = {
     "description": "CHORD variant data type",
     "type": "object",
     "required": ["chromosome", "start", "end", "ref", "alt"],
-    "operations": [],
+    "search": {
+        "operations": [],
+    },
     "properties": {
         "chromosome": {
             "type": "string",
-            "operations": ["eq"],
-            "canNegate": False,
-            "requiredForSearch": True
+            "search": {
+                "operations": ["eq"],
+                "canNegate": False,
+                "required": True,
+                "order": 0
+            }
         },
         "start": {
             "type": "integer",
-            "operations": ["eq"],
-            "canNegate": False,
-            "requiredForSearch": True
+            "search": {
+                "operations": ["eq"],
+                "canNegate": False,
+                "required": True,
+                "order": 1
+            }
         },
         "end": {
             "type": "integer",
-            "operations": ["eq"],
-            "canNegate": False,
-            "requiredForSearch": True
+            "search": {
+                "operations": ["eq"],
+                "canNegate": False,
+                "required": True,
+                "order": 2
+            }
         },
         "ref": {
             "type": "string",
-            "operations": ["eq"],
-            "canNegate": True,
-            "requiredForSearch": False
+            "search": {
+                "searchOperations": ["eq"],
+                "canNegate": True,
+                "required": False,
+                "order": 3,
+            }
         },
         "alt": {
             "type": "string",
-            "operations": ["eq"],
-            "canNegate": True,
-            "requiredForSearch": False
+            "search": {
+                "searchOperations": ["eq"],
+                "canNegate": True,
+                "required": False,
+                "order": 4
+            }
         }
     }
 }
