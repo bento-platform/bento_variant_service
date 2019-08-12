@@ -12,27 +12,45 @@ from multiprocessing import Pool
 
 WORKERS = len(os.sched_getaffinity(0))
 
+# Possible operations: eq, lt, gt, le, ge, co
+
 VARIANT_SCHEMA = {
     "$id": "TODO",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "CHORD variant data type",
     "type": "object",
     "required": ["chromosome", "start", "end", "ref", "alt"],
+    "operations": [],
     "properties": {
         "chromosome": {
-            "type": "string"
+            "type": "string",
+            "operations": ["eq"],
+            "canNegate": False,
+            "requiredForSearch": True
         },
         "start": {
-            "type": "integer"
+            "type": "integer",
+            "operations": ["eq"],
+            "canNegate": False,
+            "requiredForSearch": True
         },
         "end": {
-            "type": "integer"
+            "type": "integer",
+            "operations": ["eq"],
+            "canNegate": False,
+            "requiredForSearch": True
         },
         "ref": {
-            "type": "string"
+            "type": "string",
+            "operations": ["eq"],
+            "canNegate": True,
+            "requiredForSearch": False
         },
         "alt": {
-            "type": "string"
+            "type": "string",
+            "operations": ["eq"],
+            "canNegate": True,
+            "requiredForSearch": False
         }
     }
 }
@@ -180,9 +198,8 @@ SQL_SEARCH_CONDITIONS = {
 
 
 def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, condition_dict):
-    vcfs = [os.path.join(DATA_PATH, d, vf) for vf in datasets[d]]
     found = False
-    for vcf in vcfs:
+    for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]):
         if found:
             break
 
@@ -190,6 +207,7 @@ def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query,
 
         try:
             # TODO: Security of passing this? Verify values
+            # TODO: Support negation of ref/alt eq
             for row in tbx.query(chromosome, start_pos, end_pos):
                 if found:
                     break
