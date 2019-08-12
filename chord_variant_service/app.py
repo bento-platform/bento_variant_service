@@ -55,8 +55,8 @@ VARIANT_SCHEMA = {
         "ref": {
             "type": "string",
             "search": {
-                "searchOperations": ["eq"],
-                "operations": True,
+                "operations": ["eq"],
+                "canNegate": True,
                 "required": False,
                 "order": 3,
             }
