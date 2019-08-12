@@ -27,10 +27,12 @@ VARIANT_SCHEMA = {
     "properties": {
         "chromosome": {
             "type": "string",
+            # TODO: Choices
             "search": {
                 "operations": ["eq"],
                 "canNegate": False,
                 "required": True,
+                "type": "single",  # single / unlimited
                 "order": 0
             }
         },
@@ -40,6 +42,7 @@ VARIANT_SCHEMA = {
                 "operations": ["eq"],
                 "canNegate": False,
                 "required": True,
+                "type": "single",  # single / unlimited
                 "order": 1
             }
         },
@@ -49,6 +52,7 @@ VARIANT_SCHEMA = {
                 "operations": ["eq"],
                 "canNegate": False,
                 "required": True,
+                "type": "single",  # single / unlimited
                 "order": 2
             }
         },
@@ -58,7 +62,8 @@ VARIANT_SCHEMA = {
                 "operations": ["eq"],
                 "canNegate": True,
                 "required": False,
-                "order": 3,
+                "type": "single",  # single / unlimited
+                "order": 3
             }
         },
         "alt": {
@@ -67,6 +72,7 @@ VARIANT_SCHEMA = {
                 "operations": ["eq"],
                 "canNegate": True,
                 "required": False,
+                "type": "single",  # single / unlimited
                 "order": 4
             }
         }
