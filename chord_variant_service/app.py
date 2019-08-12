@@ -56,7 +56,7 @@ VARIANT_SCHEMA = {
             "type": "string",
             "search": {
                 "searchOperations": ["eq"],
-                "canNegate": True,
+                "operations": True,
                 "required": False,
                 "order": 3,
             }
@@ -64,7 +64,7 @@ VARIANT_SCHEMA = {
         "alt": {
             "type": "string",
             "search": {
-                "searchOperations": ["eq"],
+                "operations": ["eq"],
                 "canNegate": True,
                 "required": False,
                 "order": 4
