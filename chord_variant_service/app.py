@@ -293,7 +293,7 @@ def search_endpoint():
         ref_query = "ref" in condition_dict
         alt_query = "alt" in condition_dict
         ref_op = ne if ref_query and condition_dict["ref"]["negated"] else eq
-        alt_op = ne if ref_query and condition_dict["alt"]["negated"] else eq
+        alt_op = ne if alt_query and condition_dict["alt"]["negated"] else eq
 
         pool = get_pool()
         dataset_results = [d for d in pool.imap_unordered(
