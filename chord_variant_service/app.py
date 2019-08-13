@@ -9,6 +9,7 @@ import uuid
 
 from flask import Flask, g, json, jsonify, request
 from multiprocessing import Pool
+from operator import eq, ne
 
 WORKERS = len(os.sched_getaffinity(0))
 
@@ -220,7 +221,7 @@ SQL_SEARCH_CONDITIONS = {
 }
 
 
-def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, condition_dict):
+def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict):
     found = False
     for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]):
         if found:
@@ -236,12 +237,12 @@ def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query,
                     break
 
                 if ref_query and not alt_query:
-                    found = found or row[3].upper() == condition_dict["ref"]["searchValue"].upper()
+                    found = found or ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper())
                 elif not ref_query and alt_query:
-                    found = found or row[4].upper() == condition_dict["alt"]["searchValue"].upper()
+                    found = found or alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper())
                 elif ref_query and alt_query:
-                    found = found or (row[3].upper() == condition_dict["ref"]["searchValue"].upper() and
-                                      row[4].upper() == condition_dict["alt"]["searchValue"].upper())
+                    found = found or (ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper()) and
+                                      alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper()))
                 else:
                     found = True
 
@@ -291,11 +292,14 @@ def search_endpoint():
         end_pos = int(condition_dict["end"]["searchValue"])
         ref_query = "ref" in condition_dict
         alt_query = "alt" in condition_dict
+        ref_op = ne if ref_query and condition_dict["ref"]["negated"] else eq
+        alt_op = ne if ref_query and condition_dict["alt"]["negated"] else eq
 
         pool = get_pool()
         dataset_results = [d for d in pool.imap_unordered(
             search_worker,
-            ((d, chromosome, start_pos, end_pos, ref_query, alt_query, condition_dict) for d in datasets)
+            ((d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict)
+             for d in datasets)
         ) if d is not None]
 
     except ValueError as e:
