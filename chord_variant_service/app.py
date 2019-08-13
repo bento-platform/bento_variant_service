@@ -287,7 +287,7 @@ def search_endpoint():
     dataset_results = []
 
     try:
-        chromosome = condition_dict["chromosome"]["searchValue"]
+        chromosome = condition_dict["chromosome"]["searchValue"]  # TODO: Check domain for chromosome
         start_pos = int(condition_dict["start"]["searchValue"])
         end_pos = int(condition_dict["end"]["searchValue"])
         ref_query = "ref" in condition_dict
