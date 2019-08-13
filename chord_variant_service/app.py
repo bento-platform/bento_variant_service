@@ -209,8 +209,7 @@ def dataset_list():
 # @application.route("/datasets/<uuid:dataset_id>", methods=["GET"])
 
 
-SEARCH_NEGATION = ("pos", "neg")
-SEARCH_CONDITIONS = ("eq", "lt", "le", "gt", "ge", "co")
+SEARCH_OPERATIONS = ("eq", "lt", "le", "gt", "ge", "co")
 SQL_SEARCH_CONDITIONS = {
     "eq": "=",
     "lt": "<",
@@ -270,10 +269,10 @@ def search_endpoint():
 
     conditions = request.json["conditions"]
     conditions_filtered = [c for c in conditions
-                           if c["searchField"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
-                           c["negation"] in SEARCH_NEGATION and c["condition"] in SEARCH_CONDITIONS]
+                           if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
+                           isinstance(c["negated"], bool) and c["operation"] in SEARCH_OPERATIONS]
 
-    condition_fields = [c["searchField"].split(".")[-1] for c in conditions_filtered]
+    condition_fields = [c["field"].split(".")[-1] for c in conditions_filtered]
 
     if "chromosome" not in condition_fields or "start" not in condition_fields or "end" not in condition_fields:
         # TODO: Error
@@ -281,9 +280,9 @@ def search_endpoint():
         # TODO: More conditions
         return jsonify({"results": []})
 
-    # TODO: Handle non-equality
+    # TODO: Handle not equals for ref/alt
 
-    condition_dict = {c["searchField"].split(".")[-1]: c for c in conditions_filtered}
+    condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
     dataset_results = []
 
     try:
