@@ -221,8 +221,10 @@ SQL_SEARCH_CONDITIONS = {
 }
 
 
-def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict):
+def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict,
+                        internal_data):
     found = False
+    matches = []
     for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]):
         if found:
             break
@@ -233,23 +235,36 @@ def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query,
             # TODO: Security of passing this? Verify values
             # TODO: Support negation of ref/alt eq
             for row in tbx.query(chromosome, start_pos, end_pos):
-                if found:
+                if not internal_data and found:
                     break
 
                 if ref_query and not alt_query:
-                    found = found or ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper())
+                    match = ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper())
                 elif not ref_query and alt_query:
-                    found = found or alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper())
+                    match = alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper())
                 elif ref_query and alt_query:
-                    found = found or (ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper()) and
-                                      alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper()))
+                    match = (ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper()) and
+                             alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper()))
                 else:
-                    found = True
+                    match = True
+
+                found = found or match
+                if match and internal_data:
+                    matches.append({
+                        "chromosome": row[0],
+                        "start": row[1],
+                        "end": row[2],
+                        "ref": row[3],
+                        "alt": row[4]
+                    })
 
         except ValueError as e:
             # TODO
             print(str(e))
             break
+
+    if internal_data:
+        return d, {"data_type": "variant", "matches": matches} if found else None
 
     return {"id": d, "data_type": "variant"} if found else None
 
@@ -258,17 +273,12 @@ def search_worker(args):
     return search_worker_prime(*args)
 
 
-@application.route("/search", methods=["POST"])
-def search_endpoint():
-    # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
-    # TODO: PROBABLY VULNERABLE IN SOME WAY
+def search(dt, conditions, internal_data=False):
+    null_result = {} if internal_data else []
 
-    dt = request.json["dataTypeID"]
     if dt != "variant":
-        # TODO: Error
-        return jsonify({"results": []})
+        return null_result
 
-    conditions = request.json["conditions"]
     conditions_filtered = [c for c in conditions
                            if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
                            isinstance(c["negated"], bool) and c["operation"] in SEARCH_OPERATIONS]
@@ -279,12 +289,10 @@ def search_endpoint():
         # TODO: Error
         # TODO: Not hardcoded?
         # TODO: More conditions
-        return jsonify({"results": []})
-
-    # TODO: Handle not equals for ref/alt
+        return null_result
 
     condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
-    dataset_results = []
+    dataset_results = {} if internal_data else []
 
     try:
         chromosome = condition_dict["chromosome"]["searchValue"]  # TODO: Check domain for chromosome
@@ -296,17 +304,40 @@ def search_endpoint():
         alt_op = ne if alt_query and condition_dict["alt"]["negated"] else eq
 
         pool = get_pool()
-        dataset_results = [d for d in pool.imap_unordered(
+
+        pool_map = pool.imap_unordered(
             search_worker,
-            ((d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict)
+            ((d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict,
+              internal_data)
              for d in datasets)
-        ) if d is not None]
+        )
+
+        if internal_data:
+            dataset_results = {d: e for d, e in pool_map if e is not None}
+        else:
+            dataset_results = [d for d in pool_map if d is not None]
 
     except ValueError as e:
         # TODO
         print(str(e))
 
-    return jsonify({"results": dataset_results})
+    return dataset_results
+
+
+@application.route("/search", methods=["POST"])
+def search_endpoint():
+    # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
+    # TODO: PROBABLY VULNERABLE IN SOME WAY
+
+    return jsonify({"results": search(request.json["dataTypeID"], request.json["conditions"], False)})
+
+
+@application.route("/private/search", methods=["POST"])
+def private_search_endpoint():
+    # Proxy should ensure that non-services cannot access this
+    # TODO: Figure out security properly
+
+    return jsonify({"results": search(request.json["dataTypeID"], request.json["conditions"], True)})
 
 
 @application.route("/service-info", methods=["GET"])
