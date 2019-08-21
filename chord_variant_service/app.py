@@ -349,8 +349,10 @@ def service_info():
         "name": "CHORD Variant Service",                       # TODO: Should be globally unique?
         "type": "ca.distributedgenomics:chord_variant_service:{}".format(chord_variant_service.__version__),  # TODO
         "description": "Variant service for a CHORD application.",
-        "organization": "GenAP",
+        "organization": {
+            "name": "GenAP",
+            "url": "https://genap.ca/"
+        },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-        "version": chord_variant_service.__version__,
-        "extension": {}
+        "version": chord_variant_service.__version__
     })
