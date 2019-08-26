@@ -83,6 +83,9 @@ VARIANT_SCHEMA = {
 
 application = Flask(__name__)
 
+ID_RETRIES = 100
+MIME_TYPE = "application/json"
+
 DATA_PATH = os.environ.get("DATA", "data/")
 datasets = {}
 
@@ -193,12 +196,32 @@ def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
 
 
-@application.route("/datasets", methods=["GET"])
+@application.route("/datasets", methods=["GET", "POST"])
 def dataset_list():
     dt = request.args.get("data-type", default="")
 
     if dt != "variant":
         return data_type_404(dt)
+
+    # TODO: This POST stuff is not compliant with the GA4GH Search API
+    if request.method == "POST":
+        new_id = str(uuid.uuid4())
+
+        i = 0
+        while new_id in datasets and i < ID_RETRIES:
+            new_id = str(uuid.uuid4())
+            i += 1
+
+        if i == ID_RETRIES:
+            print("Couldn't generate new ID")
+            return application.response_class(status=500)
+
+        os.makedirs(os.path.join(DATA_PATH, new_id))
+
+        update_datasets()
+
+        return application.response_class(response=json.dumps({"id": new_id, "schema": VARIANT_SCHEMA}),
+                                          mimetype=MIME_TYPE, status=201)
 
     return jsonify([{
         "id": d,
@@ -233,7 +256,6 @@ def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query,
 
         try:
             # TODO: Security of passing this? Verify values
-            # TODO: Support negation of ref/alt eq
             for row in tbx.query(chromosome, start_pos, end_pos):
                 if not internal_data and found:
                     break
