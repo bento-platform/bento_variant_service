@@ -10,6 +10,7 @@ import uuid
 from flask import Flask, g, json, jsonify, request
 from multiprocessing import Pool
 from operator import eq, ne
+from werkzeug.utils import secure_filename
 
 WORKERS = len(os.sched_getaffinity(0))
 
@@ -229,8 +230,37 @@ def dataset_list():
     } for d in datasets.keys()])
 
 
-# TODO: Implement
-# @application.route("/datasets/<uuid:dataset_id>", methods=["GET"])
+# TODO: Implement GET
+# TODO: Authentication
+# TODO: CORS? or some security which means others can't POST datasets
+@application.route("/datasets/<uuid:dataset_id>", methods=["POST"])
+def dataset_detail(dataset_id):
+    if "vcf" not in request.files or "tbi" not in request.files:
+        return application.response_class(status=400)
+
+    vcf_file = request.files["vcf"]
+    tbi_file = request.files["tbi"]
+
+    vcf_split = os.path.splitext(vcf_file.filename)
+    tbi_split = os.path.splitext(tbi_file.filename)
+
+    if vcf_split[1] != ".gz" or tbi_split[1] != ".tbi" or os.path.splitext(vcf_split[0])[1] != ".vcf":
+        return application.response_class(status=400)
+
+    if vcf_file.filename != tbi_split[0]:
+        return application.response_class(status=400)
+
+    # TODO: Not going to be good for huge file uploads
+    # TODO: Copy from filesystem instead?
+
+    ts_str = str(int(datetime.datetime.now().timestamp())) + "_"
+    vcf_file_name = secure_filename(ts_str + vcf_file.filename)
+    tbi_file_name = secure_filename(ts_str + tbi_file.filename)
+
+    vcf_file.save(os.path.join(DATA_PATH, str(dataset_id), vcf_file_name))
+    tbi_file.save(os.path.join(DATA_PATH, str(dataset_id), tbi_file_name))
+
+    return application.response_class(status=201)
 
 
 SEARCH_OPERATIONS = ("eq", "lt", "le", "gt", "ge", "co")
