@@ -3,9 +3,7 @@ workflow vcf {
     call vcf_compress {
         input: vcf_file=vcf_file
     }
-    call generate_tbi {
-        input: vcf_gz_file=vcf_compress.vcf_gz_file
-    }
+    call generate_tbi
 }
 
 task generate_tbi {
@@ -13,17 +11,11 @@ task generate_tbi {
   command {
     tabix -p vcf ${vcf_gz_file}
   }
-  output {
-    File tbi_file = "out.vcf.gz.tbi"
-  }
 }
 
 task vcf_compress {
     File vcf_file
     command {
-        bgzip ${vcf_file}
-    }
-    output {
-        File vcf_gz_file = "out.vcf.gz"
+        bgzip < ${vcf_file} > out.vcf.gz
     }
 }
