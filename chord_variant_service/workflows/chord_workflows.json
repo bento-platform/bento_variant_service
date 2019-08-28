@@ -1,0 +1,32 @@
+{
+  "ingestion": {
+    "vcf_gz": {
+      "file": "vcf_gz.wdl",
+      "inputs": [
+        {
+          "type": "file",
+          "id": "vcf_gz_file",
+          "extensions": [
+            ".vcf.gz"
+          ]
+        }
+      ],
+      "outputs": [
+        "out.vcf.gz",
+        "out.vcf.gz.tbi"
+      ]
+    },
+    "vcf": {
+      "file": "vcf.wdl",
+      "inputs": [
+        {
+          "type": "file",
+          "id": "vcf_file",
+          "extensions": [".vcf"]
+        }
+      ],
+      "outputs": ["out.vcf.gz", "out.vcf.gz.tbi"]
+    }
+  },
+  "analysis": {}
+}

@@ -1,0 +1,3 @@
+include chord_variant_service/workflows/chord_workflows.json
+include chord_variant_service/workflows/vcf.wdl
+include chord_variant_service/workflows/vcf_gz.wdl

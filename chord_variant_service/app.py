@@ -392,6 +392,40 @@ def private_search_endpoint():
     return jsonify({"results": search(request.json["dataTypeID"], request.json["conditions"], True)})
 
 
+with application.open_resource("workflows/chord_workflows.json") as wf:
+    # TODO: Schema
+    WORKFLOWS = json.loads(wf.read())
+
+
+@application.route("/workflows", methods=["GET"])
+def workflow_list():
+    return jsonify(WORKFLOWS)
+
+
+@application.route("/workflows/<string:workflow_name>", methods=["GET"])
+def workflow_detail(workflow_name):
+    # TODO: Better errors
+    if workflow_name not in WORKFLOWS["ingestion"] and workflow_name not in WORKFLOWS["analysis"]:
+        return application.response_class(status=404)
+
+    return jsonify(WORKFLOWS["ingestion"][workflow_name] if workflow_name in WORKFLOWS["ingestion"]
+                   else WORKFLOWS["analysis"][workflow_name])
+
+
+@application.route("/workflows/<string:workflow_name>.wdl", methods=["GET"])
+def workflow_wdl(workflow_name):
+    # TODO: Better errors
+    if workflow_name not in WORKFLOWS["ingestion"] and workflow_name not in WORKFLOWS["analysis"]:
+        return application.response_class(status=404)
+
+    workflow = (WORKFLOWS["ingestion"][workflow_name] if workflow_name in WORKFLOWS["ingestion"]
+                else WORKFLOWS["analysis"][workflow_name])
+
+    # TODO: Clean workflow name
+    with application.open_resource("workflows/{}".format(workflow["file"])) as wfh:
+        return application.response_class(response=wfh.read(), mimetype="text/plain", status=200)
+
+
 @application.route("/service-info", methods=["GET"])
 def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
