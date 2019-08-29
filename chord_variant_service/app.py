@@ -210,6 +210,7 @@ def file_with_suffix(file_path: str, suffix: int):
 def ingest():
     try:
         assert "workflow_metadata" in request.form
+        assert "workflow_output_locations" in request.form
 
         dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
         assert dataset_id in datasets
@@ -217,6 +218,8 @@ def ingest():
 
         workflow_metadata = json.loads(request.form["workflow_metadata"])
         output_locations = json.loads(request.form["workflow_output_locations"])
+
+        # TODO: Replace output_locations with inputs + param replacement to reduce new fields
 
         # Indicate if a suffix is needed
         # TODO: NEED TO DO PARAM REPLACEMENT
