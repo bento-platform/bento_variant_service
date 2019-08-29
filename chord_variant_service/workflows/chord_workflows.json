@@ -2,6 +2,7 @@
   "ingestion": {
     "vcf_gz": {
       "file": "vcf_gz.wdl",
+      "data-types": ["variant"],
       "inputs": [
         {
           "type": "file",
@@ -18,6 +19,7 @@
     },
     "vcf": {
       "file": "vcf.wdl",
+      "data-types": ["variant"],
       "inputs": [
         {
           "type": "file",

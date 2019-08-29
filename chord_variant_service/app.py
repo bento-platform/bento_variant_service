@@ -2,6 +2,7 @@ import chord_variant_service
 import datetime
 import os
 import requests
+import shutil
 # noinspection PyUnresolvedReferences
 import tabix
 import tqdm
@@ -197,11 +198,44 @@ def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
 
 
+# Ingest files into datasets
+# Ingestion doesn't allow uploading files directly, it simply moves them from a different location on the filesystem.
+@application.route("/ingest", methods=["POST"])
+def ingest():
+    try:
+        assert "workflow_chord_metadata" in request.form
+
+        dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
+        assert dataset_id in datasets
+        dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
+
+        workflow_chord_metadata = json.loads(request.form["workflow_chord_metadata"])
+        output_locations = json.loads(request.form["workflow_chord_output_locations"])
+
+        for file in workflow_chord_metadata["outputs"]:
+            if file not in output_locations:
+                # Missing output
+                return application.response_class(status=400)
+
+            # TODO: Format file with proper filename, or otherwise figure out filename stuff
+
+            shutil.move(output_locations["file"], os.path.join(DATA_PATH, dataset_id, file))
+
+        update_datasets()
+
+        return application.response_class(response=json.dumps({"id": dataset_id}), mimetype=MIME_TYPE, status=201)
+
+    except (AssertionError, ValueError):  # assertion or JSON conversion failure
+        # TODO: Better errors
+        return application.response_class(status=400)
+
+
+# Fetch or create datasets
 @application.route("/datasets", methods=["GET", "POST"])
 def dataset_list():
-    dt = request.args.get("data-type", default="")
+    dt = request.args.getlist("data-type")
 
-    if dt != "variant":
+    if "variant" not in dt or len(dt) != 1:
         return data_type_404(dt)
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
