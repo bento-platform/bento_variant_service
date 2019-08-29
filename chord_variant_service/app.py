@@ -219,6 +219,7 @@ def ingest():
         output_locations = json.loads(request.form["workflow_output_locations"])
 
         # Indicate if a suffix is needed
+        # TODO: NEED TO DO PARAM REPLACEMENT
         suffix = None
         for file in workflow_metadata["outputs"]:
             file_path = os.path.join(DATA_PATH, dataset_id, secure_filename(file))
@@ -226,6 +227,7 @@ def ingest():
                 suffix = 1
 
         # Increase the suffix until a suitable one has been found
+        # TODO: NEED TO DO PARAM REPLACEMENT
         duplicate_exists = suffix is not None
         while duplicate_exists:
             duplicate_exists = False
@@ -236,6 +238,7 @@ def ingest():
             suffix += 1
 
         # Move files from the temporary file system location to their final resting place
+        # TODO: NEED TO DO PARAM REPLACEMENT
         for file in workflow_metadata["outputs"]:
             if file not in output_locations:
                 # Missing output
