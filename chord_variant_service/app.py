@@ -203,16 +203,16 @@ def data_type_schema():
 @application.route("/ingest", methods=["POST"])
 def ingest():
     try:
-        assert "workflow_chord_metadata" in request.form
+        assert "workflow_metadata" in request.form
 
         dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
         assert dataset_id in datasets
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
-        workflow_chord_metadata = json.loads(request.form["workflow_chord_metadata"])
-        output_locations = json.loads(request.form["workflow_chord_output_locations"])
+        workflow_metadata = json.loads(request.form["workflow_metadata"])
+        output_locations = json.loads(request.form["workflow_output_locations"])
 
-        for file in workflow_chord_metadata["outputs"]:
+        for file in workflow_metadata["outputs"]:
             if file not in output_locations:
                 # Missing output
                 return application.response_class(status=400)
@@ -223,7 +223,7 @@ def ingest():
 
         update_datasets()
 
-        return application.response_class(response=json.dumps({"id": dataset_id}), mimetype=MIME_TYPE, status=201)
+        return application.response_class(status=204)
 
     except (AssertionError, ValueError):  # assertion or JSON conversion failure
         # TODO: Better errors
