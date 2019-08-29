@@ -12,10 +12,7 @@
           ]
         }
       ],
-      "outputs": [
-        "out.vcf.gz",
-        "out.vcf.gz.tbi"
-      ]
+      "outputs": ["{INPUT_0}", "{INPUT_0}.tbi"]
     },
     "vcf": {
       "file": "vcf.wdl",
@@ -27,7 +24,7 @@
           "extensions": [".vcf"]
         }
       ],
-      "outputs": ["out.vcf.gz", "out.vcf.gz.tbi"]
+      "outputs": ["{INPUT_0}.gz", "{INPUT_0}.gz.tbi"]
     }
   },
   "analysis": {}
