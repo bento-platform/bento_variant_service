@@ -1,3 +1,4 @@
+import chord_lib.ingestion
 import chord_variant_service
 import datetime
 import os
@@ -11,7 +12,6 @@ import uuid
 from flask import Flask, g, json, jsonify, request
 from multiprocessing import Pool
 from operator import eq, ne
-from werkzeug.utils import secure_filename
 
 WORKERS = len(os.sched_getaffinity(0))
 
@@ -198,66 +198,46 @@ def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
 
 
-def file_with_suffix(file_path: str, suffix: int):
-    file_parts = os.path.splitext(file_path)
-    return "".join(("{}_{}".format(file_parts[0], suffix), file_parts[1]))
-
-
 # Ingest files into datasets
 # Ingestion doesn't allow uploading files directly, it simply moves them from a different location on the filesystem.
-# TODO: Move useful common routines / methods to some chord_lib package
 @application.route("/ingest", methods=["POST"])
 def ingest():
     try:
+        assert "workflow_name" in request.form
         assert "workflow_metadata" in request.form
         assert "workflow_output_locations" in request.form
+        assert "workflow_params" in request.form
 
         dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
         assert dataset_id in datasets
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
+        workflow_name = request.form["workflow_name"].strip()
         workflow_metadata = json.loads(request.form["workflow_metadata"])
         output_locations = json.loads(request.form["workflow_output_locations"])
+        workflow_params = json.loads(request.form["workflow_params"])
 
-        # TODO: Replace output_locations with inputs + param replacement to reduce new fields
+        output_params = chord_lib.ingestion.make_output_params(workflow_name, workflow_params,
+                                                               workflow_metadata["inputs"])
 
-        # Indicate if a suffix is needed
-        # TODO: NEED TO DO PARAM REPLACEMENT
-        suffix = None
-        for file in workflow_metadata["outputs"]:
-            file_path = os.path.join(DATA_PATH, dataset_id, secure_filename(file))
-            if os.path.exists(file_path):
-                suffix = 1
-
-        # Increase the suffix until a suitable one has been found
-        # TODO: NEED TO DO PARAM REPLACEMENT
-        duplicate_exists = suffix is not None
-        while duplicate_exists:
-            duplicate_exists = False
-            for file in workflow_metadata["outputs"]:
-                duplicate_exists = duplicate_exists or os.path.exists(
-                    file_with_suffix(os.path.join(DATA_PATH, dataset_id, secure_filename(file)), suffix))
-
-            suffix += 1
+        suffix = chord_lib.ingestion.find_common_suffix(os.path.join(DATA_PATH, dataset_id), workflow_metadata,
+                                                        output_params)
 
         # Move files from the temporary file system location to their final resting place
-        # TODO: NEED TO DO PARAM REPLACEMENT
         for file in workflow_metadata["outputs"]:
-            if file not in output_locations:
+            if file not in output_locations:  # TODO: Is this formatted with output_params or not?
                 # Missing output
                 return application.response_class(status=400)
 
-            file_path = os.path.join(DATA_PATH, dataset_id, file)
-
-            # TODO: Format file with proper filename, or otherwise figure out filename stuff
-            # TODO: Sanitize file name
+            # Full path to to-be-newly-ingested file
+            file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.output_file_name(file, output_params))
 
             # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes dup_1.vcf.gz)
             if suffix is not None:
-                file_path = file_with_suffix(file_path, suffix)
+                file_path = chord_lib.ingestion.file_with_suffix(file_path, suffix)
 
             # Move the file from its temporary location on the filesystem to its location in the service's data folder.
-            shutil.move(output_locations["file"], file_path)
+            shutil.move(output_locations[file], file_path)  # TODO: Is this formatted with output_params or not?
 
         update_datasets()
 

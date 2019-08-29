@@ -12,7 +12,7 @@ setuptools.setup(
     version=__version__,
 
     python_requires=">=3.6",
-    install_requires=["Flask", "pytabix", "requests", "tqdm"],
+    install_requires=["git+https://bitbucket.org/genap/chord_lib", "Flask", "pytabix", "requests", "tqdm"],
 
     author="David Lougheed",
     author_email="david.lougheed@mail.mcgill.ca",

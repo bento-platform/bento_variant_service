@@ -1,5 +1,6 @@
 certifi==2019.6.16
 chardet==3.0.4
+git+https://bitbucket.org/genap/chord_lib
 Click==7.0
 Flask==1.1.1
 idna==2.8
