@@ -198,8 +198,14 @@ def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
 
 
+def file_with_suffix(file_path: str, suffix: int):
+    file_parts = os.path.splitext(file_path)
+    return "".join(("{}_{}".format(file_parts[0], suffix), file_parts[1]))
+
+
 # Ingest files into datasets
 # Ingestion doesn't allow uploading files directly, it simply moves them from a different location on the filesystem.
+# TODO: Move useful common routines / methods to some chord_lib package
 @application.route("/ingest", methods=["POST"])
 def ingest():
     try:
@@ -212,14 +218,40 @@ def ingest():
         workflow_metadata = json.loads(request.form["workflow_metadata"])
         output_locations = json.loads(request.form["workflow_output_locations"])
 
+        # Indicate if a suffix is needed
+        suffix = None
+        for file in workflow_metadata["outputs"]:
+            file_path = os.path.join(DATA_PATH, dataset_id, secure_filename(file))
+            if os.path.exists(file_path):
+                suffix = 1
+
+        # Increase the suffix until a suitable one has been found
+        duplicate_exists = suffix is not None
+        while duplicate_exists:
+            duplicate_exists = False
+            for file in workflow_metadata["outputs"]:
+                duplicate_exists = duplicate_exists or os.path.exists(
+                    file_with_suffix(os.path.join(DATA_PATH, dataset_id, secure_filename(file)), suffix))
+
+            suffix += 1
+
+        # Move files from the temporary file system location to their final resting place
         for file in workflow_metadata["outputs"]:
             if file not in output_locations:
                 # Missing output
                 return application.response_class(status=400)
 
-            # TODO: Format file with proper filename, or otherwise figure out filename stuff
+            file_path = os.path.join(DATA_PATH, dataset_id, file)
 
-            shutil.move(output_locations["file"], os.path.join(DATA_PATH, dataset_id, file))
+            # TODO: Format file with proper filename, or otherwise figure out filename stuff
+            # TODO: Sanitize file name
+
+            # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes dup_1.vcf.gz)
+            if suffix is not None:
+                file_path = file_with_suffix(file_path, suffix)
+
+            # Move the file from its temporary location on the filesystem to its location in the service's data folder.
+            shutil.move(output_locations["file"], file_path)
 
         update_datasets()
 
