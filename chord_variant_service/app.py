@@ -420,6 +420,16 @@ def private_search_endpoint():
     return jsonify({"results": search(request.json["dataTypeID"], request.json["conditions"], True)})
 
 
+@application.route("/beacon", methods=["GET"])
+def beacon_get():
+    pass
+
+
+@application.route("/beacon/query", methods=["GET", "POST"])
+def beacon_query():
+    pass
+
+
 with application.open_resource("workflows/chord_workflows.json") as wf:
     # TODO: Schema
     WORKFLOWS = json.loads(wf.read())
