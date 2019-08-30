@@ -203,18 +203,20 @@ def data_type_schema():
 @application.route("/ingest", methods=["POST"])
 def ingest():
     try:
+        assert "dataset_id" in request.form
         assert "workflow_name" in request.form
         assert "workflow_metadata" in request.form
-        assert "workflow_output_locations" in request.form
+        assert "workflow_outputs" in request.form
         assert "workflow_params" in request.form
 
         dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
+
         assert dataset_id in datasets
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
         workflow_name = request.form["workflow_name"].strip()
         workflow_metadata = json.loads(request.form["workflow_metadata"])
-        output_locations = json.loads(request.form["workflow_output_locations"])
+        workflow_outputs = json.loads(request.form["workflow_outputs"])
         workflow_params = json.loads(request.form["workflow_params"])
 
         output_params = chord_lib.ingestion.make_output_params(workflow_name, workflow_params,
@@ -225,8 +227,9 @@ def ingest():
 
         # Move files from the temporary file system location to their final resting place
         for file in workflow_metadata["outputs"]:
-            if file not in output_locations:  # TODO: Is this formatted with output_params or not?
+            if file not in workflow_outputs:  # TODO: Is this formatted with output_params or not?
                 # Missing output
+                print("Missing {} in {}".format(file, workflow_outputs))
                 return application.response_class(status=400)
 
             # Full path to to-be-newly-ingested file
@@ -237,7 +240,7 @@ def ingest():
                 file_path = chord_lib.ingestion.file_with_suffix(file_path, suffix)
 
             # Move the file from its temporary location on the filesystem to its location in the service's data folder.
-            shutil.move(output_locations[file], file_path)  # TODO: Is this formatted with output_params or not?
+            shutil.move(workflow_outputs[file], file_path)  # TODO: Is this formatted with output_params or not?
 
         update_datasets()
 
@@ -245,6 +248,7 @@ def ingest():
 
     except (AssertionError, ValueError):  # assertion or JSON conversion failure
         # TODO: Better errors
+        print("Assertion or value error")
         return application.response_class(status=400)
 
 
@@ -282,7 +286,7 @@ def dataset_list():
     } for d in datasets.keys()])
 
 
-# TODO: Implement GET
+# TODO: Implement GET, DELETE
 # @application.route("/datasets/<uuid:dataset_id>", methods=["POST"])
 
 
