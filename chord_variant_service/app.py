@@ -222,7 +222,7 @@ def ingest():
         output_params = chord_lib.ingestion.make_output_params(workflow_name, workflow_params,
                                                                workflow_metadata["inputs"])
 
-        suffix = chord_lib.ingestion.find_common_suffix(os.path.join(DATA_PATH, dataset_id), workflow_metadata,
+        prefix = chord_lib.ingestion.find_common_prefix(os.path.join(DATA_PATH, dataset_id), workflow_metadata,
                                                         output_params)
 
         # Move files from the temporary file system location to their final resting place
@@ -235,9 +235,10 @@ def ingest():
             # Full path to to-be-newly-ingested file
             file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.output_file_name(file, output_params))
 
-            # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes dup_1.vcf.gz)
-            if suffix is not None:
-                file_path = chord_lib.ingestion.file_with_suffix(file_path, suffix)
+            # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
+            if prefix is not None:
+                file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.file_with_prefix(
+                    chord_lib.ingestion.output_file_name(file, output_params), prefix))
 
             # Move the file from its temporary location on the filesystem to its location in the service's data folder.
             shutil.move(workflow_outputs[file], file_path)  # TODO: Is this formatted with output_params or not?
