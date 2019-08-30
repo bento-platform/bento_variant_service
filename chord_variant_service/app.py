@@ -88,6 +88,13 @@ application = Flask(__name__)
 ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
+BEACON_CHROMOSOME_VALUES = tuple([str(i) for i in range(1, 23)] + ["X", "Y", "MT"])  # TODO: What is MT?
+
+BEACON_IDR_ALL = "ALL"
+BEACON_IDR_HIT = "HIT"
+BEACON_IDR_MISS = "MISS"
+BEACON_IDR_NONE = "NONE"
+
 DATA_PATH = os.environ.get("DATA", "data/")
 datasets = {}
 
@@ -422,12 +429,52 @@ def private_search_endpoint():
 
 @application.route("/beacon", methods=["GET"])
 def beacon_get():
-    pass
+    return jsonify({
+        "id": "TODO",  # TODO
+        "name": "TODO",  # TODO
+        "apiVersion": "TODO",  # TODO
+        "organization": "TODO",  # TODO
+        "description": "TODO",  # TODO, optional
+        "version": chord_variant_service.__version__,
+        "datasets": "TODO"  # TODO
+    })
 
 
 @application.route("/beacon/query", methods=["GET", "POST"])
 def beacon_query():
-    pass
+    if request.method == "POST":
+        # TODO: Same as below but with JSON; use a JSON schema.
+        include_dataset_responses = BEACON_IDR_NONE
+        pass
+
+    chromosome = request.args.get("referenceName")  # Chromosome, required
+    start = request.args.get("start", None)  # Precise start location
+    start_min = request.args("startMin", None)  # Minimum start location, inclusive
+    start_max = request.args("startMax", None)  # Maximum start location, inclusive
+    end = request.args.get("end", None)  # Precise end location
+    end_min = request.args.get("endMin", None)  # Minimum end location, inclusive
+    end_max = request.args.get("endMax", None)  # Maximum end location, inclusive
+    reference_bases = request.args.get("referenceBases", "N")  # Reference bases for variant (N = not specified)
+    alternate_bases = request.args.get("alternateBases", "N")  # Alternate bases for variant (N = not specified)
+    variant_type = request.args.get("variantType", None)  # Either alternateBases or variantType is required
+    assembly_id = request.args.get("assemblyId")  # Assembly ID, required
+    include_dataset_responses = request.args.get("includeDatasetResponses", BEACON_IDR_NONE)  # Ind. datasets inc.?
+
+    # Value validation
+    # TODO: Use JSON schema for GET validation as well by encoding as a JSON object
+
+    if chromosome not in BEACON_CHROMOSOME_VALUES:
+        return application.response_class(status=400)  # TODO: Beacon error response
+
+    # TODO: Other validation
+
+    return jsonify({
+        "beaconId": "TODO",  # TODO
+        "apiVersion": "TODO",  # TODO
+        "exists": False,  # TODO
+        "alleleRequest": {},  # TODO
+        "datasetAlleleResponses": [] if include_dataset_responses != BEACON_IDR_NONE else None
+    })
 
 
 with application.open_resource("workflows/chord_workflows.json") as wf:
