@@ -443,27 +443,27 @@ def beacon_get():
 @application.route("/beacon/query", methods=["GET", "POST"])
 def beacon_query():
     if request.method == "POST":
-        # TODO: Same as below but with JSON; use a JSON schema.
-        include_dataset_responses = BEACON_IDR_NONE
-        pass
-
-    chromosome = request.args.get("referenceName")  # Chromosome, required
-    start = request.args.get("start", None)  # Precise start location
-    start_min = request.args("startMin", None)  # Minimum start location, inclusive
-    start_max = request.args("startMax", None)  # Maximum start location, inclusive
-    end = request.args.get("end", None)  # Precise end location
-    end_min = request.args.get("endMin", None)  # Minimum end location, inclusive
-    end_max = request.args.get("endMax", None)  # Maximum end location, inclusive
-    reference_bases = request.args.get("referenceBases", "N")  # Reference bases for variant (N = not specified)
-    alternate_bases = request.args.get("alternateBases", "N")  # Alternate bases for variant (N = not specified)
-    variant_type = request.args.get("variantType", None)  # Either alternateBases or variantType is required
-    assembly_id = request.args.get("assemblyId")  # Assembly ID, required
-    include_dataset_responses = request.args.get("includeDatasetResponses", BEACON_IDR_NONE)  # Ind. datasets inc.?
+        query = request.json
+    else:
+        query = {
+            "referenceName": request.args.get("referenceName"),
+            "start": request.args.get("start", None),
+            "startMin": request.args.get("startMin", None),
+            "startMax": request.args.get("startMax", None),
+            "end": request.args.get("end", None),
+            "endMin": request.args.get("endMin", None),
+            "endMax": request.args.get("endMax", None),
+            "referenceBases": request.args.get("referenceBases", "N"),
+            "alternateBases": request.args.get("alternateBases", "N"),
+            "variantType": request.args.get("variantType", None),
+            "assemblyId": request.args.get("assemblyId"),
+            "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
+        }
 
     # Value validation
     # TODO: Use JSON schema for GET validation as well by encoding as a JSON object
 
-    if chromosome not in BEACON_CHROMOSOME_VALUES:
+    if query["referenceName"] not in BEACON_CHROMOSOME_VALUES:
         return application.response_class(status=400)  # TODO: Beacon error response
 
     # TODO: Other validation
@@ -473,7 +473,8 @@ def beacon_query():
         "apiVersion": "TODO",  # TODO
         "exists": False,  # TODO
         "alleleRequest": {},  # TODO
-        "datasetAlleleResponses": [] if include_dataset_responses != BEACON_IDR_NONE else None
+        "datasetAlleleResponses": ([] if query.get("includeDatasetResponses", BEACON_IDR_NONE) != BEACON_IDR_NONE
+                                   else None)
     })
 
 
