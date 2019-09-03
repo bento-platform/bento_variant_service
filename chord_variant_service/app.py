@@ -97,6 +97,8 @@ BEACON_IDR_HIT = "HIT"
 BEACON_IDR_MISS = "MISS"
 BEACON_IDR_NONE = "NONE"
 
+BEACON_API_VERSION = "v1.0"
+
 DATA_PATH = os.environ.get("DATA", "data/")
 datasets = {}
 
@@ -362,25 +364,31 @@ def search_worker(args):
     return search_worker_prime(*args)
 
 
+# TODO: To chord_lib? Maybe conditions_dict should be a class or something...
+def parse_conditions(conditions):
+    conditions_filtered = [c for c in conditions
+                           if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
+                           isinstance(c["negated"], bool) and c["operation"] in SEARCH_OPERATIONS]
+
+    condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
+
+    return condition_dict
+
+
 def search(dt, conditions, internal_data=False):
     null_result = {} if internal_data else []
 
     if dt != "variant":
         return null_result
 
-    conditions_filtered = [c for c in conditions
-                           if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
-                           isinstance(c["negated"], bool) and c["operation"] in SEARCH_OPERATIONS]
+    condition_dict = parse_conditions(conditions)
 
-    condition_fields = [c["field"].split(".")[-1] for c in conditions_filtered]
-
-    if "chromosome" not in condition_fields or "start" not in condition_fields or "end" not in condition_fields:
+    if "chromosome" not in condition_dict or "start" not in condition_dict or "end" not in condition_dict:
         # TODO: Error
         # TODO: Not hardcoded?
         # TODO: More conditions
         return null_result
 
-    condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
     dataset_results = {} if internal_data else []
 
     try:
@@ -434,8 +442,8 @@ def beacon_get():
     return jsonify({
         "id": "TODO",  # TODO
         "name": "TODO",  # TODO
-        "apiVersion": "TODO",  # TODO
-        "organization": "TODO",  # TODO
+        "apiVersion": BEACON_API_VERSION,
+        "organization": "GenAP",
         "description": "TODO",  # TODO, optional
         "version": chord_variant_service.__version__,
         "datasets": "TODO"  # TODO
@@ -444,10 +452,11 @@ def beacon_get():
 
 @application.route("/beacon/query", methods=["GET", "POST"])
 def beacon_query():
-    # TODO: BE VERY CAREFUL WITH QUERIES, BEACON USES 0-BASED INDICES FOR POSITIONS
+    # TODO: Careful with end, it should be exclusive
 
     if request.method == "POST":
-        query = request.json
+        # TODO: What if request.json is non-dict? Should handle better
+        query = {k: v for k, v in request.json if v is not None}
     else:
         query = {k: v for k, v in ({
             "referenceName": request.args.get("referenceName"),
@@ -461,6 +470,7 @@ def beacon_query():
             "alternateBases": request.args.get("alternateBases", "N"),
             "variantType": request.args.get("variantType", None),
             "assemblyId": request.args.get("assemblyId"),
+            "datasetIds": request.args.get("datasetIds", None),
             "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
         }).items() if v is not None}
 
@@ -489,6 +499,16 @@ def beacon_query():
     #  - datasetIds: do we implement?
     #  - includeDatasetResponses: include datasetAlleleResponses?
     # TODO: Are max/min inclusive? Looks like it
+
+    # For tabix:
+    #  - referenceName, startMin, endMax are passed as is
+    #  - start: reduce to startMax = startMin
+    #  - end:   endMin = endMax
+    #  - startMax, endMin are iterated
+    #  - referenceBases, alternateBases are iterated
+    #  - need op for referenceBases / alternateBases (CHORD search)
+    #  - TODO: How to do variantType?
+    #  - TODO: Assembly ID - in VCF header?
 
     return jsonify({
         "beaconId": "TODO",  # TODO
