@@ -10,6 +10,7 @@ import tqdm
 import uuid
 
 from flask import Flask, g, json, jsonify, request
+from jsonschema import validate, ValidationError
 from multiprocessing import Pool
 from operator import eq, ne
 
@@ -88,7 +89,8 @@ application = Flask(__name__)
 ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
-BEACON_CHROMOSOME_VALUES = tuple([str(i) for i in range(1, 23)] + ["X", "Y", "MT"])  # TODO: What is MT?
+with application.open_resource("beacon_allele_request.schema.json") as bars:
+    BEACON_ALLELE_REQUEST_SCHEMA = json.load(bars)
 
 BEACON_IDR_ALL = "ALL"
 BEACON_IDR_HIT = "HIT"
@@ -442,10 +444,12 @@ def beacon_get():
 
 @application.route("/beacon/query", methods=["GET", "POST"])
 def beacon_query():
+    # TODO: BE VERY CAREFUL WITH QUERIES, BEACON USES 0-BASED INDICES FOR POSITIONS
+
     if request.method == "POST":
         query = request.json
     else:
-        query = {
+        query = {k: v for k, v in ({
             "referenceName": request.args.get("referenceName"),
             "start": request.args.get("start", None),
             "startMin": request.args.get("startMin", None),
@@ -458,15 +462,33 @@ def beacon_query():
             "variantType": request.args.get("variantType", None),
             "assemblyId": request.args.get("assemblyId"),
             "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
-        }
+        }).items() if v is not None}
 
-    # Value validation
-    # TODO: Use JSON schema for GET validation as well by encoding as a JSON object
+    # Validate query
 
-    if query["referenceName"] not in BEACON_CHROMOSOME_VALUES:
+    try:
+        validate(instance=query, schema=BEACON_ALLELE_REQUEST_SCHEMA)
+    except ValidationError:
         return application.response_class(status=400)  # TODO: Beacon error response
 
-    # TODO: Other validation
+    # TODO: Other validation, or put more in schema?
+
+    # TODO: Run query
+    #  All coordinates are 0 INDEXED!
+    #  - referenceName: chromosome
+    #  - start: precise, equivalent to (startMin
+    #  - startMin: equivalent to start >= x
+    #  - startMax: equivalent to start <= x
+    #  - end: precise, equivalent to (endMin = endMax = x - 1)
+    #  - endMin: equivalent to end >= x
+    #  - endMax: equivalent to end <= x
+    #  - referenceBases === ref
+    #  - alternateBases === alt
+    #  - variantType: how to implement? looks like maybe an enum of DEL, INS, DUP, INV, CNV, DUP:TANDEM, DEL:ME, INS:ME
+    #  - assemblyId: how to implement? metadata? what if it's missing?
+    #  - datasetIds: do we implement?
+    #  - includeDatasetResponses: include datasetAlleleResponses?
+    # TODO: Are max/min inclusive? Looks like it
 
     return jsonify({
         "beaconId": "TODO",  # TODO
@@ -474,7 +496,7 @@ def beacon_query():
         "exists": False,  # TODO
         "alleleRequest": {},  # TODO
         "datasetAlleleResponses": ([] if query.get("includeDatasetResponses", BEACON_IDR_NONE) != BEACON_IDR_NONE
-                                   else None)
+                                   else None)  # TODO: actual results
     })
 
 
