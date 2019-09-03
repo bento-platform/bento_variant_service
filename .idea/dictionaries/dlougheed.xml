@@ -5,6 +5,7 @@
       <w>datasets</w>
       <w>distributedgenomics</w>
       <w>indel</w>
+      <w>jsonschema</w>
       <w>lougheed</w>
       <w>mvncall</w>
       <w>pysam</w>
