@@ -122,12 +122,14 @@ def teardown_pool(err):
 
 def update_datasets():
     global datasets
-    datasets = {d: [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"]
-                for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
+    datasets = {d: {
+        "name": (open(os.path.join(DATA_PATH, d, ".chord_dataset_name"), "r").read().strip()
+                 if os.path.exists(os.path.join(DATA_PATH, d, ".chord_dataset_name")) else None),
+        "files": [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"]
+    } for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
 
 
-update_datasets()
-if len(datasets.keys()) == 0:
+def download_example_datasets():
     # Add some fake data
     new_id_1 = str(uuid.uuid4())
     new_id_2 = str(uuid.uuid4())
@@ -144,6 +146,9 @@ if len(datasets.keys()) == 0:
 
                 f.write(data)
                 f.flush()
+
+        with open(os.path.join(DATA_PATH, new_id_1, ".chord_dataset_name"), "w") as nf:
+            nf.write("CEU trio")
 
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "CEU.trio.2010_07.indel.sites.vcf.gz.tbi",
@@ -167,6 +172,9 @@ if len(datasets.keys()) == 0:
                 f.write(data)
                 f.flush()
 
+        with open(os.path.join(DATA_PATH, new_id_2, ".chord_dataset_name"), "w") as nf:
+            nf.write("YRI trio")
+
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "YRI.trio.2010_07.indel.sites.vcf.gz.tbi",
                       stream=True) as r:
@@ -179,6 +187,12 @@ if len(datasets.keys()) == 0:
                 f.flush()
 
     update_datasets()
+
+
+update_datasets()
+
+if len(datasets.keys()) == 0:
+    download_example_datasets()
 
 
 def data_type_404(data_type_id):
@@ -277,6 +291,8 @@ def dataset_list():
     if request.method == "POST":
         new_id = str(uuid.uuid4())
 
+        name = request.form["name"].strip()
+
         i = 0
         while new_id in datasets and i < ID_RETRIES:
             new_id = str(uuid.uuid4())
@@ -288,13 +304,20 @@ def dataset_list():
 
         os.makedirs(os.path.join(DATA_PATH, new_id))
 
+        with open(os.path.join(DATA_PATH, new_id), "w") as nf:
+            nf.write(name)
+
         update_datasets()
 
-        return application.response_class(response=json.dumps({"id": new_id, "schema": VARIANT_SCHEMA}),
-                                          mimetype=MIME_TYPE, status=201)
+        return application.response_class(response=json.dumps({
+            "id": new_id,
+            "name": datasets[new_id]["name"],
+            "schema": VARIANT_SCHEMA
+        }), mimetype=MIME_TYPE, status=201)
 
     return jsonify([{
         "id": d,
+        "name": datasets[d]["name"],
         "schema": VARIANT_SCHEMA
     } for d in datasets.keys()])
 
@@ -317,7 +340,7 @@ def parse_conditions(conditions):
 def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data):
     found = False
     matches = []
-    for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]):
+    for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]["files"]):
         if found:
             break
 
@@ -459,7 +482,13 @@ def beacon_get():
         "organization": "GenAP",
         "description": "TODO",  # TODO, optional
         "version": chord_variant_service.__version__,
-        "datasets": "TODO"  # TODO
+        "datasets": [{
+            "id": d_id,
+            "name": d["name"],
+            "assemblyId": "TODO",  # TODO
+            "createDateTime": "TODO",  # TODO
+            "updateDateTime": "TODO"  # TODO
+        } for d_id, d in datasets.items()]
     })
 
 
