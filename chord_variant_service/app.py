@@ -303,29 +303,45 @@ def dataset_list():
 # @application.route("/datasets/<uuid:dataset_id>", methods=["POST"])
 
 
-def search_worker_prime(d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict,
-                        internal_data):
+# TODO: To chord_lib? Maybe conditions_dict should be a class or something...
+def parse_conditions(conditions):
+    conditions_filtered = [c for c in conditions
+                           if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
+                           isinstance(c["negated"], bool) and c["operation"] in chord_lib.search.SEARCH_OPERATIONS]
+
+    condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
+
+    return condition_dict
+
+
+def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data):
     found = False
     matches = []
     for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]):
         if found:
             break
 
+        # TODO: Need to figure out if pytabix does stuff in a defined coordinate system...
+
         tbx = tabix.open(vcf)
 
         try:
             # TODO: Security of passing this? Verify values
-            for row in tbx.query(chromosome, start_pos, end_pos):
+            for row in tbx.query(chromosome, start_min, end_max):
                 if not internal_data and found:
                     break
 
-                if ref_query and not alt_query:
-                    match = ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper())
-                elif not ref_query and alt_query:
-                    match = alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper())
-                elif ref_query and alt_query:
-                    match = (ref_op(row[3].upper(), condition_dict["ref"]["searchValue"].upper()) and
-                             alt_op(row[4].upper(), condition_dict["alt"]["searchValue"].upper()))
+                if (start_max is not None and row[1] > start_max) or (end_min is not None and row[2] < end_min):
+                    # TODO: Are start_max and end_min both inclusive for sure? Pretty sure but unclear
+                    continue
+
+                if ref is not None and alt is None:
+                    match = ref_op(row[3].upper(), ref.upper())
+                elif ref is None and alt is not None:
+                    match = alt_op(row[4].upper(), alt.upper())
+                elif ref is not None and alt is not None:
+                    match = (ref_op(row[3].upper(), ref.upper()) and
+                             alt_op(row[4].upper(), alt.upper()))
                 else:
                     match = True
 
@@ -354,18 +370,34 @@ def search_worker(args):
     return search_worker_prime(*args)
 
 
-# TODO: To chord_lib? Maybe conditions_dict should be a class or something...
-def parse_conditions(conditions):
-    conditions_filtered = [c for c in conditions
-                           if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
-                           isinstance(c["negated"], bool) and c["operation"] in chord_lib.search.SEARCH_OPERATIONS]
+def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, end_max=None, ref=None, alt=None,
+                           ref_op=eq, alt_op=eq, internal_data=False):
 
-    condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
+    # TODO: Sane defaults
+    # TODO: Figure out inclusion/exclusion with start_min/end_max
 
-    return condition_dict
+    dataset_results = {} if internal_data else []
+
+    try:
+        pool = get_pool()
+        pool_map = pool.imap_unordered(
+            search_worker,
+            ((d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data)
+             for d in datasets)
+        )
+
+        if internal_data:
+            dataset_results = {d: e for d, e in pool_map if e is not None}
+        else:
+            dataset_results = [d for d in pool_map if d is not None]
+
+    except ValueError as e:
+        print(str(e))
+
+    return dataset_results
 
 
-def search(dt, conditions, internal_data=False):
+def chord_search(dt, conditions, internal_data=False):
     null_result = {} if internal_data else []
 
     if dt != "variant":
@@ -385,24 +417,15 @@ def search(dt, conditions, internal_data=False):
         chromosome = condition_dict["chromosome"]["searchValue"]  # TODO: Check domain for chromosome
         start_pos = int(condition_dict["start"]["searchValue"])
         end_pos = int(condition_dict["end"]["searchValue"])
-        ref_query = "ref" in condition_dict
-        alt_query = "alt" in condition_dict
-        ref_op = ne if ref_query and condition_dict["ref"]["negated"] else eq
-        alt_op = ne if alt_query and condition_dict["alt"]["negated"] else eq
+        ref_cond = condition_dict.get("ref", None)
+        alt_cond = condition_dict.get("alt", None)
+        ref_op = ne if ref_cond is not None and ref_cond["negated"] else eq
+        alt_op = ne if alt_cond is not None and alt_cond["negated"] else eq
 
-        pool = get_pool()
-
-        pool_map = pool.imap_unordered(
-            search_worker,
-            ((d, chromosome, start_pos, end_pos, ref_query, alt_query, ref_op, alt_op, condition_dict,
-              internal_data)
-             for d in datasets)
-        )
-
-        if internal_data:
-            dataset_results = {d: e for d, e in pool_map if e is not None}
-        else:
-            dataset_results = [d for d in pool_map if d is not None]
+        return generic_variant_search(chromosome=chromosome, start_min=start_pos, end_max=end_pos,
+                                      ref=ref_cond["searchValue"] if ref_cond is not None else None,
+                                      alt=alt_cond["searchValue"] if alt_cond is not None else None,
+                                      ref_op=ref_op, alt_op=alt_op, internal_data=internal_data)
 
     except ValueError as e:
         # TODO
@@ -416,7 +439,7 @@ def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
     # TODO: PROBABLY VULNERABLE IN SOME WAY
 
-    return jsonify({"results": search(request.json["dataTypeID"], request.json["conditions"], False)})
+    return jsonify({"results": chord_search(request.json["dataTypeID"], request.json["conditions"], False)})
 
 
 @application.route("/private/search", methods=["POST"])
@@ -424,7 +447,7 @@ def private_search_endpoint():
     # Proxy should ensure that non-services cannot access this
     # TODO: Figure out security properly
 
-    return jsonify({"results": search(request.json["dataTypeID"], request.json["conditions"], True)})
+    return jsonify({"results": chord_search(request.json["dataTypeID"], request.json["conditions"], True)})
 
 
 @application.route("/beacon", methods=["GET"])
@@ -459,7 +482,7 @@ def beacon_query():
             "referenceBases": request.args.get("referenceBases", "N"),
             "alternateBases": request.args.get("alternateBases", "N"),
             "variantType": request.args.get("variantType", None),
-            "assemblyId": request.args.get("assemblyId"),
+            "assemblyId": request.args.get("assemblyId"),  # TODO
             "datasetIds": request.args.get("datasetIds", None),
             "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
         }).items() if v is not None}
@@ -500,13 +523,53 @@ def beacon_query():
     #  - TODO: How to do variantType?
     #  - TODO: Assembly ID - in VCF header?
 
+    # TODO: Check we have one of these... rules in Beacon schema online?
+
+    start = query.get("start", None)
+    start_min = query.get("startMin", None)
+    start_max = query.get("startMax", None)
+
+    end = query.get("end", None)
+    end_min = query.get("endMin", None)
+    end_max = query.get("endMax", None)
+
+    if start is not None:
+        start_min = start
+        start_max = start
+
+    if end is not None:
+        # Subtract one, since end is exclusive
+        end_min = end - 1
+        end_max = end - 1
+
+    # TODO: Start can be used without end, calculate max end!! (via referenceBases?)
+
+    ref = query.get("referenceBases", None)
+    alt = query.get("alternateBases", None)
+
+    # TODO: variantType, assemblyId, datasetIds
+
+    results = generic_variant_search(chromosome=query["referenceName"], start_min=start_min, start_max=start_max,
+                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt)
+
+    include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
+    dataset_matches = [ds["id"] for ds in results]
+    if include_dataset_responses == BEACON_IDR_ALL:
+        beacon_datasets = [{"datasetId": ds, "exists": ds in dataset_matches} for ds in datasets.keys()]
+    elif include_dataset_responses == BEACON_IDR_HIT:
+        beacon_datasets = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
+    elif include_dataset_responses == BEACON_IDR_MISS:
+        beacon_datasets = [{"datasetId": ds, "exists": False} for ds in datasets.keys() if ds not in dataset_matches]
+    else:  # BEACON_IDR_NONE
+        # Don't return anything
+        beacon_datasets = None
+
     return jsonify({
         "beaconId": "TODO",  # TODO
-        "apiVersion": "TODO",  # TODO
-        "exists": False,  # TODO
-        "alleleRequest": {},  # TODO
-        "datasetAlleleResponses": ([] if query.get("includeDatasetResponses", BEACON_IDR_NONE) != BEACON_IDR_NONE
-                                   else None)  # TODO: actual results
+        "apiVersion": BEACON_API_VERSION,
+        "exists": len(dataset_matches) > 0,
+        "alleleRequest": query,
+        "datasetAlleleResponses": beacon_datasets
     })
 
 
