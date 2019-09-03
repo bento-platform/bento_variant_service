@@ -321,12 +321,10 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
         if found:
             break
 
-        # TODO: Need to figure out if pytabix does stuff in a defined coordinate system...
-
         tbx = tabix.open(vcf)
 
         try:
-            # TODO: Security of passing this? Verify values
+            # TODO: Security of passing this? Verify values in non-Beacon searches
             for row in tbx.query(chromosome, start_min, end_max):
                 if not internal_data and found:
                     break
@@ -412,6 +410,8 @@ def chord_search(dt, conditions, internal_data=False):
         return null_result
 
     dataset_results = {} if internal_data else []
+
+    # TODO: What coordinate system do we want?
 
     try:
         chromosome = condition_dict["chromosome"]["searchValue"]  # TODO: Check domain for chromosome
@@ -541,6 +541,13 @@ def beacon_query():
         # Subtract one, since end is exclusive
         end_min = end - 1
         end_max = end - 1
+
+    # Convert to VCF coordinates (1-indexed)
+
+    start_min = start_min + 1 if start_min is not None else None
+    start_max = start_max + 1 if start_max is not None else None
+    end_min = end_min + 1 if end_min is not None else None
+    end_max = end_max + 1 if end_max is not None else None
 
     # TODO: Start can be used without end, calculate max end!! (via referenceBases?)
 
