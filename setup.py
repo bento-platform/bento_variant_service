@@ -23,6 +23,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
 
     packages=["chord_variant_service"],
+    include_package_data=True,
 
     url="TODO",
     license="MIT",
