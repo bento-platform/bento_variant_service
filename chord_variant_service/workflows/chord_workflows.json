@@ -2,7 +2,7 @@
   "ingestion": {
     "vcf_gz": {
       "file": "vcf_gz.wdl",
-      "data-types": ["variant"],
+      "data_types": ["variant"],
       "inputs": [
         {
           "type": "file",
@@ -10,13 +10,19 @@
           "extensions": [
             ".vcf.gz"
           ]
+        },
+        {
+          "type": "enum",
+          "id": "assembly_id",
+          "values": ["GRCh38", "GRCh37", "NCBI36", "Other"],
+          "default": "GRCh38"
         }
       ],
-      "outputs": ["{INPUT_0}", "{INPUT_0}.tbi"]
+      "outputs": ["{vcf_gz_file}", "{vcf_gz_file}.tbi"]
     },
     "vcf": {
       "file": "vcf.wdl",
-      "data-types": ["variant"],
+      "data_types": ["variant"],
       "inputs": [
         {
           "type": "file",
@@ -24,7 +30,7 @@
           "extensions": [".vcf"]
         }
       ],
-      "outputs": ["{INPUT_0}.gz", "{INPUT_0}.gz.tbi"]
+      "outputs": ["{vcf_file}.gz", "{vcf_file}.gz.tbi"]
     }
   },
   "analysis": {}
