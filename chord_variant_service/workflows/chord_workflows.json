@@ -1,16 +1,15 @@
 {
   "ingestion": {
     "vcf_gz": {
-      "file": "vcf_gz.wdl",
-      "data_types": ["variant"],
+      "name": "TBI Generation",
       "description": "Given a bgzip-compressed VCF, this ingestion workflow will generate a .tbi file for the data.",
+      "data_types": ["variant"],
+      "file": "vcf_gz.wdl",
       "inputs": [
         {
           "type": "file",
           "id": "vcf_gz_file",
-          "extensions": [
-            ".vcf.gz"
-          ]
+          "extensions": [".vcf.gz"]
         },
         {
           "type": "enum",
@@ -22,14 +21,21 @@
       "outputs": ["{vcf_gz_file}", "{vcf_gz_file}.tbi"]
     },
     "vcf": {
-      "file": "vcf.wdl",
-      "data_types": ["variant"],
+      "name": "VCF Compression and TBI Generation",
       "description": "Given a VCF, this ingestion workflow will generate a .vcf.gz and a .tbi file for the data.",
+      "data_types": ["variant"],
+      "file": "vcf.wdl",
       "inputs": [
         {
           "type": "file",
           "id": "vcf_file",
           "extensions": [".vcf"]
+        },
+        {
+          "type": "enum",
+          "id": "assembly_id",
+          "values": ["GRCh38", "GRCh37", "NCBI36", "Other"],
+          "default": "GRCh38"
         }
       ],
       "outputs": ["{vcf_file}.gz", "{vcf_file}.gz.tbi"]
