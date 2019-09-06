@@ -2,7 +2,6 @@ import chord_lib.ingestion
 import chord_lib.search
 import chord_variant_service
 import datetime
-import hashlib
 import os
 import requests
 import shutil
@@ -651,15 +650,6 @@ def workflow_detail(workflow_name):
         return application.response_class(status=404)
 
     return jsonify(get_workflow(workflow_name))
-
-
-@application.route("/workflows/<string:workflow_name>/hash", methods=["GET"])
-def workflow_hash(workflow_name):
-    if not workflow_exists(workflow_name):
-        return application.response_class(status=404)
-
-    with application.open_resource(get_workflow_resource(workflow_name)) as wfh:
-        return hashlib.sha3_512(wfh.read()).hexdigest()
 
 
 @application.route("/workflows/<string:workflow_name>.wdl", methods=["GET"])
