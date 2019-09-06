@@ -322,8 +322,18 @@ def dataset_list():
     } for d in datasets.keys()])
 
 
-# TODO: Implement GET, DELETE
-# @application.route("/datasets/<uuid:dataset_id>", methods=["POST"])
+# TODO: Implement GET, POST
+@application.route("/datasets/<uuid:dataset_id>", methods=["DELETE"])
+def dataset_detail(dataset_id):
+    if str(dataset_id) not in datasets:
+        # TODO: More standardized error
+        return application.response_class(status=404)
+
+    shutil.rmtree(os.path.join(DATA_PATH, str(dataset_id)))
+    update_datasets()
+
+    # TODO: More complete response?
+    return application.response_class(status=204)
 
 
 # TODO: To chord_lib? Maybe conditions_dict should be a class or something...
