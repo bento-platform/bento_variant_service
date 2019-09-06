@@ -2,6 +2,7 @@ import chord_lib.ingestion
 import chord_lib.search
 import chord_variant_service
 import datetime
+import hashlib
 import os
 import requests
 import shutil
@@ -14,6 +15,7 @@ from flask import Flask, g, json, jsonify, request
 from jsonschema import validate, ValidationError
 from multiprocessing import Pool
 from operator import eq, ne
+from werkzeug.utils import secure_filename
 
 WORKERS = len(os.sched_getaffinity(0))
 
@@ -629,27 +631,44 @@ def workflow_list():
     return jsonify(WORKFLOWS)
 
 
+def workflow_exists(workflow_name):
+    return workflow_name in WORKFLOWS["ingestion"] or workflow_name in WORKFLOWS["analysis"]
+
+
+def get_workflow(workflow_name):
+    return (WORKFLOWS["ingestion"][workflow_name] if workflow_name in WORKFLOWS["ingestion"]
+            else WORKFLOWS["analysis"][workflow_name])
+
+
+def get_workflow_resource(workflow_name):
+    return "workflows/{}".format(secure_filename(get_workflow(workflow_name)["file"]))
+
+
 @application.route("/workflows/<string:workflow_name>", methods=["GET"])
 def workflow_detail(workflow_name):
     # TODO: Better errors
-    if workflow_name not in WORKFLOWS["ingestion"] and workflow_name not in WORKFLOWS["analysis"]:
+    if not workflow_exists(workflow_name):
         return application.response_class(status=404)
 
-    return jsonify(WORKFLOWS["ingestion"][workflow_name] if workflow_name in WORKFLOWS["ingestion"]
-                   else WORKFLOWS["analysis"][workflow_name])
+    return jsonify(get_workflow(workflow_name))
+
+
+@application.route("/workflows/<string:workflow_name>/hash", methods=["GET"])
+def workflow_hash(workflow_name):
+    if not workflow_exists(workflow_name):
+        return application.response_class(status=404)
+
+    with application.open_resource(get_workflow_resource(workflow_name)) as wfh:
+        return hashlib.sha3_512(wfh.read()).hexdigest()
 
 
 @application.route("/workflows/<string:workflow_name>.wdl", methods=["GET"])
 def workflow_wdl(workflow_name):
     # TODO: Better errors
-    if workflow_name not in WORKFLOWS["ingestion"] and workflow_name not in WORKFLOWS["analysis"]:
+    if not workflow_exists(workflow_name):
         return application.response_class(status=404)
 
-    workflow = (WORKFLOWS["ingestion"][workflow_name] if workflow_name in WORKFLOWS["ingestion"]
-                else WORKFLOWS["analysis"][workflow_name])
-
-    # TODO: Clean workflow name
-    with application.open_resource("workflows/{}".format(workflow["file"])) as wfh:
+    with application.open_resource(get_workflow_resource(workflow_name)) as wfh:
         return application.response_class(response=wfh.read(), mimetype="text/plain", status=200)
 
 
