@@ -2,6 +2,7 @@
   <dictionary name="dlougheed">
     <words>
       <w>acgt</w>
+      <w>bgzip</w>
       <w>datasets</w>
       <w>distributedgenomics</w>
       <w>indel</w>

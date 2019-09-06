@@ -3,6 +3,7 @@
     "vcf_gz": {
       "file": "vcf_gz.wdl",
       "data_types": ["variant"],
+      "description": "Given a bgzip-compressed VCF, this ingestion workflow will generate a .tbi file for the data.",
       "inputs": [
         {
           "type": "file",
@@ -23,6 +24,7 @@
     "vcf": {
       "file": "vcf.wdl",
       "data_types": ["variant"],
+      "description": "Given a VCF, this ingestion workflow will generate a .vcf.gz and a .tbi file for the data.",
       "inputs": [
         {
           "type": "file",
