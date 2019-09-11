@@ -231,7 +231,7 @@ def data_type_schema():
 def ingest():
     try:
         assert "dataset_id" in request.form
-        assert "workflow_name" in request.form
+        assert "workflow_id" in request.form
         assert "workflow_metadata" in request.form
         assert "workflow_outputs" in request.form
         assert "workflow_params" in request.form
@@ -241,12 +241,12 @@ def ingest():
         assert dataset_id in datasets
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
-        workflow_name = request.form["workflow_name"].strip()
+        workflow_id = request.form["workflow_id"].strip()
         workflow_metadata = json.loads(request.form["workflow_metadata"])
         workflow_outputs = json.loads(request.form["workflow_outputs"])
         workflow_params = json.loads(request.form["workflow_params"])
 
-        output_params = chord_lib.ingestion.make_output_params(workflow_name, workflow_params,
+        output_params = chord_lib.ingestion.make_output_params(workflow_id, workflow_params,
                                                                workflow_metadata["inputs"])
 
         prefix = chord_lib.ingestion.find_common_prefix(os.path.join(DATA_PATH, dataset_id), workflow_metadata,
