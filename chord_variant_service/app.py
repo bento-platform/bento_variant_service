@@ -18,6 +18,8 @@ from werkzeug.utils import secure_filename
 
 WORKERS = len(os.sched_getaffinity(0))
 
+DATASET_NAME_FILE = ".chord_dataset_name"
+
 # Possible operations: eq, lt, gt, le, ge, co
 # TODO: Regex verification with schema, to front end
 
@@ -124,8 +126,8 @@ def teardown_pool(err):
 def update_datasets():
     global datasets
     datasets = {d: {
-        "name": (open(os.path.join(DATA_PATH, d, ".chord_dataset_name"), "r").read().strip()
-                 if os.path.exists(os.path.join(DATA_PATH, d, ".chord_dataset_name")) else None),
+        "name": (open(os.path.join(DATA_PATH, d, DATASET_NAME_FILE), "r").read().strip()
+                 if os.path.exists(os.path.join(DATA_PATH, d, DATASET_NAME_FILE)) else None),
         "files": [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"]
     } for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
 
@@ -148,7 +150,7 @@ def download_example_datasets():
                 f.write(data)
                 f.flush()
 
-        with open(os.path.join(DATA_PATH, new_id_1, ".chord_dataset_name"), "w") as nf:
+        with open(os.path.join(DATA_PATH, new_id_1, DATASET_NAME_FILE), "w") as nf:
             nf.write("CEU trio")
 
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
@@ -173,7 +175,7 @@ def download_example_datasets():
                 f.write(data)
                 f.flush()
 
-        with open(os.path.join(DATA_PATH, new_id_2, ".chord_dataset_name"), "w") as nf:
+        with open(os.path.join(DATA_PATH, new_id_2, DATASET_NAME_FILE), "w") as nf:
             nf.write("YRI trio")
 
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
@@ -305,7 +307,7 @@ def dataset_list():
 
         os.makedirs(os.path.join(DATA_PATH, new_id))
 
-        with open(os.path.join(DATA_PATH, new_id), "w") as nf:
+        with open(os.path.join(DATA_PATH, new_id, DATASET_NAME_FILE), "w") as nf:
             nf.write(name)
 
         update_datasets()
