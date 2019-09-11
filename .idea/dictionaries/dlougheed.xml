@@ -13,6 +13,7 @@
       <w>pysam</w>
       <w>pytabix</w>
       <w>shapeit</w>
+      <w>slib</w>
       <w>tabix</w>
       <w>tqdm</w>
       <w>vcfs</w>
