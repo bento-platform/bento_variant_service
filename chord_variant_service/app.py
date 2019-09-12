@@ -194,8 +194,8 @@ def download_example_datasets():
 
 update_datasets()
 
-# if len(datasets.keys()) == 0:
-#     download_example_datasets()
+if len(datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":
+    download_example_datasets()
 
 
 def data_type_404(data_type_id):
