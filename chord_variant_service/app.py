@@ -351,15 +351,17 @@ def parse_conditions(conditions):
 
 
 def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data):
+    refresh_at_end = False
+
     found = False
     matches = []
     for vcf in (os.path.join(DATA_PATH, d, vf) for vf in datasets[d]["files"]):
         if found:
             break
 
-        tbx = tabix.open(vcf)
-
         try:
+            tbx = tabix.open(vcf)
+
             # TODO: Security of passing this? Verify values in non-Beacon searches
             for row in tbx.query(chromosome, start_min, end_max):
                 if not internal_data and found:
@@ -389,10 +391,18 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
                         "alt": row[4]
                     })
 
+        except tabix.TabixError:
+            # Dataset might be removed or corrupt, skip it and refresh datasets at the end
+            refresh_at_end = True
+            continue
+
         except ValueError as e:
             # TODO
             print(str(e))
             break
+
+    if refresh_at_end:
+        update_datasets()
 
     if internal_data:
         return d, {"data_type": "variant", "matches": matches} if found else None
