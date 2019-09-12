@@ -393,6 +393,7 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
 
         except tabix.TabixError:
             # Dataset might be removed or corrupt, skip it and refresh datasets at the end
+            print("Error processing tabix file: {}".format(vcf))
             refresh_at_end = True
             continue
 
