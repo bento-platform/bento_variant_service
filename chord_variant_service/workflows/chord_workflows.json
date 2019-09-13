@@ -56,7 +56,7 @@
       ],
       "outputs": [
         {
-          "id": "vcf_file",
+          "id": "vcf_gz_file",
           "type": "file",
           "value": "{vcf_file}.gz"
         },
