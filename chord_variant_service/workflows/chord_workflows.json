@@ -28,11 +28,6 @@
           "id": "tbi_file",
           "type": "file",
           "value": "{vcf_gz_file}.tbi"
-        },
-        {
-          "id": "assembly_id",
-          "type": "string",
-          "value": "{assembly_id}"
         }
       ]
     },
@@ -64,11 +59,6 @@
           "id": "tbi_file",
           "type": "file",
           "value": "{vcf_file}.gz.tbi"
-        },
-        {
-          "id": "assembly_id",
-          "type": "string",
-          "value": "{assembly_id}"
         }
       ]
     }
