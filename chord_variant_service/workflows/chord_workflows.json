@@ -7,18 +7,34 @@
       "file": "vcf_gz.wdl",
       "inputs": [
         {
-          "type": "file",
           "id": "vcf_gz_file",
+          "type": "file",
           "extensions": [".vcf.gz"]
         },
         {
-          "type": "enum",
           "id": "assembly_id",
+          "type": "enum",
           "values": ["GRCh38", "GRCh37", "NCBI36", "Other"],
           "default": "GRCh38"
         }
       ],
-      "outputs": ["{vcf_gz_file}", "{vcf_gz_file}.tbi"]
+      "outputs": [
+        {
+          "id": "vcf_gz_file",
+          "type": "file",
+          "value": "{vcf_gz_file}"
+        },
+        {
+          "id": "tbi_file",
+          "type": "file",
+          "value": "{vcf_gz_file}.tbi"
+        },
+        {
+          "id": "assembly_id",
+          "type": "string",
+          "value": "{assembly_id}"
+        }
+      ]
     },
     "vcf": {
       "name": "VCF Compression and TBI Generation",
@@ -38,7 +54,23 @@
           "default": "GRCh38"
         }
       ],
-      "outputs": ["{vcf_file}.gz", "{vcf_file}.gz.tbi"]
+      "outputs": [
+        {
+          "id": "vcf_file",
+          "type": "file",
+          "value": "{vcf_file}.gz"
+        },
+        {
+          "id": "tbi_file",
+          "type": "file",
+          "value": "{vcf_file}.gz.tbi"
+        },
+        {
+          "id": "assembly_id",
+          "type": "string",
+          "value": "{assembly_id}"
+        }
+      ]
     }
   },
   "analysis": {}
