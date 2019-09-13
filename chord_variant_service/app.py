@@ -254,23 +254,24 @@ def ingest():
         prefix = chord_lib.ingestion.find_common_prefix(os.path.join(DATA_PATH, dataset_id), workflow_metadata,
                                                         output_params)
 
-        # Move files from the temporary file system location to their final resting place
-        for file in workflow_metadata["outputs"]:
-            if file not in workflow_outputs:  # TODO: Is this formatted with output_params or not?
+        for output in workflow_metadata["outputs"]:
+            if output["id"] not in workflow_outputs:
                 # Missing output
-                print("Missing {} in {}".format(file, workflow_outputs))
+                print("Missing {} in {}".format(output["id"], workflow_outputs))
                 return application.response_class(status=400)
 
-            # Full path to to-be-newly-ingested file
-            file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.output_file_name(file, output_params))
+            if output["type"] == chord_lib.ingestion.WORKFLOW_TYPE_FILE:
+                # Full path to to-be-newly-ingested file
+                file_path = os.path.join(DATA_PATH, dataset_id,
+                                         chord_lib.ingestion.formatted_output(output, output_params))
 
-            # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
-            if prefix is not None:
-                file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.file_with_prefix(
-                    chord_lib.ingestion.output_file_name(file, output_params), prefix))
+                # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
+                if prefix is not None:
+                    file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.file_with_prefix(
+                        chord_lib.ingestion.formatted_output(output, output_params), prefix))
 
-            # Move the file from its temporary location on the filesystem to its location in the service's data folder.
-            shutil.move(workflow_outputs[file], file_path)  # TODO: Is this formatted with output_params or not?
+                # Move the file from its temporary location to its location in the service's data folder.
+                shutil.move(workflow_outputs[output["id"]], file_path)
 
         update_datasets()
 
