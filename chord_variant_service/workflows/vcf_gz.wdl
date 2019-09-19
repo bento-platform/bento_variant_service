@@ -2,18 +2,18 @@ workflow vcf_gz {
     File vcf_gz_file
     String assembly_id
 
-    call generate_tbi {
+    call generate_tbi as generate_tbi_1 {
         input: vcf_gz_file=vcf_gz_file
     }
 
     # Need to pass TBI file in here, otherwise execution occurs out-of-order
     call vcf_annotate {
         input: vcf_gz_file = vcf_gz_file,
-               tbi_file = generate_tbi.tbi_file,
+               tbi_file = generate_tbi_1.tbi_file,
                assembly_id = assembly_id
     }
 
-    call generate_tbi {
+    call generate_tbi as generate_tbi_2 {
         input: vcf_gz_file=vcf_annotate.vcf_gz_file
     }
 }
