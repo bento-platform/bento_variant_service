@@ -1,6 +1,7 @@
-certifi==2019.6.16
+attrs==19.1.0
+certifi==2019.9.11
 chardet==3.0.4
-git+https://bitbucket.org/genap/chord_lib
+chord-lib==0.1.0
 Click==7.0
 Flask==1.1.1
 idna==2.8
@@ -8,8 +9,11 @@ itsdangerous==1.1.0
 Jinja2==2.10.1
 jsonschema==3.0.2
 MarkupSafe==1.1.1
+pyrsistent==0.15.4
+pysam==0.15.3
 pytabix==0.1
 requests==2.22.0
-tqdm==4.35.0
-urllib3==1.25.3
-Werkzeug==0.15.6
+six==1.12.0
+tqdm==4.36.1
+urllib3==1.25.5
+Werkzeug==0.16.0
