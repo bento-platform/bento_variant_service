@@ -15,7 +15,7 @@ BEACON_API_VERSION = "v1.0"
 
 bp_beacon = Blueprint("beacon", __name__)
 
-with bp_beacon.open_resource("beacon_allele_request.schema.json") as bars:
+with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bars:
     BEACON_ALLELE_REQUEST_SCHEMA = json.load(bars)
 
 
