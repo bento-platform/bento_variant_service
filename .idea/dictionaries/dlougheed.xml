@@ -12,6 +12,7 @@
       <w>ncbi</w>
       <w>pysam</w>
       <w>pytabix</w>
+      <w>pytest</w>
       <w>shapeit</w>
       <w>slib</w>
       <w>tabix</w>

@@ -9,3 +9,10 @@ Proposed quality control pipeline:
 The workflows exposed by this service currently depend on:
 
 * HTSlib
+
+
+## Running Tests
+
+```bash
+python3 -m pytest --cov=chord_variant_service
+```
