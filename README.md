@@ -1,5 +1,7 @@
 # CHORD Variant Service
 
+![Build Status](https://api.travis-ci.org/c3g/chord_variant_service.svg?branch=master)
+
 Proposed quality control pipeline:
 
 * Standardize chromosome names (TODO: Only for humans? Maybe just remove `chr`)
