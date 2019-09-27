@@ -16,6 +16,8 @@ __all__ = [
     "ID_RETRIES",
     "MIME_TYPE",
 
+    "datasets",
+
     "update_datasets",
     "download_example_datasets",
     "bp_datasets",
