@@ -14,5 +14,5 @@ The workflows exposed by this service currently depend on:
 ## Running Tests
 
 ```bash
-python3 -m pytest --cov=chord_variant_service
+python3 -m pytest --cov=chord_variant_service --cov-branch
 ```
