@@ -4,6 +4,7 @@ certifi==2019.9.11
 chardet==3.0.4
 git+https://bitbucket.org/genap/chord_lib
 Click==7.0
+codecov==2.0.15
 coverage==4.5.4
 Flask==1.1.1
 idna==2.8
@@ -14,6 +15,7 @@ jsonschema==3.0.2
 MarkupSafe==1.1.1
 more-itertools==7.2.0
 packaging==19.2
+pkg-resources==0.0.0
 pluggy==0.13.0
 py==1.8.0
 pyparsing==2.4.2
