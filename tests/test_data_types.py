@@ -32,13 +32,16 @@ def test_data_types(client):
     # TODO: Check schemas are valid
 
 
-def test_data_type_variant(client):
+def test_data_type_variant(client, json_schema):
     rv = client.get("/data-types/variant")
     data = rv.get_json()
 
     validate(data, DATA_TYPE_SCHEMA)
     assert data["id"] == "variant"
-    # TODO: Check schema is valid
+    validate(data["schema"], json_schema)  # Validate that the schema given is a valid JSON schema
 
 
-# TODO: def test_data_type_variant_schema
+def test_data_type_variant_schema(client, json_schema):
+    rv = client.get("/data-types/variant/schema")
+    data = rv.get_json()
+    validate(data, json_schema)
