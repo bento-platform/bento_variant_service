@@ -145,10 +145,12 @@ def beacon_query():
     ref = query.get("referenceBases", None)
     alt = query.get("alternateBases", None)
 
-    # TODO: variantType, assemblyId, datasetIds
+    dataset_ids = query.get("datasetIds", None)
+
+    # TODO: variantType, assemblyId
 
     results = generic_variant_search(chromosome=query["referenceName"], start_min=start_min, start_max=start_max,
-                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt)
+                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt, dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
     dataset_matches = [ds["id"] for ds in results]
