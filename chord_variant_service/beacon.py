@@ -13,13 +13,6 @@ from .search import generic_variant_search
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
 CHORD_DOMAIN = urlparse(CHORD_URL).netloc
 
-# Create a reverse DNS beacon ID, e.g. com.dlougheed.1.beacon
-BEACON_ID = ".".join((
-    *(CHORD_DOMAIN.split(":")[0].split(".")),
-    *((CHORD_DOMAIN.split(':')[1],) if len(CHORD_DOMAIN.split(":")) > 1 else ()),
-    "beacon"
-))
-
 BEACON_IDR_ALL = "ALL"
 BEACON_IDR_HIT = "HIT"
 BEACON_IDR_MISS = "MISS"
@@ -31,6 +24,18 @@ bp_beacon = Blueprint("beacon", __name__)
 
 with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bars:
     BEACON_ALLELE_REQUEST_SCHEMA = json.load(bars)
+
+
+def generate_beacon_id(domain: str) -> str:
+    return ".".join((
+        *(domain.split(":")[0].split(".")),
+        *((domain.split(':')[1],) if len(domain.split(":")) > 1 else ()),
+        "beacon"
+    ))
+
+
+# Create a reverse DNS beacon ID, e.g. com.dlougheed.1.beacon
+BEACON_ID = generate_beacon_id(CHORD_DOMAIN)
 
 
 @bp_beacon.route("/beacon", methods=["GET"])
