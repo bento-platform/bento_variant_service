@@ -35,7 +35,7 @@ with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bar
 @bp_beacon.route("/beacon", methods=["GET"])
 def beacon_get():
     return jsonify({
-        "id": BEACON_ID,  # TODO
+        "id": BEACON_ID,
         "name": f"CHORD Beacon (ID: {BEACON_ID})",  # TODO: Nicer name
         "apiVersion": BEACON_API_VERSION,
         "organization": {  # TODO: Make this dynamic for user?
