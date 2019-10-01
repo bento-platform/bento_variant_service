@@ -1,10 +1,23 @@
 import chord_variant_service
+import os
+
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
+from urllib.parse import urlparse
 
 from .datasets import datasets
 from .search import generic_variant_search
 
+
+CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
+CHORD_DOMAIN = urlparse(CHORD_URL).netloc
+
+# Create a reverse DNS beacon ID, e.g. com.dlougheed.1.beacon
+BEACON_ID = ".".join((
+    *(CHORD_DOMAIN.split(":")[0].split(".")),
+    *((CHORD_DOMAIN.split(':')[1],) if len(CHORD_DOMAIN.split(":")) > 1 else ()),
+    "beacon"
+))
 
 BEACON_IDR_ALL = "ALL"
 BEACON_IDR_HIT = "HIT"
@@ -22,11 +35,14 @@ with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bar
 @bp_beacon.route("/beacon", methods=["GET"])
 def beacon_get():
     return jsonify({
-        "id": "TODO",  # TODO
-        "name": "TODO",  # TODO
+        "id": BEACON_ID,  # TODO
+        "name": f"CHORD Beacon (ID: {BEACON_ID})",  # TODO: Nicer name
         "apiVersion": BEACON_API_VERSION,
-        "organization": "GenAP",
-        "description": "TODO",  # TODO, optional
+        "organization": {  # TODO: Make this dynamic for user?
+            "id": "ca.computationalgenomics",
+            "name": "Canadian Centre for Computational Genomics"
+        },
+        "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO, optional
         "version": chord_variant_service.__version__,
         "datasets": [{
             "id": d_id,
@@ -147,7 +163,7 @@ def beacon_query():
         beacon_datasets = None
 
     return jsonify({
-        "beaconId": "TODO",  # TODO
+        "beaconId": BEACON_ID,
         "apiVersion": BEACON_API_VERSION,
         "exists": len(dataset_matches) > 0,
         "alleleRequest": query,
