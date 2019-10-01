@@ -76,19 +76,20 @@ def search_worker(args):
 
 
 def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, end_max=None, ref=None, alt=None,
-                           ref_op=eq, alt_op=eq, internal_data=False):
+                           ref_op=eq, alt_op=eq, internal_data=False, dataset_ids=None):
 
     # TODO: Sane defaults
     # TODO: Figure out inclusion/exclusion with start_min/end_max
 
     dataset_results = {} if internal_data else []
+    ds = set(dataset_ids) if dataset_ids is not None else None
 
     try:
         pool = get_pool()
         pool_map = pool.imap_unordered(
             search_worker,
-            ((d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data)
-             for d in datasets)
+            ((d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
+              dataset_ids) for d in datasets if ds is None or d in ds)
         )
 
         if internal_data:
