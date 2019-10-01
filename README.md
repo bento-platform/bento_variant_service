@@ -14,6 +14,15 @@ The workflows exposed by this service currently depend on:
 * HTSlib
 
 
+## Environment Variables
+
+```bash
+DATA=/path/to/data/directory
+DEMO_DATA=  # Set this to something other than blank to download example data on boot
+CHORD_URL=http://localhost/  # URL of CHORD node or service URL
+```
+
+
 ## Running Tests
 
 ```bash
