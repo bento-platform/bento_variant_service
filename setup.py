@@ -2,14 +2,12 @@
 
 import setuptools
 
-from chord_variant_service import __version__
-
 with open("README.md", "r") as rf:
     long_description = rf.read()
 
 setuptools.setup(
     name="chord_variant_service",
-    version=__version__,
+    version="0.1.0",
 
     python_requires=">=3.6",
     install_requires=["chord_lib @ git+https://bitbucket.org/genap/chord_lib", "Flask", "jsonschema", "pysam",
