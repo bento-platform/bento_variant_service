@@ -26,6 +26,7 @@ __all__ = [
 
 DATA_PATH = os.environ.get("DATA", "data/")
 DATASET_NAME_FILE = ".chord_dataset_name"
+DATASET_METADATA_FILE = ".chord_dataset_metadata"
 ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
@@ -37,7 +38,9 @@ def update_datasets():
     datasets = {d: {
         "name": (open(os.path.join(DATA_PATH, d, DATASET_NAME_FILE), "r").read().strip()
                  if os.path.exists(os.path.join(DATA_PATH, d, DATASET_NAME_FILE)) else None),
-        "files": [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"]
+        "files": [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"],
+        "metadata": (json.load(open(os.path.join(DATA_PATH, d, DATASET_METADATA_FILE), "r"))
+                     if os.path.exists(os.path.join(DATA_PATH, d, DATASET_METADATA_FILE)) else {}),
     } for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
 
 
@@ -61,6 +64,14 @@ def download_example_datasets():
 
         with open(os.path.join(DATA_PATH, new_id_1, DATASET_NAME_FILE), "w") as nf:
             nf.write("CEU trio")
+
+        with open(os.path.join(DATA_PATH, new_id_1, DATASET_METADATA_FILE), "w") as nf:
+            now = datetime.datetime.utcnow().isoformat() + "Z"
+            json.dump({
+                "name": "CEU trio",
+                "created": now,
+                "updated": now
+            }, nf)
 
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "CEU.trio.2010_07.indel.sites.vcf.gz.tbi",
@@ -87,6 +98,14 @@ def download_example_datasets():
         with open(os.path.join(DATA_PATH, new_id_2, DATASET_NAME_FILE), "w") as nf:
             nf.write("YRI trio")
 
+        with open(os.path.join(DATA_PATH, new_id_1, DATASET_METADATA_FILE), "w") as nf:
+            now = datetime.datetime.utcnow().isoformat() + "Z"
+            nf.write(json.dump({
+                "name": "YRI trio",
+                "created": now,
+                "updated": now
+            }, nf))
+
     with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
                       "YRI.trio.2010_07.indel.sites.vcf.gz.tbi",
                       stream=True) as r:
@@ -111,7 +130,7 @@ bp_datasets = Blueprint("datasets", __name__)
 
 
 def data_type_404(data_type_id):
-    return json.dumps({
+    return jsonify({
         "code": 404,
         "message": "Data type not found",
         "timestamp": datetime.datetime.utcnow().isoformat("T") + "Z",
@@ -147,17 +166,27 @@ def dataset_list():
         with open(os.path.join(DATA_PATH, new_id, DATASET_NAME_FILE), "w") as nf:
             nf.write(name)
 
+        with open(os.path.join(DATA_PATH, new_id, DATASET_METADATA_FILE), "w") as nf:
+            now = datetime.datetime.utcnow().isoformat() + "Z"
+            json.dump({
+                "name": name,
+                "created": now,
+                "updated": now
+            }, nf)
+
         update_datasets()
 
         return current_app.response_class(response=json.dumps({
             "id": new_id,
             "name": datasets[new_id]["name"],
+            "metadata": datasets[new_id]["metadata"],
             "schema": VARIANT_SCHEMA
         }), mimetype=MIME_TYPE, status=201)
 
     return jsonify([{
         "id": d,
         "name": datasets[d]["name"],
+        "metadata": datasets[d]["metadata"],
         "schema": VARIANT_SCHEMA
     } for d in datasets.keys()])
 

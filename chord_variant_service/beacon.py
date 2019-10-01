@@ -1,6 +1,7 @@
 import chord_variant_service
 import os
 
+from datetime import datetime
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from urllib.parse import urlparse
@@ -42,14 +43,14 @@ def beacon_get():
             "id": "ca.computationalgenomics",
             "name": "Canadian Centre for Computational Genomics"
         },
-        "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO, optional
+        "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO: More specific
         "version": chord_variant_service.__version__,
         "datasets": [{
             "id": d_id,
             "name": d["name"],
             "assemblyId": "TODO",  # TODO
-            "createDateTime": "TODO",  # TODO
-            "updateDateTime": "TODO"  # TODO
+            "createDateTime": d["metadata"].get("created", datetime.utcnow().isoformat() + "Z"),  # Use now for old ones
+            "updateDateTime": d["metadata"].get("updated", datetime.utcnow().isoformat() + "Z")  # Use now for old ones
         } for d_id, d in datasets.items()]
     })
 
