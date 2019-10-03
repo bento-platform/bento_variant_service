@@ -6,8 +6,9 @@ import tqdm
 import uuid
 
 from flask import Blueprint, current_app, json, jsonify, request
+from jsonschema import validate, ValidationError
 
-from .variants import VARIANT_SCHEMA
+from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
 
 __all__ = [
@@ -151,6 +152,12 @@ def dataset_list():
         new_id = str(uuid.uuid4())
 
         name = request.form["name"].strip()
+        metadata = json.loads(request.form["metadata"])
+
+        try:
+            validate(metadata, VARIANT_TABLE_METADATA_SCHEMA)
+        except ValidationError:
+            return current_app.response_class(status=400)  # TODO: Error message
 
         i = 0
         while new_id in datasets and i < ID_RETRIES:
@@ -216,10 +223,16 @@ def data_type_list():
 def data_type_detail():
     return jsonify({
         "id": "variant",
-        "schema": VARIANT_SCHEMA
+        "schema": VARIANT_SCHEMA,
+        "metadata_schema": VARIANT_TABLE_METADATA_SCHEMA
     })
 
 
 @bp_datasets.route("/data-types/variant/schema", methods=["GET"])
 def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
+
+
+@bp_datasets.route("/data-types/variant/metadata_schema", methods=["GET"])
+def data_type_schema():
+    return jsonify(VARIANT_TABLE_METADATA_SCHEMA)

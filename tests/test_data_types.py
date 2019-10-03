@@ -39,9 +39,16 @@ def test_data_type_variant(client, json_schema):
     validate(data, DATA_TYPE_SCHEMA)
     assert data["id"] == "variant"
     validate(data["schema"], json_schema)  # Validate that the schema given is a valid JSON schema
+    validate(data["metadata_schema"], json_schema)  # Validate that the metadata schema given is a valid JSON schema
 
 
 def test_data_type_variant_schema(client, json_schema):
     rv = client.get("/data-types/variant/schema")
+    data = rv.get_json()
+    validate(data, json_schema)
+
+
+def test_data_type_variant_metadata_schema(client, json_schema):
+    rv = client.get("/data-types/variant/metadata_schema")
     data = rv.get_json()
     validate(data, json_schema)
