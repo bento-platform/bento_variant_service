@@ -4,11 +4,15 @@ import shutil
 import uuid
 
 from flask import Blueprint, current_app, json, request
+from jsonschema import validate, ValidationError
 
 from .datasets import DATA_PATH, datasets, update_datasets
 
 
 bp_ingest = Blueprint("ingest", __name__)
+
+with bp_ingest.open_resource("schemas/chord_ingest.schema.json") as cf:
+    CHORD_INGEST_SCHEMA = json.load(cf)   # TODO: Refactor this schema and semi-combine with workflow schema
 
 
 # Ingest files into datasets
@@ -16,21 +20,17 @@ bp_ingest = Blueprint("ingest", __name__)
 @bp_ingest.route("/ingest", methods=["POST"])
 def ingest():
     try:
-        assert "dataset_id" in request.form
-        assert "workflow_id" in request.form
-        assert "workflow_metadata" in request.form
-        assert "workflow_outputs" in request.form
-        assert "workflow_params" in request.form
+        validate(request.json, CHORD_INGEST_SCHEMA)
 
         dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
 
         assert dataset_id in datasets
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
-        workflow_id = request.form["workflow_id"].strip()
-        workflow_metadata = json.loads(request.form["workflow_metadata"])
-        workflow_outputs = json.loads(request.form["workflow_outputs"])
-        workflow_params = json.loads(request.form["workflow_params"])
+        workflow_id = request.json["workflow_id"].strip()
+        workflow_metadata = request.json["workflow_metadata"]
+        workflow_outputs = request.json["workflow_outputs"]
+        workflow_params = request.json["workflow_params"]
 
         output_params = chord_lib.ingestion.make_output_params(workflow_id, workflow_params,
                                                                workflow_metadata["inputs"])
@@ -61,7 +61,7 @@ def ingest():
 
         return current_app.response_class(status=204)
 
-    except (AssertionError, ValueError):  # assertion or JSON conversion failure
+    except (AssertionError, ValidationError):  # assertion or JSON schema failure
         # TODO: Better errors
-        print("Assertion or value error")
+        print("Assertion / validation error")
         return current_app.response_class(status=400)
