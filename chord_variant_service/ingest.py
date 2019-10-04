@@ -3,7 +3,7 @@ import os
 import shutil
 import uuid
 
-from flask import Blueprint, current_app, json, request
+from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
 from .datasets import DATA_PATH, datasets, update_datasets
@@ -11,16 +11,13 @@ from .datasets import DATA_PATH, datasets, update_datasets
 
 bp_ingest = Blueprint("ingest", __name__)
 
-with bp_ingest.open_resource("schemas/chord_ingest.schema.json") as cf:
-    CHORD_INGEST_SCHEMA = json.load(cf)   # TODO: Refactor this schema and semi-combine with workflow schema
-
 
 # Ingest files into datasets
 # Ingestion doesn't allow uploading files directly, it simply moves them from a different location on the filesystem.
 @bp_ingest.route("/ingest", methods=["POST"])
 def ingest():
     try:
-        validate(request.json, CHORD_INGEST_SCHEMA)
+        validate(request.json, chord_lib.schemas.chord.CHORD_INGEST_SCHEMA)
 
         dataset_id = request.form["dataset_id"]  # TODO: WES needs to be able to forward this on...
 
