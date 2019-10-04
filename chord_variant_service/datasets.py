@@ -45,7 +45,7 @@ def update_datasets():
     } for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
 
 
-def download_example_datasets():
+def download_example_datasets():  # pragma: no cover
     # Add some fake data
     new_id_1 = str(uuid.uuid4())
     new_id_2 = str(uuid.uuid4())
@@ -123,7 +123,7 @@ def download_example_datasets():
 
 update_datasets()
 
-if len(datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":
+if len(datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":  # pragma: no cover
     download_example_datasets()
 
 
