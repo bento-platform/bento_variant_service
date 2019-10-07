@@ -10,25 +10,17 @@ from .pool import get_pool
 from .variants import VARIANT_SCHEMA
 
 
-def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-                        assembly_id):
+def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data):
     refresh_at_end = False
 
     found = False
     matches = []
-    for vcf in (vf for vf, a_id in zip(datasets[d]["files"], datasets[d]["assembly_ids"])
-                if assembly_id is None or a_id == assembly_id):
-        if found:
-            break
-
+    for vcf in datasets[d]["files"]:
         try:
             tbx = tabix.open(vcf)
 
             # TODO: Security of passing this? Verify values in non-Beacon searches
             for row in tbx.query(chromosome, start_min, end_max):
-                if not internal_data and found:
-                    break
-
                 if (start_max is not None and row[1] > start_max) or (end_min is not None and row[2] < end_min):
                     # TODO: Are start_max and end_min both inclusive for sure? Pretty sure but unclear
                     continue
@@ -44,7 +36,11 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
                     match = True
 
                 found = found or match
-                if match and internal_data:
+
+                if not internal_data and found:
+                    break
+
+                if match:  # implicitly internal_data is True here as well
                     matches.append({
                         "chromosome": row[0],
                         "start": row[1],
@@ -53,11 +49,13 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
                         "alt": row[4]
                     })
 
+            if found:
+                break
+
         except tabix.TabixError:
             # Dataset might be removed or corrupt, skip it and refresh datasets at the end
             print("Error processing tabix file: {}".format(vcf))
             refresh_at_end = True
-            continue
 
         except ValueError as e:
             # TODO
