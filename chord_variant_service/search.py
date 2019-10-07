@@ -1,21 +1,21 @@
 import chord_lib.search
-import os
 import tabix
 
 from flask import Blueprint, jsonify, request
 from operator import eq, ne
 
-from .datasets import DATA_PATH, datasets, update_datasets
+from .datasets import datasets, update_datasets
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
 
 
-def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data):
+def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
+                        assembly_id):
     refresh_at_end = False
 
     found = False
     matches = []
-    for vcf in datasets[d]["files"]:
+    for vcf in (vf for vf, a_id in zip(datasets[d]["files"], datasets[d]["assembly_ids"]) if a_id == assembly_id):
         try:
             tbx = tabix.open(vcf)
 
@@ -89,7 +89,8 @@ def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, 
         pool_map = pool.imap_unordered(
             search_worker,
             ((d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-              assembly_id) for d in datasets if ds is None or d in ds)
+              assembly_id) for d in datasets
+             if (ds is None or d in ds) and (assembly_id is None or assembly_id in datasets[d]["assembly_ids"]))
         )
 
         if internal_data:
