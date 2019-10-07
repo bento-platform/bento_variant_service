@@ -7,6 +7,7 @@ import uuid
 
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
+from pysam import VariantFile
 
 from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
@@ -18,12 +19,15 @@ __all__ = [
     "MIME_TYPE",
 
     "datasets",
+    "beacon_datasets",
 
     "update_datasets",
     "download_example_datasets",
     "bp_datasets",
 ]
 
+
+ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
 
 DATA_PATH = os.environ.get("DATA", "data/")
 DATASET_NAME_FILE = ".chord_dataset_name"
@@ -32,17 +36,46 @@ ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
 datasets = {}
+beacon_datasets = {}
+
+
+def _get_assembly_id(vcf_path: str) -> str:
+    vcf = VariantFile(vcf_path)
+    assembly_id = "Other"
+    for h in vcf.header.records:
+        if h.key == ASSEMBLY_ID_VCF_HEADER:
+            assembly_id = h.value
+    return assembly_id
 
 
 def update_datasets():
     global datasets
-    datasets = {d: {
-        "name": (open(os.path.join(DATA_PATH, d, DATASET_NAME_FILE), "r").read().strip()
-                 if os.path.exists(os.path.join(DATA_PATH, d, DATASET_NAME_FILE)) else None),
-        "files": [file for file in os.listdir(os.path.join(DATA_PATH, d)) if file[-6:] == "vcf.gz"],
-        "metadata": (json.load(open(os.path.join(DATA_PATH, d, DATASET_METADATA_FILE), "r"))
-                     if os.path.exists(os.path.join(DATA_PATH, d, DATASET_METADATA_FILE)) else {}),
-    } for d in os.listdir(DATA_PATH) if os.path.isdir(os.path.join(DATA_PATH, d))}
+    global beacon_datasets
+
+    for d in os.listdir(DATA_PATH):
+        if not os.path.isdir(os.path.join(DATA_PATH, d)):
+            continue
+
+        name_path = os.path.join(DATA_PATH, d, DATASET_NAME_FILE)
+        metadata_path = os.path.join(DATA_PATH, d, DATASET_METADATA_FILE)
+        vcf_files = tuple(os.path.join(DATA_PATH, d, file) for file in os.listdir(os.path.join(DATA_PATH, d))
+                          if file[-6:] == "vcf.gz")
+        assembly_ids = tuple(_get_assembly_id(vcf_path) for vcf_path in vcf_files)
+
+        datasets[d] = {
+            "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
+            "files": vcf_files,
+            "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
+            "assembly_ids": assembly_ids
+        }
+
+        for a in assembly_ids:
+            beacon_datasets[(d, a)] = {
+                "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
+                "files": tuple(f1 for f1, a1 in zip(vcf_files, assembly_ids) if a1 == a),
+                "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
+                "assembly_id": a
+            }
 
 
 def download_example_datasets():  # pragma: no cover

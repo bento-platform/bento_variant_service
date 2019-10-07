@@ -6,8 +6,10 @@ from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from urllib.parse import urlparse
 
-from .datasets import datasets
+from .datasets import beacon_datasets
 from .search import generic_variant_search
+
+from typing import Tuple
 
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
@@ -38,6 +40,10 @@ def generate_beacon_id(domain: str) -> str:
 BEACON_ID = generate_beacon_id(CHORD_DOMAIN)
 
 
+def _make_beacon_dataset_id(tp: Tuple[str, str]) -> str:
+    return f"{tp[0]}:{tp[1]}"
+
+
 @bp_beacon.route("/beacon", methods=["GET"])
 def beacon_get():
     return jsonify({
@@ -51,12 +57,12 @@ def beacon_get():
         "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO: More specific
         "version": chord_variant_service.__version__,
         "datasets": [{
-            "id": d_id,
+            "id": _make_beacon_dataset_id(d_id),
             "name": d["name"],
-            "assemblyId": "TODO",  # TODO
+            "assemblyId": d_id[1],
             "createDateTime": d["metadata"].get("created", datetime.utcnow().isoformat() + "Z"),  # Use now for old ones
             "updateDateTime": d["metadata"].get("updated", datetime.utcnow().isoformat() + "Z")  # Use now for old ones
-        } for d_id, d in datasets.items()]
+        } for d_id, d in beacon_datasets.items()]
     })
 
 
@@ -79,7 +85,7 @@ def beacon_query():
             "referenceBases": request.args.get("referenceBases", "N"),
             "alternateBases": request.args.get("alternateBases", "N"),
             "variantType": request.args.get("variantType", None),
-            "assemblyId": request.args.get("assemblyId"),  # TODO
+            "assemblyId": request.args.get("assemblyId"),
             "datasetIds": request.args.get("datasetIds", None),
             "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
         }).items() if v is not None}
@@ -151,29 +157,36 @@ def beacon_query():
     ref = query.get("referenceBases", None)
     alt = query.get("alternateBases", None)
 
-    dataset_ids = query.get("datasetIds", None)
+    assembly_id = query["assemblyId"]
 
-    # TODO: variantType, assemblyId
+    dataset_ids = query.get("datasetIds", None)
+    if dataset_ids is not None:
+        dataset_ids = tuple(set(d.split(":")[0] for d in dataset_ids))
+
+    # TODO: variantType
 
     results = generic_variant_search(chromosome=query["referenceName"], start_min=start_min, start_max=start_max,
-                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt, dataset_ids=dataset_ids)
+                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt, assembly_id=assembly_id,
+                                     dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
-    dataset_matches = [ds["id"] for ds in results]
+    dataset_matches = [_make_beacon_dataset_id((ds, a_id)) for ds, a_id in beacon_datasets.keys()
+                       if ds in results and a_id == assembly_id]
     if include_dataset_responses == BEACON_IDR_ALL:
-        beacon_datasets = [{"datasetId": ds, "exists": ds in dataset_matches} for ds in datasets.keys()]
+        beacon_dataset_hits = [{"datasetId": ds, "exists": ds in dataset_matches} for ds in beacon_datasets.keys()]
     elif include_dataset_responses == BEACON_IDR_HIT:
-        beacon_datasets = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
+        beacon_dataset_hits = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
     elif include_dataset_responses == BEACON_IDR_MISS:
-        beacon_datasets = [{"datasetId": ds, "exists": False} for ds in datasets.keys() if ds not in dataset_matches]
+        beacon_dataset_hits = [{"datasetId": ds, "exists": False} for ds in beacon_datasets.keys()
+                               if ds not in dataset_matches]
     else:  # BEACON_IDR_NONE
         # Don't return anything
-        beacon_datasets = None
+        beacon_dataset_hits = None
 
     return jsonify({
         "beaconId": BEACON_ID,
         "apiVersion": BEACON_API_VERSION,
         "exists": len(dataset_matches) > 0,
         "alleleRequest": query,
-        "datasetAlleleResponses": beacon_datasets
+        "datasetAlleleResponses": beacon_dataset_hits
     })
