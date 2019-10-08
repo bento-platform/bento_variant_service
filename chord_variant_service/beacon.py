@@ -70,11 +70,8 @@ def beacon_get():
 def beacon_query():
     # TODO: Careful with end, it should be exclusive
 
-    if request.method == "POST":
-        # TODO: What if request.json is non-dict? Should handle better
-        query = {k: v for k, v in request.json if v is not None}
-    else:
-        query = {k: v for k, v in ({
+    query = {
+        k: v for k, v in (request.json if request.method == "POST" else {
             "referenceName": request.args.get("referenceName"),
             "start": request.args.get("start", None),
             "startMin": request.args.get("startMin", None),
@@ -88,7 +85,8 @@ def beacon_query():
             "assemblyId": request.args.get("assemblyId"),
             "datasetIds": request.args.get("datasetIds", None),
             "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
-        }).items() if v is not None}
+        }) if v is not None
+    }
 
     # Validate query
 
@@ -129,21 +127,12 @@ def beacon_query():
     # TODO: Check we have one of these... rules in Beacon schema online?
 
     start = query.get("start", None)
-    start_min = query.get("startMin", None)
-    start_max = query.get("startMax", None)
+    start_min = query.get("startMin", None) if start is None else start
+    start_max = query.get("startMax", None) if start is None else start
 
     end = query.get("end", None)
-    end_min = query.get("endMin", None)
-    end_max = query.get("endMax", None)
-
-    if start is not None:
-        start_min = start
-        start_max = start
-
-    if end is not None:
-        # Subtract one, since end is exclusive
-        end_min = end - 1
-        end_max = end - 1
+    end_min = query.get("endMin", None) if end is None else end - 1  # Subtract one, since end is exclusive
+    end_max = query.get("endMax", None) if end is None else end - 1  # "
 
     # Convert to VCF coordinates (1-indexed)
 
