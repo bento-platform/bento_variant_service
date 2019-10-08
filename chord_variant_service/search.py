@@ -1,4 +1,5 @@
 import chord_lib.search
+import re
 import tabix
 
 from flask import Blueprint, jsonify, request
@@ -7,6 +8,10 @@ from operator import eq, ne
 from .datasets import datasets, update_datasets
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
+
+
+CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")
+BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
 
 def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
@@ -134,11 +139,18 @@ def chord_search(dt, conditions, internal_data=False):
     # TODO: What coordinate system do we want?
 
     try:
-        chromosome = condition_dict["chromosome"]["searchValue"]  # TODO: Check domain for chromosome
+        chromosome = condition_dict["chromosome"]["searchValue"]
+        assert re.match(CHROMOSOME_REGEX, chromosome) is not None  # Check validity of VCF chromosome
+
         start_pos = int(condition_dict["start"]["searchValue"])
         end_pos = int(condition_dict["end"]["searchValue"])
+
         ref_cond = condition_dict.get("ref", None)
         alt_cond = condition_dict.get("alt", None)
+
+        assert (re.match(ref_cond["searchValue"], BASE_REGEX) is not None if ref_cond else True)
+        assert (re.match(alt_cond["searchValue"], BASE_REGEX) is not None if alt_cond else True)
+
         ref_op = ne if ref_cond is not None and ref_cond["negated"] else eq
         alt_op = ne if alt_cond is not None and alt_cond["negated"] else eq
 
@@ -147,7 +159,7 @@ def chord_search(dt, conditions, internal_data=False):
                                       alt=alt_cond["searchValue"] if alt_cond is not None else None,
                                       ref_op=ref_op, alt_op=alt_op, internal_data=internal_data)
 
-    except ValueError as e:
+    except (ValueError, AssertionError) as e:
         # TODO
         print(str(e))
 
