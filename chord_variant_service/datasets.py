@@ -172,6 +172,34 @@ def data_type_404(data_type_id):
     })
 
 
+def generate_new_dataset_id():
+    new_id = str(uuid.uuid4())
+    i = 0
+    while new_id in datasets and i < ID_RETRIES:
+        new_id = str(uuid.uuid4())
+        i += 1
+
+    return None if i == ID_RETRIES else new_id
+
+
+def create_dataset_and_update(d_id, name, metadata):
+    os.makedirs(os.path.join(DATA_PATH, d_id))
+
+    with open(os.path.join(DATA_PATH, d_id, DATASET_NAME_FILE), "w") as nf:
+        nf.write(name)
+
+    with open(os.path.join(DATA_PATH, d_id, DATASET_METADATA_FILE), "w") as nf:
+        now = datetime.datetime.utcnow().isoformat() + "Z"
+        json.dump({
+            "name": name,
+            **metadata,
+            "created": now,
+            "updated": now
+        }, nf)
+
+    update_datasets()
+
+
 # Fetch or create datasets
 @bp_datasets.route("/datasets", methods=["GET", "POST"])
 def dataset_list():
@@ -182,7 +210,10 @@ def dataset_list():
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
-        new_id = str(uuid.uuid4())
+        new_id = generate_new_dataset_id()
+        if new_id is None:
+            print("Couldn't generate new ID")
+            return current_app.response_class(status=500)
 
         name = request.form["name"].strip()
         metadata = json.loads(request.form["metadata"])
@@ -192,29 +223,7 @@ def dataset_list():
         except ValidationError:
             return current_app.response_class(status=400)  # TODO: Error message
 
-        i = 0
-        while new_id in datasets and i < ID_RETRIES:
-            new_id = str(uuid.uuid4())
-            i += 1
-
-        if i == ID_RETRIES:
-            print("Couldn't generate new ID")
-            return current_app.response_class(status=500)
-
-        os.makedirs(os.path.join(DATA_PATH, new_id))
-
-        with open(os.path.join(DATA_PATH, new_id, DATASET_NAME_FILE), "w") as nf:
-            nf.write(name)
-
-        with open(os.path.join(DATA_PATH, new_id, DATASET_METADATA_FILE), "w") as nf:
-            now = datetime.datetime.utcnow().isoformat() + "Z"
-            json.dump({
-                "name": name,
-                "created": now,
-                "updated": now
-            }, nf)
-
-        update_datasets()
+        create_dataset_and_update(new_id, name, metadata)
 
         return current_app.response_class(response=json.dumps({
             "id": new_id,
