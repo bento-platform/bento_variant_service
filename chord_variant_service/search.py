@@ -111,13 +111,12 @@ def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, 
 
 # TODO: To chord_lib? Maybe conditions_dict should be a class or something...
 def parse_conditions(conditions):
-    conditions_filtered = [c for c in conditions
-                           if c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"].keys() and
-                           isinstance(c["negated"], bool) and c["operation"] in chord_lib.search.SEARCH_OPERATIONS]
-
-    condition_dict = {c["field"].split(".")[-1]: c for c in conditions_filtered}
-
-    return condition_dict
+    return {
+        c["field"].split(".")[-1]: c
+        for c in conditions
+        if (c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"] and
+            isinstance(c["negated"], bool) and c["operation"] in chord_lib.search.SEARCH_OPERATIONS)
+    }
 
 
 def chord_search(dt, conditions, internal_data=False):
