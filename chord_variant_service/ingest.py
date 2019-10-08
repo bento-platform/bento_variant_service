@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
 from .datasets import DATA_PATH, datasets, update_datasets
+from .workflows import WORKFLOWS
 
 
 bp_ingest = Blueprint("ingest", __name__)
@@ -28,6 +29,8 @@ def ingest():
         workflow_metadata = request.json["workflow_metadata"]
         workflow_outputs = request.json["workflow_outputs"]
         workflow_params = request.json["workflow_params"]
+
+        assert chord_lib.workflows.workflow_exists(workflow_id, WORKFLOWS)  # Check that the workflow exists here...
 
         output_params = chord_lib.ingestion.make_output_params(workflow_id, workflow_params,
                                                                workflow_metadata["inputs"])
@@ -58,7 +61,7 @@ def ingest():
 
         return current_app.response_class(status=204)
 
-    except (AssertionError, ValidationError):  # assertion or JSON schema failure
+    except (AssertionError, ValidationError, ValueError):  # assertion or JSON schema failure
         # TODO: Better errors
         print("Assertion / validation error")
         return current_app.response_class(status=400)
