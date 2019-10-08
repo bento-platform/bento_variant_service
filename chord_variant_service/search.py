@@ -32,15 +32,8 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
                     # TODO: Are start_max and end_min both inclusive for sure? Pretty sure but unclear
                     continue
 
-                if ref is not None and alt is None:
-                    match = ref_op(row[3].upper(), ref.upper())
-                elif ref is None and alt is not None:
-                    match = alt_op(row[4].upper(), alt.upper())
-                elif ref is not None and alt is not None:
-                    match = (ref_op(row[3].upper(), ref.upper()) and
-                             alt_op(row[4].upper(), alt.upper()))
-                else:
-                    match = True
+                match = ((ref_op(row[3].upper(), ref.upper()) if ref is not None else True) and
+                         (alt_op(row[4].upper(), alt.upper()) if alt is not None else True))
 
                 found = found or match
 
@@ -72,10 +65,13 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
     if refresh_at_end:
         update_datasets()
 
-    if internal_data:
-        return d, {"data_type": "variant", "matches": matches} if found else None
+    if not found:
+        return None
 
-    return {"id": d, "data_type": "variant"} if found else None
+    if internal_data:
+        return d, {"data_type": "variant", "matches": matches}
+
+    return {"id": d, "data_type": "variant"}
 
 
 def search_worker(args):
