@@ -5,6 +5,8 @@ import tabix
 from flask import Blueprint, jsonify, request
 from operator import eq, ne
 
+from typing import List
+
 from .datasets import datasets, update_datasets
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
@@ -110,7 +112,7 @@ def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, 
 
 
 # TODO: To chord_lib? Maybe conditions_dict should be a class or something...
-def parse_conditions(conditions):
+def parse_conditions(conditions: List) -> dict:
     return {
         c["field"].split(".")[-1]: c
         for c in conditions
@@ -119,7 +121,7 @@ def parse_conditions(conditions):
     }
 
 
-def chord_search(dt, conditions, internal_data=False):
+def chord_search(dt: str, conditions: List, internal_data: bool = False):
     null_result = {} if internal_data else []
 
     if dt != "variant":
