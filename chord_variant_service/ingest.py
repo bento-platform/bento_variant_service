@@ -20,7 +20,7 @@ def ingest():
     try:
         validate(request.json, chord_lib.schemas.chord.CHORD_INGEST_SCHEMA)
 
-        dataset_id = request.json["dataset_id"]  # TODO: WES needs to be able to forward this on...
+        dataset_id = request.json["dataset_id"]
 
         assert dataset_id in datasets
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.

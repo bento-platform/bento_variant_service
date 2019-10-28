@@ -22,7 +22,8 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
 
     found = False
     matches = []
-    for vcf in (vf for vf, a_id in zip(datasets[d]["files"], datasets[d]["assembly_ids"]) if a_id == assembly_id):
+    for vcf in (vf for vf, a_id in zip(datasets[d]["files"], datasets[d]["assembly_ids"])
+                if assembly_id is None or a_id == assembly_id):
         try:
             tbx = tabix.open(vcf)
 
@@ -49,7 +50,7 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
                         "alt": row[4]
                     })
 
-            if found:
+            if not internal_data and found:
                 break
 
         except tabix.TabixError:
