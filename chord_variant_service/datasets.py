@@ -215,8 +215,8 @@ def dataset_list():
             print("Couldn't generate new ID")
             return current_app.response_class(status=500)
 
-        name = request.form["name"].strip()
-        metadata = json.loads(request.form["metadata"])
+        name = request.json["name"].strip()
+        metadata = request.json["metadata"]
 
         try:
             validate(metadata, VARIANT_TABLE_METADATA_SCHEMA)
