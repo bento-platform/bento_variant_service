@@ -291,7 +291,7 @@ def data_type_404(data_type_id):
         "message": "Data type not found",
         "timestamp": datetime.datetime.utcnow().isoformat("T") + "Z",
         "errors": [{"code": "not_found", "message": f"Data type with ID {data_type_id} was not found"}]
-    })
+    }), 404
 
 
 # Fetch or create datasets
