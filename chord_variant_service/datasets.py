@@ -42,7 +42,7 @@ class IDGenerationFailure(Exception):
     pass
 
 
-class TableManager(ABC):
+class TableManager(ABC):  # pragma: no cover
     # TODO: Rename
     @abstractmethod
     def get_dataset(self, dataset_id: str) -> Optional[dict]:
