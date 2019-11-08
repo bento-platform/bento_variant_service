@@ -2,12 +2,12 @@ import chord_lib.search
 import re
 import tabix
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from operator import eq, ne
 
-from typing import List
+from typing import Callable, List, Iterable, Optional, Tuple
 
-from .datasets import datasets, update_datasets
+from .datasets import VariantTable, TableManager
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
 
@@ -16,14 +16,26 @@ CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")
 BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
 
-def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-                        assembly_id):
+def search_worker_prime(
+    dataset: VariantTable,
+    chromosome: str,
+    start_min: int,
+    start_max: Optional[int],
+    end_min: Optional[int],
+    end_max: int,
+    ref: Optional[str],
+    alt: Optional[str],
+    ref_op: Callable[[str, str], bool],
+    alt_op: Callable[[str, str], bool],
+    internal_data: bool,
+    assembly_id: Optional[str],
+    table_manager: TableManager
+) -> Tuple[Optional[VariantTable], List[dict]]:
     refresh_at_end = False
 
     found = False
     matches = []
-    for vcf in (vf for vf, a_id in zip(datasets[d]["files"], datasets[d]["assembly_ids"])
-                if assembly_id is None or a_id == assembly_id):
+    for vcf in (vf for vf, a_id in dataset.file_assembly_ids.items() if assembly_id is None or a_id == assembly_id):
         try:
             tbx = tabix.open(vcf)
 
@@ -64,43 +76,47 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
             break
 
     if refresh_at_end:
-        update_datasets()
+        table_manager.update_datasets()
 
-    if not found:
-        return None
-
-    if internal_data:
-        return d, {"data_type": "variant", "matches": matches}
-
-    return {"id": d, "data_type": "variant"}
+    return (dataset if found else None), matches
 
 
 def search_worker(args):
     return search_worker_prime(*args)
 
 
-def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, end_max=None, ref=None, alt=None,
-                           ref_op=eq, alt_op=eq, internal_data=False, assembly_id=None, dataset_ids=None):
+def generic_variant_search(
+    table_manager: TableManager,
+    chromosome: str,
+    start_min: int,
+    start_max: Optional[int] = None,
+    end_min: Optional[int] = None,
+    end_max=None,
+    ref: Optional[str] = None,
+    alt: Optional[str] = None,
+    ref_op: Callable[[str, str], bool] = eq,
+    alt_op: Callable[[str, str], bool] = eq,
+    internal_data=False,
+    assembly_id: Optional[str] = None,
+    dataset_ids: Optional[List[str]] = None
+) -> Iterable[Tuple[VariantTable, List[dict]]]:
 
     # TODO: Sane defaults
     # TODO: Figure out inclusion/exclusion with start_min/end_max
 
-    dataset_results = {} if internal_data else []
+    dataset_results = ()
     ds = set(dataset_ids) if dataset_ids is not None else None
 
     try:
         pool = get_pool()
-        pool_map = pool.imap_unordered(
+        pool_map: Iterable[Tuple[Optional[VariantTable], List[dict]]] = pool.imap_unordered(
             search_worker,
-            ((d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-              assembly_id) for d in datasets
-             if (ds is None or d in ds) and (assembly_id is None or assembly_id in datasets[d]["assembly_ids"]))
+            ((dataset, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
+              assembly_id, table_manager) for dataset in table_manager.get_datasets().values()
+             if (ds is None or dataset.table_id in ds) and (assembly_id is None or assembly_id in dataset.assembly_ids))
         )
 
-        if internal_data:
-            dataset_results = {d: e for d, e in pool_map if e is not None}
-        else:
-            dataset_results = [d for d in pool_map if d is not None]
+        dataset_results = ((d, m) for d, m in pool_map if len(m) > 0 or (not internal_data and d is not None))
 
     except ValueError as e:
         print(str(e))
@@ -118,7 +134,7 @@ def parse_conditions(conditions: List) -> dict:
     }
 
 
-def chord_search(dt: str, conditions: List, internal_data: bool = False):
+def chord_search(table_manager: TableManager, dt: str, conditions: List, internal_data: bool = False):
     null_result = {} if internal_data else []
 
     if dt != "variant":
@@ -152,10 +168,22 @@ def chord_search(dt: str, conditions: List, internal_data: bool = False):
         ref_op = ne if ref_cond is not None and ref_cond["negated"] else eq
         alt_op = ne if alt_cond is not None and alt_cond["negated"] else eq
 
-        return generic_variant_search(chromosome=chromosome, start_min=start_pos, end_max=end_pos,
-                                      ref=ref_cond["searchValue"] if ref_cond is not None else None,
-                                      alt=alt_cond["searchValue"] if alt_cond is not None else None,
-                                      ref_op=ref_op, alt_op=alt_op, internal_data=internal_data)
+        search_results = generic_variant_search(
+            table_manager=table_manager,
+            chromosome=chromosome,
+            start_min=start_pos,
+            end_max=end_pos,
+            ref=ref_cond["searchValue"] if ref_cond is not None else None,
+            alt=alt_cond["searchValue"] if alt_cond is not None else None,
+            ref_op=ref_op,
+            alt_op=alt_op,
+            internal_data=internal_data
+        )
+
+        if internal_data:
+            return {d.table_id: {"data_type": "variant", "matches": e} for d, e in search_results if e is not None}
+
+        return [{"id": d.table_id, "data_type": "variant"} for d, _ in search_results]
 
     except (ValueError, AssertionError) as e:
         # TODO
@@ -172,7 +200,10 @@ def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
     # TODO: PROBABLY VULNERABLE IN SOME WAY
 
-    return jsonify({"results": chord_search(request.json["dataTypeID"], request.json["conditions"], False)})
+    return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
+                                            request.json["dataTypeID"],
+                                            request.json["conditions"],
+                                            internal_data=False)})
 
 
 @bp_chord_search.route("/private/search", methods=["POST"])
@@ -180,4 +211,7 @@ def private_search_endpoint():
     # Proxy should ensure that non-services cannot access this
     # TODO: Figure out security properly
 
-    return jsonify({"results": chord_search(request.json["dataTypeID"], request.json["conditions"], True)})
+    return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
+                                            request.json["dataTypeID"],
+                                            request.json["conditions"],
+                                            internal_data=True)})

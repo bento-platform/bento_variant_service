@@ -1,15 +1,13 @@
 import chord_variant_service
 import os
 
-from datetime import datetime
+from itertools import chain
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from urllib.parse import urlparse
 
-from .datasets import beacon_datasets
+from .datasets import TableManager
 from .search import generic_variant_search
-
-from typing import Tuple
 
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
@@ -30,7 +28,7 @@ with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bar
 
 def generate_beacon_id(domain: str) -> str:
     return ".".join((
-        *(domain.split(":")[0].split(".")),
+        *(reversed(domain.split(":")[0].split("."))),
         *((domain.split(':')[1],) if len(domain.split(":")) > 1 else ()),
         "beacon"
     ))
@@ -38,10 +36,6 @@ def generate_beacon_id(domain: str) -> str:
 
 # Create a reverse DNS beacon ID, e.g. com.dlougheed.1.beacon
 BEACON_ID = generate_beacon_id(CHORD_DOMAIN)
-
-
-def _make_beacon_dataset_id(tp: Tuple[str, str]) -> str:
-    return f"{tp[0]}:{tp[1]}"
 
 
 @bp_beacon.route("/beacon", methods=["GET"])
@@ -56,13 +50,8 @@ def beacon_get():
         },
         "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO: More specific
         "version": chord_variant_service.__version__,
-        "datasets": [{
-            "id": _make_beacon_dataset_id(d_id),
-            "name": d["name"],
-            "assemblyId": d_id[1],
-            "createDateTime": d["metadata"].get("created", datetime.utcnow().isoformat() + "Z"),  # Use now for old ones
-            "updateDateTime": d["metadata"].get("updated", datetime.utcnow().isoformat() + "Z")  # Use now for old ones
-        } for d_id, d in beacon_datasets.items()]
+        "datasets": [d.as_beacon_dataset_response()
+                     for d in current_app.config["TABLE_MANAGER"].get_beacon_datasets().values()]
     })
 
 
@@ -154,20 +143,30 @@ def beacon_query():
 
     # TODO: variantType
 
-    results = generic_variant_search(chromosome=query["referenceName"], start_min=start_min, start_max=start_max,
-                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt, assembly_id=assembly_id,
-                                     dataset_ids=dataset_ids)
+    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+
+    # TODO: Translate into a CHORD-formatted query to send to search
+
+    results = generic_variant_search(table_manager, chromosome=query["referenceName"], start_min=start_min,
+                                     start_max=start_max, end_min=end_min, end_max=end_max, ref=ref, alt=alt,
+                                     assembly_id=assembly_id, dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
-    dataset_matches = [_make_beacon_dataset_id((ds, a_id)) for ds, a_id in beacon_datasets.keys()
-                       if ds in results and a_id == assembly_id]
+    dataset_matches = set(bd.beacon_id for bd in chain.from_iterable(d.beacon_datasets for d, _ in results)
+                          if bd.assembly_id == assembly_id)
+
     if include_dataset_responses == BEACON_IDR_ALL:
-        beacon_dataset_hits = [{"datasetId": ds, "exists": ds in dataset_matches} for ds in beacon_datasets.keys()]
+        beacon_dataset_hits = [{"datasetId": bd.beacon_id, "exists": bd.beacon_id in dataset_matches}
+                               for bd in table_manager.get_beacon_datasets().values()]
+
     elif include_dataset_responses == BEACON_IDR_HIT:
         beacon_dataset_hits = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
+
     elif include_dataset_responses == BEACON_IDR_MISS:
-        beacon_dataset_hits = [{"datasetId": ds, "exists": False} for ds in beacon_datasets.keys()
-                               if ds not in dataset_matches]
+        beacon_dataset_hits = [{"datasetId": bd.beacon_id, "exists": False}
+                               for bd in table_manager.get_beacon_datasets().values()
+                               if bd.beacon_id not in dataset_matches]
+
     else:  # BEACON_IDR_NONE
         # Don't return anything
         beacon_dataset_hits = None

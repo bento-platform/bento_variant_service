@@ -14,7 +14,7 @@ def get_pool():
 
 
 def teardown_pool(err):
-    if err is not None:
+    if err is not None:  # pragma: no cover
         print(err)
     pool = g.pop("pool", None)
     if pool is not None:
