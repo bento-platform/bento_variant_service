@@ -105,10 +105,17 @@ class MemoryTableManager(TableManager):
             "id": dataset_id,
             "name": name,
             "metadata": metadata,
-            "assembly_ids": []
+            "assembly_ids": ["GRCh37"]
         }
 
         self.datasets[dataset_id] = new_dataset
+
+        for a in new_dataset["assembly_ids"]:
+            self.beacon_datasets[(dataset_id, a)] = {
+                "name": name,
+                "metadata": metadata,
+                "assembly_id": a
+            }
 
         return new_dataset
 
