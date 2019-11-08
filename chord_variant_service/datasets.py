@@ -9,7 +9,7 @@ import uuid
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from pysam import VariantFile
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
@@ -19,6 +19,11 @@ __all__ = [
     "DATASET_NAME_FILE",
     "ID_RETRIES",
     "MIME_TYPE",
+
+    "make_beacon_dataset_id",
+
+    "BeaconDataset",
+    "VariantTable",
 
     "IDGenerationFailure",
     "TableManager",
@@ -39,6 +44,73 @@ ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
 
+def make_beacon_dataset_id(tp: Tuple[str, str]) -> str:
+    return f"{tp[0]}:{tp[1]}"
+
+
+class BeaconDataset:
+    def __init__(self, table_id: str, table_name: str, table_metadata: dict, assembly_id: str, files=()):
+        self.table_id = table_id
+        self.table_name = table_name
+        self.table_metadata = table_metadata
+        self.assembly_id = assembly_id
+        self.files = files
+
+    @property
+    def beacon_id_tuple(self):
+        return self.table_id, self.assembly_id
+
+    @property
+    def beacon_id(self):
+        return make_beacon_dataset_id(self.beacon_id_tuple)
+
+    @property
+    def beacon_name(self):
+        return f"{self.table_name} ({self.assembly_id})"
+
+    def as_beacon_dataset_response(self):
+        return {
+            "id": self.beacon_id,
+            "name": self.beacon_name,
+            "assemblyId": self.assembly_id,
+
+            # Use utcnow() for old ones
+            "createDateTime": self.table_metadata.get("created", datetime.datetime.utcnow().isoformat() + "Z"),
+            "updateDateTime": self.table_metadata.get("updated", datetime.datetime.utcnow().isoformat() + "Z")
+        }
+
+
+class VariantTable:
+    def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_assembly_ids: dict = None):
+        self.table_id = table_id
+        self.name = name
+        self.metadata = metadata
+        self.assembly_ids = set(assembly_ids) if file_assembly_ids is None else set(file_assembly_ids.keys())
+        self.file_assembly_ids = file_assembly_ids if file_assembly_ids is not None else {}
+        self.files = files
+
+    def as_table_response(self):
+        return {
+            "id": self.table_id,
+            "name": self.name,
+            "metadata": self.metadata,
+            "assembly_ids": list(self.assembly_ids),
+            "schema": VARIANT_SCHEMA
+        }
+
+    @property
+    def beacon_datasets(self):
+        return tuple(
+            BeaconDataset(
+                table_id=self.table_id,
+                table_name=self.name,
+                table_metadata=self.metadata,
+                assembly_id=a,
+                files=tuple(f1 for f1, a1 in self.file_assembly_ids.items() if a1 == a)
+            ) for a in sorted(self.assembly_ids)
+        )
+
+
 class IDGenerationFailure(Exception):
     pass
 
@@ -50,11 +122,11 @@ class TableManager(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def get_datasets(self) -> dict:  # TODO: Rename get_tables
+    def get_datasets(self) -> Dict[str, VariantTable]:  # TODO: Rename get_tables
         return {}
 
     @abstractmethod
-    def get_beacon_datasets(self) -> dict:
+    def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
         return {}
 
     @abstractmethod
@@ -88,7 +160,7 @@ class MemoryTableManager(TableManager):
     def get_datasets(self) -> dict:
         return self.datasets
 
-    def get_beacon_datasets(self) -> dict:
+    def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
         return self.beacon_datasets
 
     def update_datasets(self):  # pragma: no cover
@@ -97,26 +169,17 @@ class MemoryTableManager(TableManager):
     def _generate_dataset_id(self) -> Optional[str]:
         return None if self.id_to_generate in self.datasets else self.id_to_generate
 
-    def create_dataset_and_update(self, name: str, metadata: dict) -> dict:
+    def create_dataset_and_update(self, name: str, metadata: dict) -> VariantTable:
         dataset_id = self._generate_dataset_id()
         if dataset_id is None:
             raise IDGenerationFailure()
 
-        new_dataset = {
-            "id": dataset_id,
-            "name": name,
-            "metadata": metadata,
-            "assembly_ids": ["GRCh37"]
-        }
+        new_dataset = VariantTable(table_id=dataset_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
 
         self.datasets[dataset_id] = new_dataset
 
-        for a in new_dataset["assembly_ids"]:
-            self.beacon_datasets[(dataset_id, a)] = {
-                "name": name,
-                "metadata": metadata,
-                "assembly_id": a
-            }
+        for bd in new_dataset.beacon_datasets:
+            self.beacon_datasets[bd.beacon_id_tuple] = bd
 
         return new_dataset
 
@@ -161,21 +224,17 @@ class VCFTableManager(TableManager):
                               if file[-6:] == "vcf.gz")
             assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
 
-            self.datasets[d] = {
-                "id": d,
-                "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
-                "files": vcf_files,
-                "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
-                "assembly_ids": assembly_ids
-            }
+            ds = VariantTable(
+                table_id=d,
+                name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
+                metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
+                files=vcf_files,
+                file_assembly_ids={f: a for f, a in zip(vcf_files, assembly_ids)}
+            )
 
-            for a in assembly_ids:
-                self.beacon_datasets[(d, a)] = {
-                    "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
-                    "files": tuple(f1 for f1, a1 in zip(vcf_files, assembly_ids) if a1 == a),
-                    "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
-                    "assembly_id": a
-                }
+            self.datasets[d] = ds
+            for bd in ds.beacon_datasets:
+                self.beacon_datasets[bd.beacon_id_tuple] = bd
 
     def _generate_dataset_id(self) -> Optional[str]:
         new_id = str(uuid.uuid4())
@@ -186,7 +245,7 @@ class VCFTableManager(TableManager):
 
         return None if i == ID_RETRIES else new_id
 
-    def create_dataset_and_update(self, name: str, metadata: dict):
+    def create_dataset_and_update(self, name: str, metadata: dict) -> VariantTable:
         dataset_id = self._generate_dataset_id()
         if dataset_id is None:
             raise IDGenerationFailure()
@@ -326,24 +385,14 @@ def dataset_list():
 
         try:
             new_table = current_app.config["TABLE_MANAGER"].create_dataset_and_update(name, metadata)
-
-            return current_app.response_class(response=json.dumps({
-                "id": new_table["id"],
-                "name": new_table["name"],
-                "metadata": new_table["metadata"],
-                "schema": VARIANT_SCHEMA
-            }), mimetype=MIME_TYPE, status=201)
+            return current_app.response_class(response=json.dumps(new_table.as_table_response()),
+                                              mimetype=MIME_TYPE, status=201)
 
         except IDGenerationFailure:
             print("Couldn't generate new ID")
             return current_app.response_class(status=500)
 
-    return jsonify([{
-        "id": d["id"],
-        "name": d["name"],
-        "metadata": d["metadata"],
-        "schema": VARIANT_SCHEMA
-    } for d in current_app.config["TABLE_MANAGER"].get_datasets().values()])
+    return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_datasets().values()])
 
 
 # TODO: Implement GET, POST

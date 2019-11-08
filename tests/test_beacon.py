@@ -1,5 +1,6 @@
 # noinspection PyProtectedMember
-from chord_variant_service.beacon import generate_beacon_id, _make_beacon_dataset_id
+from chord_variant_service.beacon import generate_beacon_id
+from chord_variant_service.datasets import make_beacon_dataset_id
 from jsonschema import validate
 from uuid import uuid4
 
@@ -152,7 +153,7 @@ def test_generate_beacon_id():
 
 def test_make_beacon_dataset_id():
     some_id = str(uuid4())
-    assert _make_beacon_dataset_id((some_id, "GRCh37")) == f"{some_id}:GRCh37"
+    assert make_beacon_dataset_id((some_id, "GRCh37")) == f"{some_id}:GRCh37"
 
 
 def test_beacon_response(client):

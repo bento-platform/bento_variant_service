@@ -1,6 +1,6 @@
 import pytest
 
-from chord_variant_service.datasets import IDGenerationFailure, MemoryTableManager
+from chord_variant_service.datasets import VariantTable, IDGenerationFailure, MemoryTableManager
 
 
 def test_memory_table_manager():
@@ -10,7 +10,7 @@ def test_memory_table_manager():
 
     mm.create_dataset_and_update("test", {})
 
-    assert isinstance(mm.get_dataset("fixed_id"), dict)
+    assert isinstance(mm.get_dataset("fixed_id"), VariantTable)
 
     with pytest.raises(IDGenerationFailure):
         mm.create_dataset_and_update("test", {})
