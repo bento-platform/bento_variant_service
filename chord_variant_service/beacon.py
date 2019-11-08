@@ -29,7 +29,7 @@ with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bar
 
 def generate_beacon_id(domain: str) -> str:
     return ".".join((
-        *(domain.split(":")[0].split(".")),
+        *(reversed(domain.split(":")[0].split("."))),
         *((domain.split(':')[1],) if len(domain.split(":")) > 1 else ()),
         "beacon"
     ))
