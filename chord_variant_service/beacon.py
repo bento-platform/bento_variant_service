@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from urllib.parse import urlparse
 
-from .datasets import beacon_datasets
+from .datasets import table_manager
 from .search import generic_variant_search
 
 from typing import Tuple
@@ -62,7 +62,7 @@ def beacon_get():
             "assemblyId": d_id[1],
             "createDateTime": d["metadata"].get("created", datetime.utcnow().isoformat() + "Z"),  # Use now for old ones
             "updateDateTime": d["metadata"].get("updated", datetime.utcnow().isoformat() + "Z")  # Use now for old ones
-        } for d_id, d in beacon_datasets.items()]
+        } for d_id, d in table_manager.get_beacon_datasets().items()]
     })
 
 
@@ -159,14 +159,15 @@ def beacon_query():
                                      dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
-    dataset_matches = [_make_beacon_dataset_id((ds, a_id)) for ds, a_id in beacon_datasets.keys()
+    dataset_matches = [_make_beacon_dataset_id((ds, a_id)) for ds, a_id in table_manager.get_beacon_datasets().keys()
                        if ds in results and a_id == assembly_id]
     if include_dataset_responses == BEACON_IDR_ALL:
-        beacon_dataset_hits = [{"datasetId": ds, "exists": ds in dataset_matches} for ds in beacon_datasets.keys()]
+        beacon_dataset_hits = [{"datasetId": ds, "exists": ds in dataset_matches}
+                               for ds in table_manager.get_beacon_datasets().keys()]
     elif include_dataset_responses == BEACON_IDR_HIT:
         beacon_dataset_hits = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
     elif include_dataset_responses == BEACON_IDR_MISS:
-        beacon_dataset_hits = [{"datasetId": ds, "exists": False} for ds in beacon_datasets.keys()
+        beacon_dataset_hits = [{"datasetId": ds, "exists": False} for ds in table_manager.get_beacon_datasets().keys()
                                if ds not in dataset_matches]
     else:  # BEACON_IDR_NONE
         # Don't return anything

@@ -7,7 +7,7 @@ from operator import eq, ne
 
 from typing import List
 
-from .datasets import datasets, update_datasets
+from .datasets import table_manager
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
 
@@ -16,13 +16,13 @@ CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")
 BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
 
-def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-                        assembly_id):
+def search_worker_prime(dataset, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op,
+                        internal_data, assembly_id):
     refresh_at_end = False
 
     found = False
     matches = []
-    for vcf in (vf for vf, a_id in zip(datasets[d]["files"], datasets[d]["assembly_ids"])
+    for vcf in (vf for vf, a_id in zip(dataset["files"], dataset["assembly_ids"])
                 if assembly_id is None or a_id == assembly_id):
         try:
             tbx = tabix.open(vcf)
@@ -64,15 +64,15 @@ def search_worker_prime(d, chromosome, start_min, start_max, end_min, end_max, r
             break
 
     if refresh_at_end:
-        update_datasets()
+        table_manager.update_datasets()
 
     if not found:
         return None
 
     if internal_data:
-        return d, {"data_type": "variant", "matches": matches}
+        return dataset["id"], {"data_type": "variant", "matches": matches}
 
-    return {"id": d, "data_type": "variant"}
+    return {"id": dataset["id"], "data_type": "variant"}
 
 
 def search_worker(args):
@@ -92,9 +92,10 @@ def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, 
         pool = get_pool()
         pool_map = pool.imap_unordered(
             search_worker,
-            ((d, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-              assembly_id) for d in datasets
-             if (ds is None or d in ds) and (assembly_id is None or assembly_id in datasets[d]["assembly_ids"]))
+            ((dataset, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
+              assembly_id) for dataset in table_manager.get_datasets().items()
+             if (ds is None or dataset["id"] in ds) and (
+                     assembly_id is None or assembly_id in dataset["assembly_ids"]))
         )
 
         if internal_data:

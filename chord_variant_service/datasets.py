@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import datetime
 import os
 import requests
@@ -8,6 +9,7 @@ import uuid
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from pysam import VariantFile
+from typing import Optional
 
 from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
@@ -18,10 +20,8 @@ __all__ = [
     "ID_RETRIES",
     "MIME_TYPE",
 
-    "datasets",
-    "beacon_datasets",
+    "table_manager",
 
-    "update_datasets",
     "download_example_datasets",
     "bp_datasets",
 ]
@@ -35,47 +35,135 @@ DATASET_METADATA_FILE = ".chord_dataset_metadata"
 ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
-datasets = {}
-beacon_datasets = {}
+
+class IDGenerationFailure(Exception):
+    pass
 
 
-def _get_assembly_id(vcf_path: str) -> str:
-    vcf = VariantFile(vcf_path)
-    assembly_id = "Other"
-    for h in vcf.header.records:
-        if h.key == ASSEMBLY_ID_VCF_HEADER:
-            assembly_id = h.value
-    return assembly_id
+class TableManager(ABC):
+    # TODO: Rename
+    @abstractmethod
+    def get_dataset(self, dataset_id: str) -> Optional[dict]:
+        pass
+
+    @abstractmethod
+    def get_datasets(self) -> dict:  # TODO: Rename get_tables
+        return {}
+
+    @abstractmethod
+    def get_beacon_datasets(self) -> dict:
+        return {}
+
+    @abstractmethod
+    def update_datasets(self):
+        pass
+
+    @abstractmethod
+    def _generate_dataset_id(self) -> Optional[str]:
+        pass
+
+    # TODO: Rename create_table_and_update, table_id
+    @abstractmethod
+    def create_dataset_and_update(self, name: str, metadata: dict) -> dict:
+        pass
+
+    # TODO: Rename create_table_and_update, table_id
+    @abstractmethod
+    def delete_dataset_and_update(self, dataset_id: str):
+        pass
 
 
-def update_datasets():
-    global datasets
-    global beacon_datasets
+class VCFTableManager(TableManager):
+    def __init__(self, data_path: str):
+        self.DATA_PATH = data_path
+        self.datasets = {}
+        self.beacon_datasets = {}
 
-    for d in os.listdir(DATA_PATH):
-        if not os.path.isdir(os.path.join(DATA_PATH, d)):
-            continue
+    def get_dataset(self, dataset_id: str) -> Optional[dict]:
+        return self.datasets.get(dataset_id, None)
 
-        name_path = os.path.join(DATA_PATH, d, DATASET_NAME_FILE)
-        metadata_path = os.path.join(DATA_PATH, d, DATASET_METADATA_FILE)
-        vcf_files = tuple(os.path.join(DATA_PATH, d, file) for file in os.listdir(os.path.join(DATA_PATH, d))
-                          if file[-6:] == "vcf.gz")
-        assembly_ids = tuple(_get_assembly_id(vcf_path) for vcf_path in vcf_files)
+    def get_datasets(self) -> dict:
+        return self.datasets
 
-        datasets[d] = {
-            "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
-            "files": vcf_files,
-            "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
-            "assembly_ids": assembly_ids
-        }
+    def get_beacon_datasets(self) -> dict:
+        return self.beacon_datasets
 
-        for a in assembly_ids:
-            beacon_datasets[(d, a)] = {
+    @staticmethod
+    def _get_assembly_id(vcf_path: str) -> str:
+        vcf = VariantFile(vcf_path)
+        assembly_id = "Other"
+        for h in vcf.header.records:
+            if h.key == ASSEMBLY_ID_VCF_HEADER:
+                assembly_id = h.value
+        return assembly_id
+
+    def update_datasets(self):
+        for d in os.listdir(self.DATA_PATH):
+            table_dir = os.path.join(self.DATA_PATH, d)
+
+            if not os.path.isdir(table_dir):
+                continue
+
+            name_path = os.path.join(table_dir, DATASET_NAME_FILE)
+            metadata_path = os.path.join(table_dir, DATASET_METADATA_FILE)
+            vcf_files = tuple(os.path.join(table_dir, file) for file in os.listdir(table_dir)
+                              if file[-6:] == "vcf.gz")
+            assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
+
+            self.datasets[d] = {
+                "id": d,
                 "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
-                "files": tuple(f1 for f1, a1 in zip(vcf_files, assembly_ids) if a1 == a),
+                "files": vcf_files,
                 "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
-                "assembly_id": a
+                "assembly_ids": assembly_ids
             }
+
+            for a in assembly_ids:
+                self.beacon_datasets[(d, a)] = {
+                    "name": open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
+                    "files": tuple(f1 for f1, a1 in zip(vcf_files, assembly_ids) if a1 == a),
+                    "metadata": (json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
+                    "assembly_id": a
+                }
+
+    def _generate_dataset_id(self) -> Optional[str]:
+        new_id = str(uuid.uuid4())
+        i = 0
+        while new_id in self.datasets and i < ID_RETRIES:
+            new_id = str(uuid.uuid4())
+            i += 1
+
+        return None if i == ID_RETRIES else new_id
+
+    def create_dataset_and_update(self, name: str, metadata: dict):
+        dataset_id = self._generate_dataset_id()
+        if dataset_id is None:
+            raise IDGenerationFailure()
+
+        os.makedirs(os.path.join(self.DATA_PATH, dataset_id))
+
+        with open(os.path.join(self.DATA_PATH, dataset_id, DATASET_NAME_FILE), "w") as nf:
+            nf.write(name)
+
+        with open(os.path.join(self.DATA_PATH, dataset_id, DATASET_METADATA_FILE), "w") as nf:
+            now = datetime.datetime.utcnow().isoformat() + "Z"
+            json.dump({
+                "name": name,
+                **metadata,
+                "created": now,
+                "updated": now
+            }, nf)
+
+        self.update_datasets()
+
+        return self.datasets[dataset_id]  # TODO: Handle KeyError (i.e. something wrong somewhere...)
+
+    def delete_dataset_and_update(self, dataset_id: str):
+        shutil.rmtree(os.path.join(self.DATA_PATH, str(dataset_id)))
+        self.update_datasets()
+
+
+table_manager = VCFTableManager(DATA_PATH)
 
 
 def download_example_datasets():  # pragma: no cover
@@ -151,12 +239,12 @@ def download_example_datasets():  # pragma: no cover
                 f.write(data)
                 f.flush()
 
-    update_datasets()
+    table_manager.update_datasets()
 
 
-update_datasets()
+table_manager.update_datasets()
 
-if len(datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":  # pragma: no cover
+if len(table_manager.datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":  # pragma: no cover
     download_example_datasets()
 
 
@@ -172,34 +260,6 @@ def data_type_404(data_type_id):
     })
 
 
-def generate_new_dataset_id():
-    new_id = str(uuid.uuid4())
-    i = 0
-    while new_id in datasets and i < ID_RETRIES:
-        new_id = str(uuid.uuid4())
-        i += 1
-
-    return None if i == ID_RETRIES else new_id
-
-
-def create_dataset_and_update(d_id, name, metadata):
-    os.makedirs(os.path.join(DATA_PATH, d_id))
-
-    with open(os.path.join(DATA_PATH, d_id, DATASET_NAME_FILE), "w") as nf:
-        nf.write(name)
-
-    with open(os.path.join(DATA_PATH, d_id, DATASET_METADATA_FILE), "w") as nf:
-        now = datetime.datetime.utcnow().isoformat() + "Z"
-        json.dump({
-            "name": name,
-            **metadata,
-            "created": now,
-            "updated": now
-        }, nf)
-
-    update_datasets()
-
-
 # Fetch or create datasets
 @bp_datasets.route("/datasets", methods=["GET", "POST"])
 def dataset_list():
@@ -210,11 +270,6 @@ def dataset_list():
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
-        new_id = generate_new_dataset_id()
-        if new_id is None:
-            print("Couldn't generate new ID")
-            return current_app.response_class(status=500)
-
         name = request.json["name"].strip()
         metadata = request.json["metadata"]
 
@@ -223,32 +278,36 @@ def dataset_list():
         except ValidationError:
             return current_app.response_class(status=400)  # TODO: Error message
 
-        create_dataset_and_update(new_id, name, metadata)
+        try:
+            new_table = table_manager.create_dataset_and_update(name, metadata)
 
-        return current_app.response_class(response=json.dumps({
-            "id": new_id,
-            "name": datasets[new_id]["name"],
-            "metadata": datasets[new_id]["metadata"],
-            "schema": VARIANT_SCHEMA
-        }), mimetype=MIME_TYPE, status=201)
+            return current_app.response_class(response=json.dumps({
+                "id": new_table["id"],
+                "name": new_table["name"],
+                "metadata": new_table["metadata"],
+                "schema": VARIANT_SCHEMA
+            }), mimetype=MIME_TYPE, status=201)
+
+        except IDGenerationFailure:
+            print("Couldn't generate new ID")
+            return current_app.response_class(status=500)
 
     return jsonify([{
-        "id": d,
-        "name": datasets[d]["name"],
-        "metadata": datasets[d]["metadata"],
+        "id": d["id"],
+        "name": d["name"],
+        "metadata": d["metadata"],
         "schema": VARIANT_SCHEMA
-    } for d in datasets.keys()])
+    } for d in table_manager.get_datasets().values()])
 
 
 # TODO: Implement GET, POST
 @bp_datasets.route("/datasets/<uuid:dataset_id>", methods=["DELETE"])
 def dataset_detail(dataset_id):
-    if str(dataset_id) not in datasets:
+    if table_manager.get_dataset(dataset_id) is None:
         # TODO: More standardized error
         return current_app.response_class(status=404)
 
-    shutil.rmtree(os.path.join(DATA_PATH, str(dataset_id)))
-    update_datasets()
+    table_manager.delete_dataset_and_update(str(dataset_id))
 
     # TODO: More complete response?
     return current_app.response_class(status=204)
