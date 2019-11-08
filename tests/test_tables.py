@@ -34,3 +34,30 @@ def test_datasets(client):
 
     assert rv.status_code == 201
     validate(data, DATASET_SCHEMA)
+
+    rv = client.post("/datasets?data-type=variant", json={
+        "name": "test table",
+        "metadata": None
+    })
+
+    assert rv.status_code == 400
+
+    rv = client.post("/datasets?data-type=variant", json={
+        "name": "test table",
+        "metadata": {}
+    })
+
+    assert rv.status_code == 500  # No IDs left
+
+
+def test_dataset_detail(client):
+    client.post("/datasets?data-type=variant", json={
+        "name": "test table",
+        "metadata": {}
+    })
+
+    rv = client.delete("/datasets/fixed_id")
+    assert rv.status_code == 204
+
+    rv = client.delete("/datasets/fixed_id")
+    assert rv.status_code == 404
