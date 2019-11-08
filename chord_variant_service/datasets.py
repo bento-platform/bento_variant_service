@@ -347,14 +347,14 @@ def dataset_list():
 
 
 # TODO: Implement GET, POST
-@bp_datasets.route("/datasets/<uuid:dataset_id>", methods=["DELETE"])
+@bp_datasets.route("/datasets/<string:dataset_id>", methods=["DELETE"])
 def dataset_detail(dataset_id):
     if current_app.config["TABLE_MANAGER"].get_dataset(dataset_id) is None:
         # TODO: More standardized error
         # TODO: Refresh cache if needed?
         return current_app.response_class(status=404)
 
-    current_app.config["TABLE_MANAGER"].delete_dataset_and_update(str(dataset_id))
+    current_app.config["TABLE_MANAGER"].delete_dataset_and_update(dataset_id)
 
     # TODO: More complete response?
     return current_app.response_class(status=204)
