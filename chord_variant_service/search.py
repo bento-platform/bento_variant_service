@@ -2,12 +2,11 @@ import chord_lib.search
 import re
 import tabix
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from operator import eq, ne
 
 from typing import List
 
-from .datasets import table_manager
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
 
@@ -17,7 +16,7 @@ BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
 
 def search_worker_prime(dataset, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op,
-                        internal_data, assembly_id):
+                        internal_data, assembly_id, table_manager):
     refresh_at_end = False
 
     found = False
@@ -79,8 +78,8 @@ def search_worker(args):
     return search_worker_prime(*args)
 
 
-def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, end_max=None, ref=None, alt=None,
-                           ref_op=eq, alt_op=eq, internal_data=False, assembly_id=None, dataset_ids=None):
+def generic_variant_search(table_manager, chromosome, start_min, start_max=None, end_min=None, end_max=None, ref=None,
+                           alt=None, ref_op=eq, alt_op=eq, internal_data=False, assembly_id=None, dataset_ids=None):
 
     # TODO: Sane defaults
     # TODO: Figure out inclusion/exclusion with start_min/end_max
@@ -93,7 +92,7 @@ def generic_variant_search(chromosome, start_min, start_max=None, end_min=None, 
         pool_map = pool.imap_unordered(
             search_worker,
             ((dataset, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
-              assembly_id) for dataset in table_manager.get_datasets().items()
+              assembly_id, table_manager) for dataset in table_manager.get_datasets().items()
              if (ds is None or dataset["id"] in ds) and (
                      assembly_id is None or assembly_id in dataset["assembly_ids"]))
         )
@@ -119,7 +118,7 @@ def parse_conditions(conditions: List) -> dict:
     }
 
 
-def chord_search(dt: str, conditions: List, internal_data: bool = False):
+def chord_search(table_manager, dt: str, conditions: List, internal_data: bool = False):
     null_result = {} if internal_data else []
 
     if dt != "variant":
@@ -153,7 +152,7 @@ def chord_search(dt: str, conditions: List, internal_data: bool = False):
         ref_op = ne if ref_cond is not None and ref_cond["negated"] else eq
         alt_op = ne if alt_cond is not None and alt_cond["negated"] else eq
 
-        return generic_variant_search(chromosome=chromosome, start_min=start_pos, end_max=end_pos,
+        return generic_variant_search(table_manager, chromosome=chromosome, start_min=start_pos, end_max=end_pos,
                                       ref=ref_cond["searchValue"] if ref_cond is not None else None,
                                       alt=alt_cond["searchValue"] if alt_cond is not None else None,
                                       ref_op=ref_op, alt_op=alt_op, internal_data=internal_data)
@@ -173,7 +172,10 @@ def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
     # TODO: PROBABLY VULNERABLE IN SOME WAY
 
-    return jsonify({"results": chord_search(request.json["dataTypeID"], request.json["conditions"], False)})
+    return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
+                                            request.json["dataTypeID"],
+                                            request.json["conditions"],
+                                            internal_data=False)})
 
 
 @bp_chord_search.route("/private/search", methods=["POST"])
@@ -181,4 +183,7 @@ def private_search_endpoint():
     # Proxy should ensure that non-services cannot access this
     # TODO: Figure out security properly
 
-    return jsonify({"results": chord_search(request.json["dataTypeID"], request.json["conditions"], True)})
+    return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
+                                            request.json["dataTypeID"],
+                                            request.json["conditions"],
+                                            internal_data=True)})

@@ -6,7 +6,7 @@ import uuid
 from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
-from .datasets import DATA_PATH, table_manager
+from .datasets import DATA_PATH
 from .workflows import WORKFLOWS
 
 
@@ -22,7 +22,7 @@ def ingest():
 
         dataset_id = request.json["dataset_id"]
 
-        assert dataset_id in table_manager.get_datasets()
+        assert dataset_id in current_app.config["TABLE_MANAGER"].get_datasets()
         dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
         workflow_id = request.json["workflow_id"].strip()
@@ -59,7 +59,7 @@ def ingest():
                 # Move the file from its temporary location to its location in the service's data folder.
                 shutil.move(workflow_outputs[output["id"]], file_path)
 
-        table_manager.update_datasets()
+        current_app.config["TABLE_MANAGER"].update_datasets()
 
         return current_app.response_class(status=204)
 

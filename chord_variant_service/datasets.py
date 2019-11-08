@@ -20,7 +20,9 @@ __all__ = [
     "ID_RETRIES",
     "MIME_TYPE",
 
-    "table_manager",
+    "TableManager",
+    "MemoryTableManager",
+    "VCFTableManager",
 
     "download_example_datasets",
     "bp_datasets",
@@ -71,6 +73,47 @@ class TableManager(ABC):
     @abstractmethod
     def delete_dataset_and_update(self, dataset_id: str):
         pass
+
+
+class MemoryTableManager(TableManager):
+    def __init__(self):
+        self.datasets = {}
+        self.beacon_datasets = {}
+        self.id_to_generate = "fixed_id"
+
+    def get_dataset(self, dataset_id: str) -> Optional[dict]:
+        return self.datasets.get(dataset_id, None)
+
+    def get_datasets(self) -> dict:
+        return self.datasets
+
+    def get_beacon_datasets(self) -> dict:
+        return self.beacon_datasets
+
+    def update_datasets(self):
+        pass
+
+    def _generate_dataset_id(self) -> Optional[str]:
+        return None if self.id_to_generate in self.datasets else self.id_to_generate
+
+    def create_dataset_and_update(self, name: str, metadata: dict) -> dict:
+        dataset_id = self._generate_dataset_id()
+        if dataset_id is None:
+            raise IDGenerationFailure()
+
+        new_dataset = {
+            "id": dataset_id,
+            "name": name,
+            "metadata": metadata,
+            "assembly_ids": []
+        }
+
+        self.datasets[dataset_id] = new_dataset
+
+        return new_dataset
+
+    def delete_dataset_and_update(self, dataset_id: str):
+        del self.datasets[dataset_id]
 
 
 class VCFTableManager(TableManager):
@@ -163,10 +206,7 @@ class VCFTableManager(TableManager):
         self.update_datasets()
 
 
-table_manager = VCFTableManager(DATA_PATH)
-
-
-def download_example_datasets():  # pragma: no cover
+def download_example_datasets(table_manager):  # pragma: no cover
     # Add some fake data
     new_id_1 = str(uuid.uuid4())
     new_id_2 = str(uuid.uuid4())
@@ -242,12 +282,6 @@ def download_example_datasets():  # pragma: no cover
     table_manager.update_datasets()
 
 
-table_manager.update_datasets()
-
-if len(table_manager.datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":  # pragma: no cover
-    download_example_datasets()
-
-
 bp_datasets = Blueprint("datasets", __name__)
 
 
@@ -279,7 +313,7 @@ def dataset_list():
             return current_app.response_class(status=400)  # TODO: Error message
 
         try:
-            new_table = table_manager.create_dataset_and_update(name, metadata)
+            new_table = current_app.config["TABLE_MANAGER"].create_dataset_and_update(name, metadata)
 
             return current_app.response_class(response=json.dumps({
                 "id": new_table["id"],
@@ -297,17 +331,18 @@ def dataset_list():
         "name": d["name"],
         "metadata": d["metadata"],
         "schema": VARIANT_SCHEMA
-    } for d in table_manager.get_datasets().values()])
+    } for d in current_app.config["TABLE_MANAGER"].get_datasets().values()])
 
 
 # TODO: Implement GET, POST
 @bp_datasets.route("/datasets/<uuid:dataset_id>", methods=["DELETE"])
 def dataset_detail(dataset_id):
-    if table_manager.get_dataset(dataset_id) is None:
+    if current_app.config["TABLE_MANAGER"].get_dataset(dataset_id) is None:
         # TODO: More standardized error
+        # TODO: Refresh cache if needed?
         return current_app.response_class(status=404)
 
-    table_manager.delete_dataset_and_update(str(dataset_id))
+    current_app.config["TABLE_MANAGER"].delete_dataset_and_update(str(dataset_id))
 
     # TODO: More complete response?
     return current_app.response_class(status=204)

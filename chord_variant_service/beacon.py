@@ -6,7 +6,6 @@ from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
 from urllib.parse import urlparse
 
-from .datasets import table_manager
 from .search import generic_variant_search
 
 from typing import Tuple
@@ -62,7 +61,7 @@ def beacon_get():
             "assemblyId": d_id[1],
             "createDateTime": d["metadata"].get("created", datetime.utcnow().isoformat() + "Z"),  # Use now for old ones
             "updateDateTime": d["metadata"].get("updated", datetime.utcnow().isoformat() + "Z")  # Use now for old ones
-        } for d_id, d in table_manager.get_beacon_datasets().items()]
+        } for d_id, d in current_app.config["TABLE_MANAGER"].get_beacon_datasets().items()]
     })
 
 
@@ -154,9 +153,11 @@ def beacon_query():
 
     # TODO: variantType
 
-    results = generic_variant_search(chromosome=query["referenceName"], start_min=start_min, start_max=start_max,
-                                     end_min=end_min, end_max=end_max, ref=ref, alt=alt, assembly_id=assembly_id,
-                                     dataset_ids=dataset_ids)
+    table_manager = current_app.config["TABLE_MANAGER"]
+
+    results = generic_variant_search(table_manager, chromosome=query["referenceName"], start_min=start_min,
+                                     start_max=start_max, end_min=end_min, end_max=end_max, ref=ref, alt=alt,
+                                     assembly_id=assembly_id, dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
     dataset_matches = [_make_beacon_dataset_id((ds, a_id)) for ds, a_id in table_manager.get_beacon_datasets().keys()
