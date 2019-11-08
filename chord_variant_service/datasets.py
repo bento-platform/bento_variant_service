@@ -304,6 +304,10 @@ def dataset_list():
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
+        if request.json is None:
+            # TODO: Better error
+            return current_app.response_class(status=400)
+
         name = request.json["name"].strip()
         metadata = request.json["metadata"]
 

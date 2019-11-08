@@ -23,6 +23,9 @@ def test_datasets(client):
 
     assert isinstance(data, list) and len(data) == 0
 
+    rv = client.post("/datasets?data-type=variant")
+    assert rv.status_code == 400
+
     rv = client.post("/datasets?data-type=variant", json={
         "name": "test table",
         "metadata": {}
