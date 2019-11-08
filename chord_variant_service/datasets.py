@@ -20,6 +20,7 @@ __all__ = [
     "ID_RETRIES",
     "MIME_TYPE",
 
+    "IDGenerationFailure",
     "TableManager",
     "MemoryTableManager",
     "VCFTableManager",
@@ -90,7 +91,7 @@ class MemoryTableManager(TableManager):
     def get_beacon_datasets(self) -> dict:
         return self.beacon_datasets
 
-    def update_datasets(self):
+    def update_datasets(self):  # pragma: no cover
         pass
 
     def _generate_dataset_id(self) -> Optional[str]:
