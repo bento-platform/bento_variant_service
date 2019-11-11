@@ -28,7 +28,6 @@ __all__ = [
     "MemoryTableManager",
     "VCFTableManager",
 
-    "download_example_datasets",
     "bp_datasets",
 ]
 
