@@ -25,7 +25,7 @@ VARIANT_SCHEMA = {
         "start": {
             "type": "integer",
             "search": {
-                "operations": ["eq"],
+                "operations": ["ge"],
                 "canNegate": False,
                 "required": True,
                 "type": "single",  # single / unlimited
@@ -35,7 +35,7 @@ VARIANT_SCHEMA = {
         "end": {
             "type": "integer",
             "search": {
-                "operations": ["eq"],
+                "operations": ["le"],
                 "canNegate": False,
                 "required": True,
                 "type": "single",  # single / unlimited
