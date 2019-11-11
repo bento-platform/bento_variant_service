@@ -223,6 +223,9 @@ def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
     # TODO: PROBABLY VULNERABLE IN SOME WAY
 
+    if request.json is None or "data_type" not in request.json or "query" not in request.json:
+        return current_app.response_class(status=400)
+
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
                                             request.json["data_type"],
                                             request.json["query"],
@@ -233,6 +236,9 @@ def search_endpoint():
 def private_search_endpoint():
     # Proxy should ensure that non-services cannot access this
     # TODO: Figure out security properly
+
+    if request.json is None or "data_type" not in request.json or "query" not in request.json:
+        return current_app.response_class(status=400)
 
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
                                             request.json["data_type"],
