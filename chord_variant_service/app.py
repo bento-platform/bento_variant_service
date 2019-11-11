@@ -1,10 +1,9 @@
 import chord_variant_service
-import os
 
 from flask import Flask, jsonify
 
 from .beacon import bp_beacon
-from .datasets import DATA_PATH, VCFTableManager, bp_datasets, download_example_datasets
+from .datasets import DATA_PATH, VCFTableManager, bp_datasets
 from .ingest import bp_ingest
 from .pool import teardown_pool
 from .search import bp_chord_search
@@ -17,8 +16,6 @@ application = Flask(__name__)
 table_manager = VCFTableManager(DATA_PATH)
 application.config["TABLE_MANAGER"] = table_manager
 table_manager.update_datasets()
-if len(table_manager.datasets.keys()) == 0 and os.environ.get("DEMO_DATA", "") != "":  # pragma: no cover
-    download_example_datasets(table_manager)
 
 application.register_blueprint(bp_beacon)
 application.register_blueprint(bp_chord_search)

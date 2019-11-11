@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 import datetime
 import os
-import requests
 import shutil
-import tqdm
 import uuid
 
 from flask import Blueprint, current_app, json, jsonify, request
@@ -271,82 +269,6 @@ class VCFTableManager(TableManager):
     def delete_dataset_and_update(self, dataset_id: str):
         shutil.rmtree(os.path.join(self.DATA_PATH, str(dataset_id)))
         self.update_datasets()
-
-
-def download_example_datasets(table_manager):  # pragma: no cover
-    # Add some fake data
-    new_id_1 = str(uuid.uuid4())
-    new_id_2 = str(uuid.uuid4())
-
-    os.makedirs(os.path.join(DATA_PATH, new_id_1))
-    os.makedirs(os.path.join(DATA_PATH, new_id_2))
-
-    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
-                      "CEU.trio.2010_07.indel.sites.vcf.gz", stream=True) as r:
-        with open(os.path.join(DATA_PATH, new_id_1, "ceu.vcf.gz"), "wb") as f:
-            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
-                if not data:
-                    break
-
-                f.write(data)
-                f.flush()
-
-        with open(os.path.join(DATA_PATH, new_id_1, DATASET_NAME_FILE), "w") as nf:
-            nf.write("CEU trio")
-
-        with open(os.path.join(DATA_PATH, new_id_1, DATASET_METADATA_FILE), "w") as nf:
-            now = datetime.datetime.utcnow().isoformat() + "Z"
-            json.dump({
-                "name": "CEU trio",
-                "created": now,
-                "updated": now
-            }, nf)
-
-    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
-                      "CEU.trio.2010_07.indel.sites.vcf.gz.tbi",
-                      stream=True) as r:
-        with open(os.path.join(DATA_PATH, new_id_1, "ceu.vcf.gz.tbi"), "wb") as f:
-            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
-                if not data:
-                    break
-
-                f.write(data)
-                f.flush()
-
-    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
-                      "YRI.trio.2010_07.indel.sites.vcf.gz",
-                      stream=True) as r:
-        with open(os.path.join(DATA_PATH, new_id_2, "yri.vcf.gz"), "wb") as f:
-            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
-                if not data:
-                    break
-
-                f.write(data)
-                f.flush()
-
-        with open(os.path.join(DATA_PATH, new_id_2, DATASET_NAME_FILE), "w") as nf:
-            nf.write("YRI trio")
-
-        with open(os.path.join(DATA_PATH, new_id_1, DATASET_METADATA_FILE), "w") as nf:
-            now = datetime.datetime.utcnow().isoformat() + "Z"
-            nf.write(json.dump({
-                "name": "YRI trio",
-                "created": now,
-                "updated": now
-            }, nf))
-
-    with requests.get("http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/release/2010_07/trio/indels/"
-                      "YRI.trio.2010_07.indel.sites.vcf.gz.tbi",
-                      stream=True) as r:
-        with open(os.path.join(DATA_PATH, new_id_2, "yri.vcf.gz.tbi"), "wb") as f:
-            for data in tqdm.tqdm(r.iter_content(1024), total=int(r.headers.get("content-length", 0)) // 1024):
-                if not data:
-                    break
-
-                f.write(data)
-                f.flush()
-
-    table_manager.update_datasets()
 
 
 bp_datasets = Blueprint("datasets", __name__)
