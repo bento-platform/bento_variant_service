@@ -162,7 +162,7 @@ def parse_query_for_tabix(query: AST):
                 query_key_op_value(q, "start", FUNCTION_LE) is None):
             other_query_items.append(q)
 
-    if any((chromosome is None, start_min is None, start_max is None)):
+    if chromosome is None:
         raise InvalidQuery
 
     return chromosome, start_min, start_max, and_asts_to_ast(tuple(other_query_items))
@@ -172,6 +172,7 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
     null_result = {} if internal_data else []
 
     if dt != "variant":
+        # TODO: Don't silently ignore errors
         return null_result
 
     # TODO: Parser error handling
@@ -180,6 +181,7 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
     try:
         chromosome, start_min, start_max, rest_of_query = parse_query_for_tabix(query_ast)
     except InvalidQuery:
+        # TODO: Don't silently ignore errors
         return null_result
 
     dataset_results = {} if internal_data else []
@@ -189,8 +191,8 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
     try:
         assert re.match(CHROMOSOME_REGEX, chromosome) is not None  # Check validity of VCF chromosome
 
-        start_min = int(start_min)
-        start_max = int(start_max)
+        start_min = int(start_min) if start_min is not None else None
+        start_max = int(start_max) if start_max is not None else None
 
         search_results = generic_variant_search(
             table_manager=table_manager,
