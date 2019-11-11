@@ -1,6 +1,16 @@
 import chord_variant_service
 import os
 
+from chord_lib.search.queries import (
+    convert_query_to_ast,
+    and_asts_to_ast,
+
+    FUNCTION_RESOLVE,
+    FUNCTION_LE,
+    FUNCTION_GE,
+    FUNCTION_EQ
+)
+
 from itertools import chain
 from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
@@ -86,35 +96,6 @@ def beacon_query():
 
     # TODO: Other validation, or put more in schema?
 
-    # TODO: Run query
-    #  All coordinates are 0 INDEXED!
-    #  - referenceName: chromosome
-    #  - start: precise, equivalent to (startMin
-    #  - startMin: equivalent to start >= x
-    #  - startMax: equivalent to start <= x
-    #  - end: precise, equivalent to (endMin = endMax = x - 1)
-    #  - endMin: equivalent to end >= x
-    #  - endMax: equivalent to end <= x
-    #  - referenceBases === ref
-    #  - alternateBases === alt
-    #  - variantType: how to implement? looks like maybe an enum of DEL, INS, DUP, INV, CNV, DUP:TANDEM, DEL:ME, INS:ME
-    #  - assemblyId: how to implement? metadata? what if it's missing?
-    #  - datasetIds: do we implement?
-    #  - includeDatasetResponses: include datasetAlleleResponses?
-    # TODO: Are max/min inclusive? Looks like it
-
-    # For tabix:
-    #  - referenceName, startMin, endMax are passed as is
-    #  - start: reduce to startMax = startMin
-    #  - end:   endMin = endMax
-    #  - startMax, endMin are iterated
-    #  - referenceBases, alternateBases are iterated
-    #  - need op for referenceBases / alternateBases (CHORD search)
-    #  - TODO: How to do variantType?
-    #  - TODO: Assembly ID - in VCF header?
-
-    # TODO: Check we have one of these... rules in Beacon schema online?
-
     start = query.get("start", None)
     start_min = query.get("startMin", None) if start is None else start
     start_max = query.get("startMax", None) if start is None else start
@@ -133,7 +114,13 @@ def beacon_query():
     # TODO: Start can be used without end, calculate max end!! (via referenceBases?)
 
     ref = query.get("referenceBases", None)
-    alt = query.get("alternateBases", None)
+
+    alt_bases = query.get("alternateBases", None)
+    alt_id = query.get("variantType", None)  # e.g. DUP, DEL [symbolic alternates]
+
+    if (alt_bases is None and alt_id is None) or (alt_bases is not None and alt_id is not None):
+        # Error one or the other is required
+        return current_app.response_class(status=400)  # TODO: Beacon error response
 
     assembly_id = query["assemblyId"]
 
@@ -141,14 +128,29 @@ def beacon_query():
     if dataset_ids is not None:
         dataset_ids = tuple(set(d.split(":")[0] for d in dataset_ids))
 
-    # TODO: variantType
-
     table_manager: TableManager = current_app.config["TABLE_MANAGER"]
 
-    # TODO: Translate into a CHORD-formatted query to send to search
+    # TODO: Translate into a CHORD-formatted query to send to search\
+
+    query_list = []
+
+    if end_min is not None:
+        query_list.append(convert_query_to_ast([FUNCTION_GE, [FUNCTION_RESOLVE, "end"], end_min]))
+
+    if end_max is not None:
+        query_list.append(convert_query_to_ast([FUNCTION_LE, [FUNCTION_RESOLVE, "end"], end_max]))
+
+    if ref is not None:
+        query_list.append(convert_query_to_ast([FUNCTION_EQ, [FUNCTION_RESOLVE, "ref"], ref]))
+
+    if alt_bases is not None:
+        query_list.append(convert_query_to_ast([FUNCTION_EQ, [FUNCTION_RESOLVE, "alt"], alt_bases]))
+    else:
+        # alt_id is not None
+        query_list.append(convert_query_to_ast([FUNCTION_EQ, [FUNCTION_RESOLVE, "alt"], alt_id]))
 
     results = generic_variant_search(table_manager, chromosome=query["referenceName"], start_min=start_min,
-                                     start_max=start_max, end_min=end_min, end_max=end_max, ref=ref, alt=alt,
+                                     start_max=start_max, rest_of_query=and_asts_to_ast(tuple(query_list)),
                                      assembly_id=assembly_id, dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)

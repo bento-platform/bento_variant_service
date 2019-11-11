@@ -25,20 +25,20 @@ VARIANT_SCHEMA = {
         "start": {
             "type": "integer",
             "search": {
-                "operations": ["ge"],
+                "operations": ["ge", "le"],
                 "canNegate": False,
                 "required": True,
-                "type": "single",  # single / unlimited
+                "type": "unlimited",  # single / unlimited
                 "order": 1
             }
         },
         "end": {
             "type": "integer",
             "search": {
-                "operations": ["le"],
-                "canNegate": False,
-                "required": True,
-                "type": "single",  # single / unlimited
+                "operations": ["eq", "lt", "le", "gt", "ge"],
+                "canNegate": True,
+                "required": False,
+                "type": "unlimited",  # single / unlimited
                 "order": 2
             }
         },

@@ -1,11 +1,25 @@
-import chord_lib.search
 import re
+import sys
 import tabix
 
-from flask import Blueprint, current_app, jsonify, request
-from operator import eq, ne
+from chord_lib.search.data_structure import check_ast_against_data_structure
+from chord_lib.search.queries import (
+    convert_query_to_ast_and_preprocess,
+    ast_to_and_asts,
+    and_asts_to_ast,
 
-from typing import Callable, List, Iterable, Optional, Tuple
+    AST,
+    Expression,
+    Literal,
+
+    FUNCTION_EQ,
+    FUNCTION_LE,
+    FUNCTION_GE,
+    FUNCTION_RESOLVE
+)
+from flask import Blueprint, current_app, jsonify, request
+
+from typing import List, Iterable, Optional, Tuple
 
 from .datasets import VariantTable, TableManager
 from .pool import get_pool
@@ -19,14 +33,9 @@ BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 def search_worker_prime(
     dataset: VariantTable,
     chromosome: str,
-    start_min: int,
+    start_min: Optional[int],
     start_max: Optional[int],
-    end_min: Optional[int],
-    end_max: int,
-    ref: Optional[str],
-    alt: Optional[str],
-    ref_op: Callable[[str, str], bool],
-    alt_op: Callable[[str, str], bool],
+    rest_of_query: Optional[AST],
     internal_data: bool,
     assembly_id: Optional[str],
     table_manager: TableManager
@@ -40,13 +49,22 @@ def search_worker_prime(
             tbx = tabix.open(vcf)
 
             # TODO: Security of passing this? Verify values in non-Beacon searches
-            for row in tbx.query(chromosome, start_min, end_max):
-                if (start_max is not None and row[1] > start_max) or (end_min is not None and row[2] < end_min):
-                    # TODO: Are start_max and end_min both inclusive for sure? Pretty sure but unclear
-                    continue
+            # TODO: What if the VCF includes telomeres (off the end)?
+            for row in tbx.query(chromosome,
+                                 start_min if start_min is not None else 0,
+                                 start_max if start_max is not None else sys.maxsize):
+                variant = {
+                    "chromosome": row[0],
+                    "start": int(row[1]),
+                    "end": int(row[1]) + len(row[3]),  # row[2],  # TODO: This is wrong!!!! ID not end...
+                    "ref": row[3],
+                    "alt": row[4]
+                }
 
-                match = ((ref_op(row[3].upper(), ref.upper()) if ref is not None else True) and
-                         (alt_op(row[4].upper(), alt.upper()) if alt is not None else True))
+                # TODO: Deal with sample homozygous / heterozygous
+
+                match = rest_of_query is None or \
+                    check_ast_against_data_structure(rest_of_query, variant, VARIANT_SCHEMA)
 
                 found = found or match
 
@@ -54,13 +72,7 @@ def search_worker_prime(
                     break
 
                 if match:  # implicitly internal_data is True here as well
-                    matches.append({
-                        "chromosome": row[0],
-                        "start": row[1],
-                        "end": row[2],
-                        "ref": row[3],
-                        "alt": row[4]
-                    })
+                    matches.append(variant)
 
             if not internal_data and found:
                 break
@@ -89,13 +101,8 @@ def generic_variant_search(
     table_manager: TableManager,
     chromosome: str,
     start_min: int,
-    start_max: Optional[int] = None,
-    end_min: Optional[int] = None,
-    end_max=None,
-    ref: Optional[str] = None,
-    alt: Optional[str] = None,
-    ref_op: Callable[[str, str], bool] = eq,
-    alt_op: Callable[[str, str], bool] = eq,
+    start_max: int,
+    rest_of_query: Optional[AST] = None,
     internal_data=False,
     assembly_id: Optional[str] = None,
     dataset_ids: Optional[List[str]] = None
@@ -111,7 +118,7 @@ def generic_variant_search(
         pool = get_pool()
         pool_map: Iterable[Tuple[Optional[VariantTable], List[dict]]] = pool.imap_unordered(
             search_worker,
-            ((dataset, chromosome, start_min, start_max, end_min, end_max, ref, alt, ref_op, alt_op, internal_data,
+            ((dataset, chromosome, start_min, start_max, rest_of_query, internal_data,
               assembly_id, table_manager) for dataset in table_manager.get_datasets().values()
              if (ds is None or dataset.table_id in ds) and (assembly_id is None or assembly_id in dataset.assembly_ids))
         )
@@ -124,28 +131,68 @@ def generic_variant_search(
     return dataset_results
 
 
-# TODO: To chord_lib? Maybe conditions_dict should be a class or something...
-def parse_conditions(conditions: List) -> dict:
-    return {
-        c["field"].split(".")[-1]: c
-        for c in conditions
-        if (c["field"].split(".")[-1] in VARIANT_SCHEMA["properties"] and
-            isinstance(c["negated"], bool) and c["operation"] in chord_lib.search.SEARCH_OPERATIONS)
-    }
+def query_key_op_value(query_item: AST, field: str, op: str):
+    # format: [#op [#resolve field] "value"]
+
+    if (isinstance(query_item, Expression) and
+            query_item.fn == op and
+            isinstance(query_item.args[0], Expression) and
+            query_item.args[0].fn == FUNCTION_RESOLVE and
+            isinstance(query_item.args[0].args[0], Literal) and
+            query_item.args[0].args[0].value == field and
+            isinstance(query_item.args[1], Literal)):
+        return query_item.args[1].value
+
+    return None
 
 
-def chord_search(table_manager: TableManager, dt: str, conditions: List, internal_data: bool = False):
+class InvalidQuery(Exception):
+    pass
+
+
+def parse_query_for_tabix(query: AST):
+    query_items = ast_to_and_asts(query)
+
+    chromosome = None
+    start_min = None
+    start_max = None
+
+    other_query_items = []
+
+    for q in query_items:
+        # format: [#eq [#resolve chromosome] "chr1"]
+        if chromosome is None:
+            chromosome = query_key_op_value(q, "chromosome", FUNCTION_EQ)
+
+        if start_min is None:
+            start_min = query_key_op_value(q, "start", FUNCTION_GE)
+
+        if start_max is None:
+            start_max = query_key_op_value(q, "start", FUNCTION_LE)
+
+        if (query_key_op_value(q, "chromosome", FUNCTION_EQ) is None and
+                query_key_op_value(q, "start", FUNCTION_GE) is None and
+                query_key_op_value(q, "start", FUNCTION_LE) is None):
+            other_query_items.append(q)
+
+    if any((chromosome is None, start_min is None, start_max is None)):
+        raise InvalidQuery
+
+    return chromosome, start_min, start_max, and_asts_to_ast(tuple(other_query_items))
+
+
+def chord_search(table_manager: TableManager, dt: str, query: List, internal_data: bool = False):
     null_result = {} if internal_data else []
 
     if dt != "variant":
         return null_result
 
-    condition_dict = parse_conditions(conditions)
+    # TODO: Parser error handling
+    query_ast = convert_query_to_ast_and_preprocess(query)
 
-    if "chromosome" not in condition_dict or "start" not in condition_dict or "end" not in condition_dict:
-        # TODO: Error
-        # TODO: Not hardcoded?
-        # TODO: More conditions
+    try:
+        chromosome, start_min, start_max, rest_of_query = parse_query_for_tabix(query_ast)
+    except InvalidQuery:
         return null_result
 
     dataset_results = {} if internal_data else []
@@ -153,30 +200,17 @@ def chord_search(table_manager: TableManager, dt: str, conditions: List, interna
     # TODO: What coordinate system do we want?
 
     try:
-        chromosome = condition_dict["chromosome"]["searchValue"]
         assert re.match(CHROMOSOME_REGEX, chromosome) is not None  # Check validity of VCF chromosome
 
-        start_pos = int(condition_dict["start"]["searchValue"])
-        end_pos = int(condition_dict["end"]["searchValue"])
-
-        ref_cond = condition_dict.get("ref", None)
-        alt_cond = condition_dict.get("alt", None)
-
-        assert (re.match(ref_cond["searchValue"], BASE_REGEX) is not None if ref_cond else True)
-        assert (re.match(alt_cond["searchValue"], BASE_REGEX) is not None if alt_cond else True)
-
-        ref_op = ne if ref_cond is not None and ref_cond["negated"] else eq
-        alt_op = ne if alt_cond is not None and alt_cond["negated"] else eq
+        start_min = int(start_min)
+        start_max = int(start_max)
 
         search_results = generic_variant_search(
             table_manager=table_manager,
             chromosome=chromosome,
-            start_min=start_pos,
-            end_max=end_pos,
-            ref=ref_cond["searchValue"] if ref_cond is not None else None,
-            alt=alt_cond["searchValue"] if alt_cond is not None else None,
-            ref_op=ref_op,
-            alt_op=alt_op,
+            start_min=start_min,
+            start_max=start_max,
+            rest_of_query=rest_of_query,
             internal_data=internal_data
         )
 
@@ -201,8 +235,8 @@ def search_endpoint():
     # TODO: PROBABLY VULNERABLE IN SOME WAY
 
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
-                                            request.json["dataTypeID"],
-                                            request.json["conditions"],
+                                            request.json["data_type"],
+                                            request.json["query"],
                                             internal_data=False)})
 
 
@@ -212,6 +246,6 @@ def private_search_endpoint():
     # TODO: Figure out security properly
 
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
-                                            request.json["dataTypeID"],
-                                            request.json["conditions"],
+                                            request.json["data_type"],
+                                            request.json["query"],
                                             internal_data=True)})
