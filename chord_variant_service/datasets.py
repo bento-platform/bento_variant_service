@@ -256,7 +256,7 @@ class MemoryTableManager(TableManager):
         del self.datasets[dataset_id]
 
 
-class VCFTableManager(TableManager):
+class VCFTableManager(TableManager):  # pragma: no cover
     def __init__(self, data_path: str):
         self.DATA_PATH = data_path
         self.datasets = {}
