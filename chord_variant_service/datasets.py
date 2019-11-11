@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import datetime
 import os
 import shutil
+import tabix
 import uuid
 
 from flask import Blueprint, current_app, json, jsonify, request
@@ -21,7 +22,10 @@ __all__ = [
     "make_beacon_dataset_id",
 
     "BeaconDataset",
+
     "VariantTable",
+    "MemoryVariantTable",
+    "VCFVariantTable",
 
     "IDGenerationFailure",
     "TableManager",
@@ -30,6 +34,9 @@ __all__ = [
 
     "bp_datasets",
 ]
+
+
+MAX_SIGNED_INT_32 = 2 ** 31 - 1
 
 
 ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
@@ -77,14 +84,12 @@ class BeaconDataset:
         }
 
 
-class VariantTable:
-    def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_assembly_ids: dict = None):
+class VariantTable(ABC):  # pragma: no cover
+    def __init__(self, table_id, name, metadata, assembly_ids=()):
         self.table_id = table_id
         self.name = name
         self.metadata = metadata
-        self.assembly_ids = set(assembly_ids) if file_assembly_ids is None else set(file_assembly_ids.keys())
-        self.file_assembly_ids = file_assembly_ids if file_assembly_ids is not None else {}
-        self.files = files
+        self.assembly_ids = set(assembly_ids)
 
     def as_table_response(self):
         return {
@@ -98,6 +103,51 @@ class VariantTable:
     @property
     def beacon_datasets(self):
         return tuple(
+            BeaconDataset(table_id=self.table_id, table_name=self.name, table_metadata=self.metadata, assembly_id=a)
+            for a in sorted(self.assembly_ids)
+        )
+
+    @abstractmethod
+    def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
+                 start_max: Optional[int] = None):
+        return
+
+
+class MemoryVariantTable(VariantTable):
+    def __init__(self, table_id, name, metadata, assembly_ids=()):
+        super().__init__(table_id, name, metadata, assembly_ids)
+        self.variant_store = []
+
+    def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
+                 start_max: Optional[int] = None):
+        for v in self.variant_store:
+            if v["chromosome"] != chromosome:
+                continue
+
+            if start_min is not None and v["start"] < start_min:
+                continue
+
+            if start_max is not None and v["start"] > start_max:
+                continue
+
+            a_id = v.get("assembly_id", None)
+
+            if a_id is not None and a_id != assembly_id:
+                continue
+
+            yield v
+
+
+class VCFVariantTable(VariantTable):  # pragma: no cover
+    def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_assembly_ids: dict = None):
+        super().__init__(table_id, name, metadata, assembly_ids)
+        self.assembly_ids = set(assembly_ids) if file_assembly_ids is None else set(file_assembly_ids.keys())
+        self.file_assembly_ids = file_assembly_ids if file_assembly_ids is not None else {}
+        self.files = files
+
+    @property
+    def beacon_datasets(self):
+        return tuple(
             BeaconDataset(
                 table_id=self.table_id,
                 table_name=self.name,
@@ -106,6 +156,28 @@ class VariantTable:
                 files=tuple(f1 for f1, a1 in self.file_assembly_ids.items() if a1 == a)
             ) for a in sorted(self.assembly_ids)
         )
+
+    def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
+                 start_max: Optional[int] = None):
+        for vcf, a_id in filter(lambda _, a: assembly_id is None or a == assembly_id, self.file_assembly_ids.items()):
+            tbx = tabix.open(vcf)
+
+            # TODO: Security of passing this? Verify values in non-Beacon searches
+            # TODO: What if the VCF includes telomeres (off the end)?
+            for row in tbx.query(chromosome,
+                                 start_min if start_min is not None else 0,
+                                 start_max if start_max is not None else MAX_SIGNED_INT_32):
+                yield {
+                    "assembly_id": a_id,
+                    "chromosome": row[0],
+                    "start": int(row[1]),
+                    "end": int(row[1]) + len(row[3]),  # row[2],  # TODO: This is wrong!!!! ID not end...
+                    "ref": row[3],
+                    "alt": row[4]
+                }
+
+            # May throw tabix.TabixError (should be handled)
+            # May throw ValueError from cast
 
 
 class IDGenerationFailure(Exception):
@@ -119,7 +191,7 @@ class TableManager(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def get_datasets(self) -> Dict[str, VariantTable]:  # TODO: Rename get_tables
+    def get_datasets(self) -> Dict[str, VCFVariantTable]:  # TODO: Rename get_tables
         return {}
 
     @abstractmethod
@@ -166,12 +238,12 @@ class MemoryTableManager(TableManager):
     def _generate_dataset_id(self) -> Optional[str]:
         return None if self.id_to_generate in self.datasets else self.id_to_generate
 
-    def create_dataset_and_update(self, name: str, metadata: dict) -> VariantTable:
+    def create_dataset_and_update(self, name: str, metadata: dict) -> MemoryVariantTable:
         dataset_id = self._generate_dataset_id()
         if dataset_id is None:
             raise IDGenerationFailure()
 
-        new_dataset = VariantTable(table_id=dataset_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
+        new_dataset = MemoryVariantTable(table_id=dataset_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
 
         self.datasets[dataset_id] = new_dataset
 
@@ -221,7 +293,7 @@ class VCFTableManager(TableManager):
                               if file[-6:] == "vcf.gz")
             assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
 
-            ds = VariantTable(
+            ds = VCFVariantTable(
                 table_id=d,
                 name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
                 metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
@@ -242,7 +314,7 @@ class VCFTableManager(TableManager):
 
         return None if i == ID_RETRIES else new_id
 
-    def create_dataset_and_update(self, name: str, metadata: dict) -> VariantTable:
+    def create_dataset_and_update(self, name: str, metadata: dict) -> VCFVariantTable:
         dataset_id = self._generate_dataset_id()
         if dataset_id is None:
             raise IDGenerationFailure()

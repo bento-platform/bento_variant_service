@@ -1,5 +1,4 @@
 import re
-import sys
 import tabix
 
 from chord_lib.search.data_structure import check_ast_against_data_structure
@@ -44,42 +43,30 @@ def search_worker_prime(
 
     found = False
     matches = []
-    for vcf in (vf for vf, a_id in dataset.file_assembly_ids.items() if assembly_id is None or a_id == assembly_id):
+
+    possible_matches = dataset.variants(assembly_id, chromosome, start_min, start_max)
+
+    while not found:
         try:
-            tbx = tabix.open(vcf)
+            variant = next(possible_matches)
 
-            # TODO: Security of passing this? Verify values in non-Beacon searches
-            # TODO: What if the VCF includes telomeres (off the end)?
-            for row in tbx.query(chromosome,
-                                 start_min if start_min is not None else 0,
-                                 start_max if start_max is not None else sys.maxsize):
-                variant = {
-                    "chromosome": row[0],
-                    "start": int(row[1]),
-                    "end": int(row[1]) + len(row[3]),  # row[2],  # TODO: This is wrong!!!! ID not end...
-                    "ref": row[3],
-                    "alt": row[4]
-                }
+            # TODO: Deal with sample homozygous / heterozygous
 
-                # TODO: Deal with sample homozygous / heterozygous
-
-                match = rest_of_query is None or \
-                    check_ast_against_data_structure(rest_of_query, variant, VARIANT_SCHEMA)
-
-                found = found or match
-
-                if not internal_data and found:
-                    break
-
-                if match:  # implicitly internal_data is True here as well
-                    matches.append(variant)
+            match = rest_of_query is None or check_ast_against_data_structure(rest_of_query, variant, VARIANT_SCHEMA)
+            found = found or match
 
             if not internal_data and found:
                 break
 
+            if match:  # implicitly internal_data is True here as well
+                matches.append(variant)
+
+        except StopIteration:
+            break
+
         except tabix.TabixError:
             # Dataset might be removed or corrupt, skip it and refresh datasets at the end
-            print("Error processing tabix file: {}".format(vcf))
+            print("Error processing a tabix file in dataset {}".format(dataset.table_id))
             refresh_at_end = True
 
         except ValueError as e:
