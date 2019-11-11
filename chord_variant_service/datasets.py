@@ -116,7 +116,7 @@ class IDGenerationFailure(Exception):
 class TableManager(ABC):  # pragma: no cover
     # TODO: Rename
     @abstractmethod
-    def get_dataset(self, dataset_id: str) -> Optional[dict]:
+    def get_dataset(self, dataset_id: str) -> Optional[VariantTable]:
         pass
 
     @abstractmethod
@@ -137,7 +137,7 @@ class TableManager(ABC):  # pragma: no cover
 
     # TODO: Rename create_table_and_update, table_id
     @abstractmethod
-    def create_dataset_and_update(self, name: str, metadata: dict) -> dict:
+    def create_dataset_and_update(self, name: str, metadata: dict) -> VariantTable:
         pass
 
     # TODO: Rename create_table_and_update, table_id
