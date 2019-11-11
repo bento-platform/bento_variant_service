@@ -131,8 +131,7 @@ class MemoryVariantTable(VariantTable):
                 continue
 
             a_id = v.get("assembly_id", None)
-
-            if a_id is not None and a_id != assembly_id:
+            if assembly_id is not None and a_id != assembly_id:
                 continue
 
             yield v
