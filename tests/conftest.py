@@ -7,10 +7,15 @@ from chord_variant_service.datasets import MemoryTableManager
 
 
 @pytest.fixture
-def client():
+def app():
     application.config["TESTING"] = True
     application.config["TABLE_MANAGER"] = MemoryTableManager()
-    client = application.test_client()
+    yield application
+
+
+@pytest.fixture
+def client(app):
+    client = app.test_client()
     yield client
 
 
@@ -18,5 +23,4 @@ def client():
 def json_schema():
     r = requests.get("http://json-schema.org/draft-07/schema#")
     schema = json.loads(r.content)
-    print(schema)
     yield schema
