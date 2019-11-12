@@ -104,6 +104,15 @@ def beacon_query():
     end_min = query.get("endMin", None) if end is None else end - 1  # Subtract one, since end is exclusive
     end_max = query.get("endMax", None) if end is None else end - 1  # "
 
+    # Check that bounds make sense and tighten them if possible
+
+    if start_min is not None and ((start_max is not None and start_max < start_min) or
+                                  (end_max is not None and end_max < start_min)):
+        return current_app.response_class(status=400)  # TODO: Beacon error response
+
+    if start_max is None and end_max is not None:
+        start_max = end_max - 1  # TODO: Can we assume variants are at most 1 character long?
+
     # Convert to VCF coordinates (1-indexed)
 
     start_min = start_min + 1 if start_min is not None else None
@@ -111,7 +120,7 @@ def beacon_query():
     end_min = end_min + 1 if end_min is not None else None
     end_max = end_max + 1 if end_max is not None else None
 
-    # TODO: Start can be used without end, calculate max end!! (via referenceBases?)
+    # Sort out reference vs. alternate
 
     ref = query.get("referenceBases", None)
 
@@ -121,6 +130,8 @@ def beacon_query():
     if (alt_bases is None and alt_id is None) or (alt_bases is not None and alt_id is not None):
         # Error one or the other is required
         return current_app.response_class(status=400)  # TODO: Beacon error response
+
+    # Get limiting assembly ID / dataset IDs for query
 
     assembly_id = query["assemblyId"]
 
@@ -144,9 +155,10 @@ def beacon_query():
         ) if value is not None
     ))
 
+    # noinspection PyTypeChecker
     results = generic_variant_search(table_manager, chromosome=query["referenceName"], start_min=start_min,
-                                     start_max=start_max, rest_of_query=and_asts_to_ast(tuple(query_list)),
-                                     assembly_id=assembly_id, dataset_ids=dataset_ids)
+                                     start_max=start_max, rest_of_query=rest_of_query, assembly_id=assembly_id,
+                                     dataset_ids=dataset_ids)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
     dataset_matches = set(bd.beacon_id for bd in chain.from_iterable(d.beacon_datasets for d, _ in results)
