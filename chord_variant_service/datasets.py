@@ -6,6 +6,7 @@ import tabix
 import uuid
 
 from flask import Blueprint, current_app, json, jsonify, request
+from itertools import chain
 from jsonschema import validate, ValidationError
 from pysam import VariantFile
 from typing import Dict, Optional, Tuple
@@ -136,6 +137,10 @@ class MemoryVariantTable(VariantTable):
 
             yield v
 
+    def add_variant(self, variant):
+        self.variant_store.append(variant)
+        self.assembly_ids.add(variant["assembly_id"])
+
 
 class VCFVariantTable(VariantTable):  # pragma: no cover
     def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_assembly_ids: dict = None):
@@ -219,7 +224,6 @@ class TableManager(ABC):  # pragma: no cover
 class MemoryTableManager(TableManager):
     def __init__(self):
         self.datasets = {}
-        self.beacon_datasets = {}
         self.id_to_generate = "fixed_id"
 
     def get_dataset(self, dataset_id: str) -> Optional[dict]:
@@ -229,7 +233,7 @@ class MemoryTableManager(TableManager):
         return self.datasets
 
     def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
-        return self.beacon_datasets
+        return {bd.beacon_id_tuple: bd for bd in chain.from_iterable(d.beacon_datasets for d in self.datasets.values())}
 
     def update_datasets(self):  # pragma: no cover
         pass
@@ -243,11 +247,7 @@ class MemoryTableManager(TableManager):
             raise IDGenerationFailure()
 
         new_dataset = MemoryVariantTable(table_id=dataset_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
-
         self.datasets[dataset_id] = new_dataset
-
-        for bd in new_dataset.beacon_datasets:
-            self.beacon_datasets[bd.beacon_id_tuple] = bd
 
         return new_dataset
 
