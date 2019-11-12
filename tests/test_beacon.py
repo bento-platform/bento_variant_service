@@ -1,8 +1,11 @@
 # noinspection PyProtectedMember
 from chord_variant_service.beacon import generate_beacon_id
 from chord_variant_service.datasets import make_beacon_dataset_id
+from chord_variant_service.pool import get_pool, teardown_pool
 from jsonschema import validate
 from uuid import uuid4
+
+from .shared_data import VARIANT_1
 
 # Adapted from the OpenAPI 1.0.1 spec
 # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml
@@ -108,15 +111,77 @@ BEACON_ALLELE_REQUEST_SCHEMA = {
     }
 }
 
+BEACON_ERROR_SCHEMA = {
+    "type": "object",
+    "required": ["errorCode"],
+    "properties": {
+        "errorCode": {
+            "type": "integer",
+            "format": "int32"
+        },
+        "errorMessage": {
+            "type": "string"
+        }
+    }
+}
+
+BEACON_DATASET_ALLELE_RESPONSE_SCHEMA = {
+    "type": "object",
+    "required": ["datasetId"],
+    "properties": {
+        "datasetId": {"type": "string"},
+        "exists": {"type": "boolean"},
+        "error": {
+            "$ref": "#/components/schemas/BeaconError"
+        },
+        "frequency": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "variantCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+        },
+        "callCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+        },
+        "sampleCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+        },
+        "note": {"type": "string"},
+        "externalUrl": {"type": "string"},
+        "info": {
+            "type": "array",
+            "items": BEACON_KEY_VALUE_PAIR_SCHEMA
+        }
+    }
+}
+
+BEACON_ALLELE_RESPONSE_SCHEMA = {
+    "type": "object",
+    "required": ["beaconId"],
+    "properties": {
+        "beaconId": {"type": "string"},
+        "apiVersion": {"type": "string"},
+        "exists": {"type": "boolean"},
+        "alleleRequest": BEACON_ALLELE_REQUEST_SCHEMA,
+        "datasetAlleleResponses": {
+            "type": "array",
+            "items": BEACON_DATASET_ALLELE_RESPONSE_SCHEMA
+        },
+        "error": BEACON_ERROR_SCHEMA
+    }
+}
+
 BEACON_SCHEMA = {
     "type": "object",
-    "required": [
-        "id",
-        "name",
-        "apiVersion",
-        "organization",
-        "datasets"
-    ],
+    "required": ["id", "name", "apiVersion", "organization", "datasets"],
     "properties": {
         "id": {"type": "string"},
         "name": {"type": "string"},
@@ -156,14 +221,51 @@ def test_make_beacon_dataset_id():
     assert make_beacon_dataset_id((some_id, "GRCh37")) == f"{some_id}:GRCh37"
 
 
-def test_beacon_response(client):
-    # Add a dummy dataset first (beacon API needs one or more datasets) TODO ENCODE
-    client.post("/datasets?data-type=variant", json={
-        "name": "test table",
-        "metadata": {}
-    })
+def test_beacon_response(app, client):
+    # Add a dummy dataset first (beacon API needs one or more datasets)
 
-    rv = client.get("/beacon")
-    data = rv.get_json()
+    with app.app_context():
+        pool = get_pool()
 
-    validate(data, BEACON_SCHEMA)
+        try:
+            mm = app.config["TABLE_MANAGER"]
+
+            # Create a new dataset with ID fixed_id and name test table, and add a variant to it
+            ds = mm.create_dataset_and_update("test table", {})
+            ds.variant_store.append(VARIANT_1)
+
+            rv = client.get("/beacon")
+            data = rv.get_json()
+
+            validate(data, BEACON_SCHEMA)
+
+            # Beacon query (JSON)
+
+            # - Invalid (empty) query
+
+            rv = client.post("/beacon/query")
+            assert rv.status_code == 400
+
+            # - Valid query for exact variant
+
+            rv = client.post("/beacon/query", json={
+                "referenceName": "1",
+                "referenceBases": "C",
+                "alternateBases": "T",
+                "start": 4999,  # 0-based coordinates
+                "end": 5000,  # "
+                "assemblyId": "GRCh37",
+                "includeDatasetResponses": "HIT"
+            })
+            assert rv.status_code == 200
+
+            data = rv.get_json()
+
+            validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+            assert data["exists"]
+            assert len(data["datasetAlleleResponses"]) == 1
+            assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
+
+        finally:
+            teardown_pool(None)
+            pool.join()
