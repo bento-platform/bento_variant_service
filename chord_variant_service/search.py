@@ -64,7 +64,7 @@ def search_worker_prime(
         except StopIteration:
             break
 
-        except tabix.TabixError:
+        except tabix.TabixError:  # pragma: no cover
             # Dataset might be removed or corrupt, skip it and refresh datasets at the end
             print("Error processing a tabix file in dataset {}".format(dataset.table_id))
             refresh_at_end = True
@@ -74,7 +74,7 @@ def search_worker_prime(
             print(str(e))
             break
 
-    if refresh_at_end:
+    if refresh_at_end:  # pragma: no cover
         table_manager.update_datasets()
 
     return (dataset if found else None), matches
