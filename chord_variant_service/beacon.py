@@ -130,24 +130,19 @@ def beacon_query():
 
     table_manager: TableManager = current_app.config["TABLE_MANAGER"]
 
-    # TODO: Translate into a CHORD-formatted query to send to search\
+    # Create an additional filtering query based on the rest of the Beacon request
+    rest_of_query = and_asts_to_ast(tuple(
+        convert_query_to_ast([fn, [FUNCTION_RESOLVE, field], value])
+        for fn, field, value in (
+            (FUNCTION_GE, "end", end_min),
+            (FUNCTION_LE, "end", end_max),
+            (FUNCTION_EQ, "ref", ref),
 
-    query_list = []
-
-    if end_min is not None:
-        query_list.append(convert_query_to_ast([FUNCTION_GE, [FUNCTION_RESOLVE, "end"], end_min]))
-
-    if end_max is not None:
-        query_list.append(convert_query_to_ast([FUNCTION_LE, [FUNCTION_RESOLVE, "end"], end_max]))
-
-    if ref is not None:
-        query_list.append(convert_query_to_ast([FUNCTION_EQ, [FUNCTION_RESOLVE, "ref"], ref]))
-
-    if alt_bases is not None:
-        query_list.append(convert_query_to_ast([FUNCTION_EQ, [FUNCTION_RESOLVE, "alt"], alt_bases]))
-    else:
-        # alt_id is not None
-        query_list.append(convert_query_to_ast([FUNCTION_EQ, [FUNCTION_RESOLVE, "alt"], alt_id]))
+            # One of the two below will be none
+            (FUNCTION_EQ, "alt", alt_bases),
+            (FUNCTION_EQ, "alt", alt_id),
+        ) if value is not None
+    ))
 
     results = generic_variant_search(table_manager, chromosome=query["referenceName"], start_min=start_min,
                                      start_max=start_max, rest_of_query=and_asts_to_ast(tuple(query_list)),
