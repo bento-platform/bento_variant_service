@@ -71,7 +71,8 @@ def search_worker_prime(
             print("Error processing a tabix file in dataset {}".format(dataset.table_id))
             refresh_at_end = True
 
-        except ValueError as e:
+        except ValueError as e:  # pragma: no cover
+            # int casts from VCF
             # TODO
             print(str(e))
             break
@@ -167,13 +168,12 @@ def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Opt
         chromosome, state_changed = query_key_op_value_or_pass(chromosome, state_changed, q, "chromosome", FUNCTION_EQ)
 
         start_min, state_changed = query_key_op_value_or_pass(start_min, state_changed, q, "start", FUNCTION_GE, int)
-        start_min, state_changed = query_key_op_value_or_pass(
-            start_min, state_changed, q, "start", FUNCTION_GT, lambda x: int(x) + 1)  # Convert > to >=
+        start_min, state_changed = query_key_op_value_or_pass(start_min, state_changed, q, "start", FUNCTION_GT,
+                                                              lambda x: int(x) + 1)  # Convert > to >=
 
-        start_max, state_changed = query_key_op_value_or_pass(
-            start_max, state_changed, q, "start", FUNCTION_LE, int)
-        start_max, state_changed = query_key_op_value_or_pass(
-            start_max, state_changed, q, "start", FUNCTION_LT, lambda x: int(x) - 1)  # Convert < to <=
+        start_max, state_changed = query_key_op_value_or_pass(start_max, state_changed, q, "start", FUNCTION_LE, int)
+        start_max, state_changed = query_key_op_value_or_pass(start_max, state_changed, q, "start", FUNCTION_LT,
+                                                              lambda x: int(x) - 1)  # Convert < to <=
 
         start_max, state_changed = query_key_op_value_or_pass(
             start_max, state_changed, q, "end", FUNCTION_LE, lambda x: int(x) - 1)  # Convert end <= X to start <= X - 1
