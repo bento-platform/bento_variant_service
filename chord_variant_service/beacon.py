@@ -69,6 +69,9 @@ def beacon_get():
 def beacon_query():
     # TODO: Careful with end, it should be exclusive
 
+    if request.method == "POST" and not isinstance(request.json, dict):
+        return current_app.response_class(status=400)  # TODO: Beacon error response
+
     query = {
         k: v for k, v in (request.json.items() if request.method == "POST" else {
             "referenceName": request.args.get("referenceName"),
