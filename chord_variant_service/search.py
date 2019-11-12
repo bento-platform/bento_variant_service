@@ -178,7 +178,7 @@ def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Opt
         start_max, state_changed = query_key_op_value_or_pass(
             start_max, state_changed, q, "end", FUNCTION_LE, lambda x: int(x) - 1)  # Convert end <= X to start <= X - 1
         start_max, state_changed = query_key_op_value_or_pass(
-            start_max, state_changed, q, "end", FUNCTION_LT, lambda x: int(x) - 1)  # Convert end < X to start <= X - 2
+            start_max, state_changed, q, "end", FUNCTION_LT, lambda x: int(x) - 2)  # Convert end < X to start <= X - 2
 
         if not state_changed:
             other_query_items.append(q)

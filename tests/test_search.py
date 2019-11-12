@@ -10,6 +10,8 @@ QUERY_FRAGMENT_3 = ["#gt", ["#resolve", "start"], "5000"]
 QUERY_FRAGMENT_4 = ["#le", ["#resolve", "start"], "5000"]
 QUERY_FRAGMENT_5 = ["#lt", ["#resolve", "start"], "5001"]
 QUERY_FRAGMENT_6 = ["#lt", ["#resolve", "start"], "5000"]
+QUERY_FRAGMENT_7 = ["#lt", ["#resolve", "end"], "5002"]
+QUERY_FRAGMENT_8 = ["#le", ["#resolve", "end"], "5001"]
 
 QUERY_1 = ["#eq", ["#resolve", "chromosome"], "1"]
 QUERY_2 = ["#and", QUERY_1, QUERY_FRAGMENT_1]
@@ -21,6 +23,8 @@ QUERY_7 = ["#and", QUERY_1, QUERY_FRAGMENT_6]
 QUERY_8 = ["#and", QUERY_1, ["#and", QUERY_FRAGMENT_1, QUERY_FRAGMENT_4]]
 QUERY_9 = ["#and", QUERY_8, ["#eq", ["#resolve", "ref"], "C"]]
 QUERY_10 = ["#and", QUERY_8, ["#eq", ["#resolve", "ref"], "T"]]
+QUERY_11 = ["#and", QUERY_1, QUERY_FRAGMENT_7]
+QUERY_12 = ["#and", QUERY_1, QUERY_FRAGMENT_8]
 
 TEST_QUERIES = (
     (QUERY_1, True),
@@ -33,6 +37,8 @@ TEST_QUERIES = (
     (QUERY_8, True),
     (QUERY_9, True),
     (QUERY_10, False),
+    (QUERY_11, True),
+    (QUERY_12, True),
 )
 
 
