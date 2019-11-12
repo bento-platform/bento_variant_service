@@ -70,7 +70,7 @@ def beacon_query():
     # TODO: Careful with end, it should be exclusive
 
     query = {
-        k: v for k, v in (request.json if request.method == "POST" else {
+        k: v for k, v in (request.json.items() if request.method == "POST" else {
             "referenceName": request.args.get("referenceName"),
             "start": request.args.get("start", None),
             "startMin": request.args.get("startMin", None),
@@ -101,8 +101,8 @@ def beacon_query():
     start_max = query.get("startMax", None) if start is None else start
 
     end = query.get("end", None)
-    end_min = query.get("endMin", None) if end is None else end - 1  # Subtract one, since end is exclusive
-    end_max = query.get("endMax", None) if end is None else end - 1  # "
+    end_min = query.get("endMin", None) if end is None else end
+    end_max = query.get("endMax", None) if end is None else end
 
     # Check that bounds make sense and tighten them if possible
 
