@@ -181,7 +181,7 @@ def beacon_query():
 
     else:  # BEACON_IDR_NONE
         # Don't return anything
-        beacon_dataset_hits = None
+        beacon_dataset_hits = []
 
     return jsonify({
         "beaconId": BEACON_ID,

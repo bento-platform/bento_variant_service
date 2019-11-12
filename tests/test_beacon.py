@@ -5,7 +5,7 @@ from chord_variant_service.pool import get_pool, teardown_pool
 from jsonschema import validate
 from uuid import uuid4
 
-from .shared_data import VARIANT_1
+from .shared_data import VARIANT_1, VARIANT_2, VARIANT_3
 
 # Adapted from the OpenAPI 1.0.1 spec
 # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml
@@ -211,6 +211,89 @@ BEACON_SCHEMA = {
 }
 
 
+SHARED_REQUEST_BASE = {
+    "referenceName": "1",
+    "assemblyId": "GRCh37",
+    "includeDatasetResponses": "HIT"
+}
+
+
+BEACON_REQUEST_1 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+}
+
+BEACON_REQUEST_2 = {  # test inference of startMax
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "startMin": 4999,  # 0-based coordinates
+    "endMax": 5001,  # "
+}
+
+BEACON_REQUEST_3 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+    "datasetIds": ["fixed_id:GRCh37"]
+}
+
+
+EMPTY_BEACON_REQUEST_1 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+    "datasetIds": ["does_not_exist"]
+}
+
+
+INVALID_BEACON_REQUEST_1 = {
+    **SHARED_REQUEST_BASE,
+    "alternateBases": "T",
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+}
+
+INVALID_BEACON_REQUEST_2 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "startMin": 5000,  # 0-based coordinates
+    "startMax": 4999,  # "
+}
+
+INVALID_BEACON_REQUEST_3 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "startMin": 5000,  # 0-based coordinates
+    "endMax": 4999,  # "
+}
+
+INVALID_BEACON_REQUEST_4 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "variantType": "DEL",  # Conflicts with alternateBases
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+}
+
+INVALID_BEACON_REQUEST_5 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",  # No alternate
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+}
+
+
 def test_generate_beacon_id():
     assert generate_beacon_id("example.org") == "org.example.beacon"
     assert generate_beacon_id("f2j-043.example.org:5000") == "org.example.f2j-043.5000.beacon"
@@ -232,7 +315,23 @@ def test_beacon_response(app, client):
 
             # Create a new dataset with ID fixed_id and name test table, and add a variant to it
             ds = mm.create_dataset_and_update("test table", {})
-            ds.variant_store.append(VARIANT_1)
+
+            # Test valid but empty dataset
+            rv = client.post("/beacon/query", json=BEACON_REQUEST_3)
+            assert rv.status_code == 200
+
+            data = rv.get_json()
+
+            validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+            assert not data["exists"]
+            assert len(data["datasetAlleleResponses"]) == 0
+
+            # Add variants to store
+            ds.add_variant(VARIANT_1)
+            ds.add_variant(VARIANT_2)
+            ds.add_variant(VARIANT_3)
+
+            # Check beacon info response
 
             rv = client.get("/beacon")
             data = rv.get_json()
@@ -241,22 +340,66 @@ def test_beacon_response(app, client):
 
             # Beacon query (JSON)
 
-            # - Invalid (empty) query
+            # - Bad queries
 
+            # -- No query
             rv = client.post("/beacon/query")
             assert rv.status_code == 400
 
-            # - Valid query for exact variant
+            # -- Invalid queries
+            for q in (INVALID_BEACON_REQUEST_1, INVALID_BEACON_REQUEST_2, INVALID_BEACON_REQUEST_3,
+                      INVALID_BEACON_REQUEST_4, INVALID_BEACON_REQUEST_5):
+                rv = client.post("/beacon/query", json=q)
+                assert rv.status_code == 400
 
-            rv = client.post("/beacon/query", json={
-                "referenceName": "1",
-                "referenceBases": "C",
-                "alternateBases": "T",
-                "start": 4999,  # 0-based coordinates
-                "end": 5000,  # "
-                "assemblyId": "GRCh37",
-                "includeDatasetResponses": "HIT"
-            })
+            # - Valid queries
+
+            for q in (BEACON_REQUEST_1, BEACON_REQUEST_2, BEACON_REQUEST_3):
+                rv = client.post("/beacon/query", json=q)
+                assert rv.status_code == 200
+
+                data = rv.get_json()
+
+                validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+                assert data["exists"]
+                assert len(data["datasetAlleleResponses"]) == 1
+                assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
+
+            # Test different includeDatasetResponses values
+
+            br_all = {
+                **BEACON_REQUEST_1,
+                "includeDatasetResponses": "ALL"
+            }
+
+            br_miss = {
+                **BEACON_REQUEST_1,
+                "includeDatasetResponses": "MISS"
+            }
+
+            br_none = {
+                **BEACON_REQUEST_1,
+                "includeDatasetResponses": "NONE"
+            }
+
+            # All
+
+            rv = client.post("/beacon/query", json=br_all)
+            assert rv.status_code == 200
+
+            data = rv.get_json()
+
+            validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+            assert data["exists"]
+            assert len(data["datasetAlleleResponses"]) == 2
+            assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
+            assert data["datasetAlleleResponses"][0]["exists"]
+            assert data["datasetAlleleResponses"][1]["datasetId"] == "fixed_id:GRCh38"
+            assert not data["datasetAlleleResponses"][1]["exists"]
+
+            # Miss
+
+            rv = client.post("/beacon/query", json=br_miss)
             assert rv.status_code == 200
 
             data = rv.get_json()
@@ -264,7 +407,19 @@ def test_beacon_response(app, client):
             validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
             assert data["exists"]
             assert len(data["datasetAlleleResponses"]) == 1
-            assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
+            assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh38"
+            assert not data["datasetAlleleResponses"][0]["exists"]
+
+            # None
+
+            rv = client.post("/beacon/query", json=br_none)
+            assert rv.status_code == 200
+
+            data = rv.get_json()
+
+            validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+            assert data["exists"]
+            assert len(data["datasetAlleleResponses"]) == 0
 
         finally:
             teardown_pool(None)
