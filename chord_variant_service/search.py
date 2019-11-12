@@ -12,13 +12,15 @@ from chord_lib.search.queries import (
     Literal,
 
     FUNCTION_EQ,
+    FUNCTION_LT,
     FUNCTION_LE,
+    FUNCTION_GT,
     FUNCTION_GE,
     FUNCTION_RESOLVE
 )
 from flask import Blueprint, current_app, jsonify, request
 
-from typing import List, Iterable, Optional, Tuple
+from typing import Callable, List, Iterable, Optional, Tuple
 
 from .datasets import VariantTable, TableManager
 from .pool import get_pool
@@ -133,11 +135,22 @@ def query_key_op_value(query_item: AST, field: str, op: str):
     return None
 
 
+def query_key_op_value_or_pass(value, state_changed: bool, query_item: AST, field: str, op: str,
+                               transform: Callable = lambda x: x):
+    if value is None:
+        value = query_key_op_value(query_item, field, op)
+        if value is not None:
+            value = transform(value)
+            return value, True
+
+    return value, state_changed or False
+
+
 class InvalidQuery(Exception):
     pass
 
 
-def parse_query_for_tabix(query: AST):
+def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Optional[int], AST]:
     query_items = ast_to_and_asts(query)
 
     chromosome = None
@@ -148,18 +161,26 @@ def parse_query_for_tabix(query: AST):
 
     for q in query_items:
         # format: [#eq [#resolve chromosome] "chr1"]
-        if chromosome is None:
-            chromosome = query_key_op_value(q, "chromosome", FUNCTION_EQ)
 
-        if start_min is None:
-            start_min = query_key_op_value(q, "start", FUNCTION_GE)
+        state_changed = False
 
-        if start_max is None:
-            start_max = query_key_op_value(q, "start", FUNCTION_LE)
+        chromosome, state_changed = query_key_op_value_or_pass(chromosome, state_changed, q, "chromosome", FUNCTION_EQ)
 
-        if (query_key_op_value(q, "chromosome", FUNCTION_EQ) is None and
-                query_key_op_value(q, "start", FUNCTION_GE) is None and
-                query_key_op_value(q, "start", FUNCTION_LE) is None):
+        start_min, state_changed = query_key_op_value_or_pass(start_min, state_changed, q, "start", FUNCTION_GE, int)
+        start_min, state_changed = query_key_op_value_or_pass(
+            start_min, state_changed, q, "start", FUNCTION_GT, lambda x: int(x) + 1)  # Convert > to >=
+
+        start_max, state_changed = query_key_op_value_or_pass(
+            start_max, state_changed, q, "start", FUNCTION_LE, int)
+        start_max, state_changed = query_key_op_value_or_pass(
+            start_max, state_changed, q, "start", FUNCTION_LT, lambda x: int(x) - 1)  # Convert < to <=
+
+        start_max, state_changed = query_key_op_value_or_pass(
+            start_max, state_changed, q, "end", FUNCTION_LE, lambda x: int(x) - 1)  # Convert end <= X to start <= X - 1
+        start_max, state_changed = query_key_op_value_or_pass(
+            start_max, state_changed, q, "end", FUNCTION_LT, lambda x: int(x) - 1)  # Convert end < X to start <= X - 2
+
+        if not state_changed:
             other_query_items.append(q)
 
     if chromosome is None:
@@ -190,9 +211,6 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
 
     try:
         assert re.match(CHROMOSOME_REGEX, chromosome) is not None  # Check validity of VCF chromosome
-
-        start_min = int(start_min) if start_min is not None else None
-        start_max = int(start_max) if start_max is not None else None
 
         search_results = generic_variant_search(
             table_manager=table_manager,
