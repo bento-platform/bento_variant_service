@@ -34,13 +34,13 @@ def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
 
     return jsonify({
-        "id": "ca.distributedgenomics.chord_variant_service",  # TODO: Should be globally unique?
-        "name": "CHORD Variant Service",                       # TODO: Should be globally unique?
-        "type": "ca.distributedgenomics:chord_variant_service:{}".format(chord_variant_service.__version__),  # TODO
+        "id": "ca.c3g.chord:variant",     # TODO: Should be globally unique
+        "name": "CHORD Variant Service",  # TODO: Should be globally unique?
+        "type": "ca.c3g.chord:variant:{}".format(chord_variant_service.__version__),
         "description": "Variant service for a CHORD application.",
         "organization": {
-            "name": "GenAP",
-            "url": "https://genap.ca/"
+            "name": "C3G",
+            "url": "http://c3g.ca"
         },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
         "version": chord_variant_service.__version__
