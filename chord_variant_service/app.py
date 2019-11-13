@@ -1,4 +1,5 @@
 import chord_variant_service
+import os
 
 from flask import Flask, jsonify
 
@@ -24,6 +25,10 @@ application.register_blueprint(bp_ingest)
 application.register_blueprint(bp_workflows)
 
 
+SERVICE_TYPE = "ca.c3g.chord:variant:{}".format(chord_variant_service.__version__)
+SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
+
+
 @application.teardown_appcontext
 def app_teardown_pool(err):
     teardown_pool(err)
@@ -34,9 +39,9 @@ def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
 
     return jsonify({
-        "id": "ca.c3g.chord:variant",     # TODO: Should be globally unique
+        "id": SERVICE_ID,     # TODO: Should be globally unique
         "name": "CHORD Variant Service",  # TODO: Should be globally unique?
-        "type": "ca.c3g.chord:variant:{}".format(chord_variant_service.__version__),
+        "type": SERVICE_TYPE,
         "description": "Variant service for a CHORD application.",
         "organization": {
             "name": "C3G",
