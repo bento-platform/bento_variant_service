@@ -139,6 +139,26 @@ def test_chord_variant_search(app, client):
             assert json.dumps(data["results"]["fixed_id"]["matches"][0], sort_keys=True) == \
                 json.dumps(VARIANT_1, sort_keys=True)
 
+            # Test private table search
+
+            rv = client.post("/private/tables/dne/search", json={"query": QUERY_1})
+            assert rv.status_code == 404
+
+            rv = client.post("/private/tables/fixed_id/search")
+            assert rv.status_code == 400
+
+            rv = client.post("/private/tables/fixed_id/search", json={})
+            assert rv.status_code == 400
+
+            rv = client.post("/private/tables/fixed_id/search", json={"query": QUERY_1})
+            assert rv.status_code == 200
+
+            data = rv.get_json()
+            assert "results" in data
+
+            assert len(data["results"]) == 1
+            assert json.dumps(data["results"][0], sort_keys=True) == json.dumps(VARIANT_1, sort_keys=True)
+
         finally:
             teardown_pool(None)
             pool.join()

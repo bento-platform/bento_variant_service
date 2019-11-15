@@ -262,3 +262,21 @@ def private_search_endpoint():
                                             request.json["data_type"],
                                             request.json["query"],
                                             internal_data=True)})
+
+
+@bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["POST"])
+def table_search(table_id):
+    table = current_app.config["TABLE_MANAGER"].get_dataset(table_id)
+
+    if table is None:
+        # TODO: More standardized error
+        # TODO: Refresh cache if needed?
+        return current_app.response_class(status=404)
+
+    if request.json is None or "query" not in request.json:
+        return current_app.response_class(status=400)
+
+    # If it exists in the variant table manager, it's of data type 'variant'
+
+    search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=True)
+    return jsonify({"results": search[table_id]["matches"] if len(search) > 0 else []})
