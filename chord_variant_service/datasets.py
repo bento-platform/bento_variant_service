@@ -163,7 +163,7 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
     def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
                  start_max: Optional[int] = None):
-        for vcf, a_id in filter(lambda _, a: assembly_id is None or a == assembly_id, self.file_assembly_ids.items()):
+        for vcf, a_id in filter(lambda a: assembly_id is None or a[1] == assembly_id, self.file_assembly_ids.items()):
             tbx = tabix.open(vcf)
 
             # TODO: Security of passing this? Verify values in non-Beacon searches
