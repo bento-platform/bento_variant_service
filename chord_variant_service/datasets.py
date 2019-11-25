@@ -426,6 +426,7 @@ def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
 
 
+# TODO: Consistent snake or kebab
 @bp_datasets.route("/data-types/variant/metadata_schema", methods=["GET"])
 def data_type_metadata_schema():
     return jsonify(VARIANT_TABLE_METADATA_SCHEMA)
