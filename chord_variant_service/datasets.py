@@ -405,7 +405,11 @@ def dataset_detail(dataset_id):
 def data_type_list():
     # Data types are basically stand-ins for schema blocks
 
-    return jsonify([{"id": "variant", "schema": VARIANT_SCHEMA}])
+    return jsonify([{
+        "id": "variant",
+        "schema": VARIANT_SCHEMA,
+        "metadata_schema": VARIANT_TABLE_METADATA_SCHEMA
+    }])
 
 
 @bp_datasets.route("/data-types/variant", methods=["GET"])
