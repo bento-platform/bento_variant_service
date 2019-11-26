@@ -1,7 +1,7 @@
-import json
 import pytest
 
 from chord_variant_service.datasets import MemoryVariantTable, IDGenerationFailure, MemoryTableManager
+from chord_variant_service.variants import SampleVariant
 from .shared_data import VARIANT_1
 
 
@@ -14,23 +14,23 @@ def test_memory_table_manager():
 
     assert isinstance(mm.get_dataset("fixed_id"), MemoryVariantTable)
 
-    mm.get_dataset("fixed_id").variant_store.append({
-        "assembly_id": "GRCh38",
-        "chromosome": "1",
-        "start": 5000,
-        "end": 5001,
-        "ref": "C",
-        "alt": "T"
-    })
+    mm.get_dataset("fixed_id").variant_store.append(SampleVariant(
+        assembly_id="GRCh38",
+        chromosome="1",
+        start_pos=5000,
+        ref_bases="C",
+        alt_bases="T",
+        sample_id="S0001"
+    ))
 
-    mm.get_dataset("fixed_id").variant_store.append({
-        "assembly_id": "GRCh37",
-        "chromosome": "5",
-        "start": 5000,
-        "end": 5001,
-        "ref": "C",
-        "alt": "T"
-    })
+    mm.get_dataset("fixed_id").variant_store.append(SampleVariant(
+        assembly_id="GRCh37",
+        chromosome="5",
+        start_pos=5000,
+        ref_bases="C",
+        alt_bases="T",
+        sample_id="S0001"
+    ))
 
     mm.get_dataset("fixed_id").variant_store.append(VARIANT_1)
 
@@ -38,7 +38,7 @@ def test_memory_table_manager():
 
     v = next(gen)
 
-    assert json.dumps(v, sort_keys=True) == json.dumps(VARIANT_1, sort_keys=True)
+    assert v == VARIANT_1
 
     with pytest.raises(StopIteration):
         next(gen)

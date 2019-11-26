@@ -48,20 +48,21 @@ def search_worker_prime(
 
     possible_matches = dataset.variants(assembly_id, chromosome, start_min, start_max)
 
-    while not found:
+    while not found or internal_data:
         try:
             variant = next(possible_matches)
 
             # TODO: Deal with sample homozygous / heterozygous
 
-            match = rest_of_query is None or check_ast_against_data_structure(rest_of_query, variant, VARIANT_SCHEMA)
+            match = rest_of_query is None or check_ast_against_data_structure(
+                rest_of_query, variant.as_chord_representation(), VARIANT_SCHEMA)
             found = found or match
 
             if not internal_data and found:
                 break
 
             if match:  # implicitly internal_data is True here as well
-                matches.append(variant)
+                matches.append(variant.as_chord_representation())
 
         except StopIteration:
             break

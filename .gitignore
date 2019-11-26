@@ -1,6 +1,7 @@
 .idea/workspace.xml
 .idea/dataSources*
 .coverage
+data/**/.*
 htmlcov/
 env
 __pycache__

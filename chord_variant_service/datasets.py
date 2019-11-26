@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import datetime
 import os
+import re
 import shutil
 import tabix
 import uuid
@@ -9,9 +10,9 @@ from flask import Blueprint, current_app, json, jsonify, request
 from itertools import chain
 from jsonschema import validate, ValidationError
 from pysam import VariantFile
-from typing import Dict, Optional, Tuple
+from typing import Dict, Generator, List, Optional, Tuple
 
-from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
+from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA, SampleVariant
 
 
 __all__ = [
@@ -47,6 +48,10 @@ DATASET_NAME_FILE = ".chord_dataset_name"
 DATASET_METADATA_FILE = ".chord_dataset_metadata"
 ID_RETRIES = 100
 MIME_TYPE = "application/json"
+
+VCF_GENOTYPE = "GT"
+
+REGEX_GENOTYPE_SPLIT = re.compile(r"[|/]")
 
 
 def make_beacon_dataset_id(tp: Tuple[str, str]) -> str:
@@ -93,6 +98,7 @@ class VariantTable(ABC):  # pragma: no cover
         self.assembly_ids = set(assembly_ids)
 
     def as_table_response(self):
+        # Don't leak sample IDs to the outside world
         return {
             "id": self.table_id,
             "name": self.name,
@@ -110,43 +116,44 @@ class VariantTable(ABC):  # pragma: no cover
 
     @abstractmethod
     def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
-                 start_max: Optional[int] = None):
-        return
+                 start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
+        yield None
 
 
 class MemoryVariantTable(VariantTable):
     def __init__(self, table_id, name, metadata, assembly_ids=()):
         super().__init__(table_id, name, metadata, assembly_ids)
-        self.variant_store = []
+        self.variant_store: List[SampleVariant] = []
 
     def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
-                 start_max: Optional[int] = None):
+                 start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
         for v in self.variant_store:
-            if v["chromosome"] != chromosome:
+            if v.chromosome != chromosome:
                 continue
 
-            if start_min is not None and v["start"] < start_min:
+            if start_min is not None and v.start_pos < start_min:
                 continue
 
-            if start_max is not None and v["start"] > start_max:
+            if start_max is not None and v.start_pos > start_max:
                 continue
 
-            a_id = v.get("assembly_id", None)
-            if assembly_id is not None and a_id != assembly_id:
+            if assembly_id is not None and v.assembly_id != assembly_id:
                 continue
 
             yield v
 
-    def add_variant(self, variant):
+    def add_variant(self, variant: SampleVariant):
         self.variant_store.append(variant)
-        self.assembly_ids.add(variant["assembly_id"])
+        self.assembly_ids.add(variant.assembly_id)
 
 
 class VCFVariantTable(VariantTable):  # pragma: no cover
-    def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_assembly_ids: dict = None):
+    def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_metadata: dict = None):
         super().__init__(table_id, name, metadata, assembly_ids)
-        self.assembly_ids = set(assembly_ids) if file_assembly_ids is None else set(file_assembly_ids.keys())
-        self.file_assembly_ids = file_assembly_ids if file_assembly_ids is not None else {}
+        # TODO: Redo assembly IDs here
+        self.assembly_ids = set(assembly_ids) if file_metadata is None else \
+            set(fm["assembly_id"] for fm in file_metadata.values())
+        self.file_metadata = file_metadata if file_metadata is not None else {}
         self.files = files
 
     @property
@@ -157,13 +164,14 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                 table_name=self.name,
                 table_metadata=self.metadata,
                 assembly_id=a,
-                files=tuple(f1 for f1, a1 in self.file_assembly_ids.items() if a1 == a)
+                files=tuple(f1 for f1, v in self.file_metadata.items() if v["assembly_id"] == a)
             ) for a in sorted(self.assembly_ids)
         )
 
     def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
-                 start_max: Optional[int] = None):
-        for vcf, a_id in filter(lambda a: assembly_id is None or a[1] == assembly_id, self.file_assembly_ids.items()):
+                 start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
+        for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
+                                        self.file_metadata.items()):
             tbx = tabix.open(vcf)
 
             # TODO: Security of passing this? Verify values in non-Beacon searches
@@ -171,14 +179,30 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
             for row in tbx.query(chromosome,
                                  start_min if start_min is not None else 0,
                                  start_max if start_max is not None else MAX_SIGNED_INT_32):
-                yield {
-                    "assembly_id": a_id,
-                    "chromosome": row[0],
-                    "start": int(row[1]),
-                    "end": int(row[1]) + len(row[3]),  # row[2],  # TODO: This is wrong!!!! ID not end...
-                    "ref": row[3],
-                    "alt": row[4]
-                }
+                if len(row) < 9:
+                    # Badly formatted VCF  TODO: Catch on ingest
+                    continue
+
+                for sample_id, row_data in zip(vcf_metadata["sample_ids"], row[9:]):
+                    row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
+
+                    if VCF_GENOTYPE not in row_info:
+                        continue
+
+                    genotype = re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE])
+
+                    if len([g for g in genotype if g not in ("0", ".")]) == len(genotype):
+                        # Uninteresting, not present on sample
+                        continue
+
+                    yield SampleVariant(
+                        assembly_id=vcf_metadata["assembly_id"],
+                        chromosome=row[0],
+                        start_pos=int(row[1]),
+                        ref_bases=row[3],
+                        alt_bases=row[4],
+                        sample_id=sample_id
+                    )
 
             # May throw tabix.TabixError (should be handled)
             # May throw ValueError from cast
@@ -279,6 +303,11 @@ class VCFTableManager(TableManager):  # pragma: no cover
                 assembly_id = h.value
         return assembly_id
 
+    @staticmethod
+    def _get_sample_ids(vcf_path: str) -> Tuple[str, ...]:
+        vcf = VariantFile(vcf_path)
+        return tuple(vcf.header.samples)
+
     def update_datasets(self):
         for d in os.listdir(self.DATA_PATH):
             table_dir = os.path.join(self.DATA_PATH, d)
@@ -291,13 +320,15 @@ class VCFTableManager(TableManager):  # pragma: no cover
             vcf_files = tuple(os.path.join(table_dir, file) for file in os.listdir(table_dir)
                               if file[-6:] == "vcf.gz")
             assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
+            sample_ids = tuple(self._get_sample_ids(vcf_path) for vcf_path in vcf_files)
 
             ds = VCFVariantTable(
                 table_id=d,
                 name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
                 metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
                 files=vcf_files,
-                file_assembly_ids={f: a for f, a in zip(vcf_files, assembly_ids)}
+                file_metadata={f: {"assembly_id": a, "sample_ids": s}
+                               for f, a, s in zip(vcf_files, assembly_ids, sample_ids)}
             )
 
             self.datasets[d] = ds
