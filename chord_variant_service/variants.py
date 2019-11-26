@@ -1,16 +1,28 @@
 # Possible operations: eq, lt, gt, le, ge, co
 # TODO: Regex verification with schema, to front end
 
+
+__all__ = [
+    "VARIANT_SCHEMA",
+    "VARIANT_TABLE_METADATA_SCHEMA",
+    "SampleVariant",
+]
+
+
 VARIANT_SCHEMA = {
     "$id": "TODO",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "CHORD variant data type",
     "type": "object",
-    "required": ["chromosome", "start", "end", "ref", "alt"],
+    "required": ["chromosome", "start", "end", "ref", "alt", "sample_id"],
     "search": {
         "operations": [],
     },
     "properties": {
+        "assembly_id": {
+            "type": "string"
+            # TODO: Searchable
+        },
         "chromosome": {
             "type": "string",
             # TODO: Choices
@@ -61,6 +73,10 @@ VARIANT_SCHEMA = {
                 "type": "single",  # single / unlimited
                 "order": 4
             }
+        },
+        "sample_id": {
+            "type": "string"
+            # TODO: Only searchable via join
         }
     }
 }
@@ -82,3 +98,45 @@ VARIANT_TABLE_METADATA_SCHEMA = {
         }
     }
 }
+
+
+class SampleVariant:
+    """
+    Instance of a variant on a sample.
+    """
+
+    def __init__(self, assembly_id: str, chromosome: str, ref_bases: str, alt_bases: str, start_pos: int,
+                 sample_id: str):
+        self.assembly_id: str = assembly_id  # Assembly ID for context
+        self.chromosome: str = chromosome  # Chromosome where the variant occurs
+        self.ref_bases: str = ref_bases  # Reference bases
+        self.alt_bases: str = alt_bases  # Alternate bases  TODO: Structural variants
+        self.start_pos: int = start_pos  # Starting position on the chromosome w/r/t the reference
+        self.sample_id: str = sample_id  # Sample ID which possesses this variant
+        # TODO: Genotype
+
+    @property
+    def end_pos(self) -> int:
+        return self.start_pos + len(self.ref_bases)  # TODO: Ref bases or alt bases? Does this make sense at all?
+
+    def as_chord_representation(self):
+        return {
+            "assembly_id": self.assembly_id,
+            "chromosome": self.chromosome,
+            "start": self.start_pos,
+            "end": self.end_pos,
+            "ref": self.ref_bases,
+            "alt": self.alt_bases,
+            "sample_id": self.sample_id
+        }
+
+    def __eq__(self, other):
+        if not isinstance(other, SampleVariant):
+            return False
+
+        return (((self.assembly_id is None and other.assembly_id is None) or self.assembly_id == other.assembly_id) and
+                self.chromosome == other.chromosome and
+                self.ref_bases == other.ref_bases and
+                self.alt_bases == other.alt_bases and
+                self.start_pos == other.start_pos and
+                self.sample_id == other.sample_id)

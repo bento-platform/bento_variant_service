@@ -137,7 +137,7 @@ def test_chord_variant_search(app, client):
             assert "fixed_id" in data["results"]
             assert len(data["results"]["fixed_id"]["matches"]) == 1
             assert json.dumps(data["results"]["fixed_id"]["matches"][0], sort_keys=True) == \
-                json.dumps(VARIANT_1, sort_keys=True)
+                json.dumps(VARIANT_1.as_chord_representation(), sort_keys=True)
 
             # Test private table search
 
@@ -157,7 +157,8 @@ def test_chord_variant_search(app, client):
             assert "results" in data
 
             assert len(data["results"]) == 1
-            assert json.dumps(data["results"][0], sort_keys=True) == json.dumps(VARIANT_1, sort_keys=True)
+            assert json.dumps(data["results"][0], sort_keys=True) == json.dumps(VARIANT_1.as_chord_representation(),
+                                                                                sort_keys=True)
 
         finally:
             teardown_pool(None)

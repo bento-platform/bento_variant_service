@@ -54,14 +54,15 @@ def search_worker_prime(
 
             # TODO: Deal with sample homozygous / heterozygous
 
-            match = rest_of_query is None or check_ast_against_data_structure(rest_of_query, variant, VARIANT_SCHEMA)
+            match = rest_of_query is None or check_ast_against_data_structure(
+                rest_of_query, variant.as_chord_representation(), VARIANT_SCHEMA)
             found = found or match
 
             if not internal_data and found:
                 break
 
             if match:  # implicitly internal_data is True here as well
-                matches.append(variant)
+                matches.append(variant.as_chord_representation())
 
         except StopIteration:
             break
