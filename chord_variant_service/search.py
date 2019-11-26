@@ -48,7 +48,7 @@ def search_worker_prime(
 
     possible_matches = dataset.variants(assembly_id, chromosome, start_min, start_max)
 
-    while not found:
+    while not found or internal_data:
         try:
             variant = next(possible_matches)
 
