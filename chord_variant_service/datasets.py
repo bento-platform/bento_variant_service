@@ -178,6 +178,10 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
             for row in tbx.query(chromosome,
                                  start_min if start_min is not None else 0,
                                  start_max if start_max is not None else MAX_SIGNED_INT_32):
+                if len(row) < 9:
+                    # Badly formatted VCF  TODO: Catch on ingest
+                    continue
+
                 for sample_id, row_data in zip(vcf_metadata["sample_ids"], row[9:]):
                     row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
 
@@ -322,7 +326,7 @@ class VCFTableManager(TableManager):  # pragma: no cover
                 name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
                 metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
                 files=vcf_files,
-                file_metadata={f: {"assembly_id": a, "sample_is": s}
+                file_metadata={f: {"assembly_id": a, "sample_ids": s}
                                for f, a, s in zip(vcf_files, assembly_ids, sample_ids)}
             )
 
