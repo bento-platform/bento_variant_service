@@ -63,7 +63,12 @@ def ingest():
 
         return current_app.response_class(status=204)
 
-    except (AssertionError, ValidationError, ValueError):  # assertion, UUID, or JSON schema failure
+    except AssertionError:
         # TODO: Better errors
-        print("Assertion / validation error")
+        print("Assertion error")
+        return current_app.response_class(status=400)
+
+    except (ValidationError, ValueError):  # UUID, or JSON schema failure
+        # TODO: Better errors
+        print("Validation error")
         return current_app.response_class(status=400)
