@@ -27,3 +27,10 @@ CHORD_URL=http://localhost/  # URL of CHORD node or service URL
 ```bash
 python3 -m pytest --cov=chord_variant_service --cov-branch
 ```
+
+
+## Running the Development Server
+
+```bash
+FLASK_APP=chord_variant_service.app FLASK_DEBUG=True flask run
+```
