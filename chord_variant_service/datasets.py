@@ -151,7 +151,8 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
     def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_metadata: dict = None):
         super().__init__(table_id, name, metadata, assembly_ids)
         # TODO: Redo assembly IDs here
-        self.assembly_ids = set(assembly_ids) if file_metadata is None else set(file_metadata.keys())
+        self.assembly_ids = set(assembly_ids) if file_metadata is None else \
+            set(fm["assembly_id"] for fm in file_metadata.values())
         self.file_metadata = file_metadata if file_metadata is not None else {}
         self.files = files
 
