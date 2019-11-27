@@ -37,7 +37,7 @@ VARIANT_SCHEMA = {
         "start": {
             "type": "integer",
             "search": {
-                "operations": ["ge", "le"],
+                "operations": ["ge", "le"],  # TODO: Expand this
                 "canNegate": False,
                 "required": True,
                 "type": "unlimited",  # single / unlimited
