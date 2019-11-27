@@ -75,7 +75,14 @@ VARIANT_SCHEMA = {
             }
         },
         "sample_id": {
-            "type": "string"
+            "type": "string",
+            "search": {
+                "operations": ["eq"],
+                "canNegate": True,
+                "required": False,
+                "type": "single",
+                "order": 5
+            }
             # TODO: Only searchable via join
         }
     }
