@@ -14,7 +14,7 @@ workflow vcf_gz {
     }
 
     call generate_tbi as generate_tbi_2 {
-        input: vcf_gz_file=vcf_annotate.vcf_gz_file
+        input: vcf_gz_file=vcf_annotate.annotated_vcf_gz_file
     }
 }
 
