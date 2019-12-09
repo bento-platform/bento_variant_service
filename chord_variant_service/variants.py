@@ -27,7 +27,7 @@ VARIANT_SCHEMA = {
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "canNegate": False,
-                "required": False,
+                "required": True,
                 "type": "single",
                 "order": 0
             }
