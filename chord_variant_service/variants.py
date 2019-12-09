@@ -1,6 +1,8 @@
 # Possible operations: eq, lt, gt, le, ge, co
 # TODO: Regex verification with schema, to front end
 
+from chord_lib.search import *
+
 
 __all__ = [
     "VARIANT_SCHEMA",
@@ -14,74 +16,81 @@ VARIANT_SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "CHORD variant data type",
     "type": "object",
-    "required": ["chromosome", "start", "end", "ref", "alt", "sample_id"],
+    "required": ["assembly_id", "chromosome", "start", "end", "ref", "alt", "sample_id"],
     "search": {
         "operations": [],
     },
     "properties": {
         "assembly_id": {
-            "type": "string"
-            # TODO: Searchable
+            "type": "string",
+            "enum": ["GRCh38", "GRCh37", "NCBI36", "Other"],
+            "search": {
+                "operations": [SEARCH_OP_EQ],
+                "canNegate": False,
+                "required": False,
+                "type": "single",
+                "order": 0
+            }
         },
         "chromosome": {
             "type": "string",
             # TODO: Choices
             "search": {
-                "operations": ["eq"],
+                "operations": [SEARCH_OP_EQ],
                 "canNegate": False,
                 "required": True,
                 "type": "single",  # single / unlimited
-                "order": 0
+                "order": 1
             }
         },
         "start": {
             "type": "integer",
             "search": {
-                "operations": ["ge", "le"],  # TODO: Expand this
+                "operations": [SEARCH_OP_GE, SEARCH_OP_LE],  # TODO: Expand this
                 "canNegate": False,
                 "required": True,
                 "type": "unlimited",  # single / unlimited
-                "order": 1
+                "order": 2
             }
         },
         "end": {
             "type": "integer",
             "search": {
-                "operations": ["eq", "lt", "le", "gt", "ge"],
+                "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
                 "canNegate": True,
                 "required": False,
                 "type": "unlimited",  # single / unlimited
-                "order": 2
+                "order": 3
             }
         },
         "ref": {
             "type": "string",
             "search": {
-                "operations": ["eq"],
-                "canNegate": True,
-                "required": False,
-                "type": "single",  # single / unlimited
-                "order": 3
-            }
-        },
-        "alt": {
-            "type": "string",
-            "search": {
-                "operations": ["eq"],
+                "operations": [SEARCH_OP_EQ],
                 "canNegate": True,
                 "required": False,
                 "type": "single",  # single / unlimited
                 "order": 4
             }
         },
+        "alt": {
+            "type": "string",
+            "search": {
+                "operations": [SEARCH_OP_EQ],
+                "canNegate": True,
+                "required": False,
+                "type": "single",  # single / unlimited
+                "order": 5
+            }
+        },
         "sample_id": {
             "type": "string",
             "search": {
-                "operations": ["eq"],
+                "operations": [SEARCH_OP_EQ],
                 "canNegate": True,
                 "required": False,
                 "type": "single",
-                "order": 5
+                "order": 6
             }
             # TODO: Only searchable via join
         }
