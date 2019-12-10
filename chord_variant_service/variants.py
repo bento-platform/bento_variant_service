@@ -1,7 +1,7 @@
 # Possible operations: eq, lt, gt, le, ge, co
 # TODO: Regex verification with schema, to front end
 
-from chord_lib.search import *
+from chord_lib.search.operations import *
 
 
 __all__ = [
