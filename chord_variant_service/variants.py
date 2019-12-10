@@ -26,6 +26,7 @@ VARIANT_SCHEMA = {
             "enum": ["GRCh38", "GRCh37", "NCBI36", "Other"],
             "search": {
                 "operations": [SEARCH_OP_EQ],
+                "queryable": "all",
                 "canNegate": False,
                 "required": True,
                 "type": "single",
@@ -37,6 +38,7 @@ VARIANT_SCHEMA = {
             # TODO: Choices
             "search": {
                 "operations": [SEARCH_OP_EQ],
+                "queryable": "all",
                 "canNegate": False,
                 "required": True,
                 "type": "single",  # single / unlimited
@@ -47,6 +49,7 @@ VARIANT_SCHEMA = {
             "type": "integer",
             "search": {
                 "operations": [SEARCH_OP_GE, SEARCH_OP_LE],  # TODO: Expand this
+                "queryable": "all",
                 "canNegate": False,
                 "required": True,
                 "type": "unlimited",  # single / unlimited
@@ -57,6 +60,7 @@ VARIANT_SCHEMA = {
             "type": "integer",
             "search": {
                 "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
+                "queryable": "all",
                 "canNegate": True,
                 "required": False,
                 "type": "unlimited",  # single / unlimited
@@ -67,6 +71,7 @@ VARIANT_SCHEMA = {
             "type": "string",
             "search": {
                 "operations": [SEARCH_OP_EQ],
+                "queryable": "all",
                 "canNegate": True,
                 "required": False,
                 "type": "single",  # single / unlimited
@@ -77,6 +82,7 @@ VARIANT_SCHEMA = {
             "type": "string",
             "search": {
                 "operations": [SEARCH_OP_EQ],
+                "queryable": "all",
                 "canNegate": True,
                 "required": False,
                 "type": "single",  # single / unlimited
@@ -87,6 +93,7 @@ VARIANT_SCHEMA = {
             "type": "string",
             "search": {
                 "operations": [SEARCH_OP_EQ],
+                "queryable": "internal",
                 "canNegate": True,
                 "required": False,
                 "type": "single",
