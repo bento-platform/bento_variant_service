@@ -11,7 +11,7 @@ setuptools.setup(
 
     python_requires=">=3.6",
     install_requires=["chord_lib @ git+https://github.com/c3g/chord_lib", "Flask", "jsonschema", "pysam",
-                      "pytabix==0.0.2", "requests", "tqdm"],
+                      "pytabix==0.0.2", "requests"],
 
     author="David Lougheed",
     author_email="david.lougheed@mail.mcgill.ca",
