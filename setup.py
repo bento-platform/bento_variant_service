@@ -23,7 +23,7 @@ setuptools.setup(
     packages=["chord_variant_service"],
     include_package_data=True,
 
-    url="TODO",
+    url="https://github.com/c3g/chord_variant_service",
     license="LGPLv3",
     classifiers=[
         "Programming Language :: Python :: 3",
