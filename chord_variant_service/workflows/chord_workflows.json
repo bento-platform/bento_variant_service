@@ -7,8 +7,8 @@
       "file": "vcf_gz.wdl",
       "inputs": [
         {
-          "id": "vcf_gz_file",
-          "type": "file",
+          "id": "vcf_gz_files",
+          "type": "file[]",
           "extensions": [".vcf.gz"]
         },
         {
@@ -20,14 +20,16 @@
       ],
       "outputs": [
         {
-          "id": "vcf_gz_file",
-          "type": "file",
-          "value": "{vcf_gz_file}"
+          "id": "vcf_gz_files",
+          "type": "file[]",
+          "map_input": "vcf_gz_files",
+          "value": "{}"
         },
         {
-          "id": "tbi_file",
-          "type": "file",
-          "value": "{vcf_gz_file}.tbi"
+          "id": "tbi_files",
+          "type": "file[]",
+          "map_input": "vcf_gz_files",
+          "value": "{}.tbi"
         }
       ]
     },
@@ -38,8 +40,8 @@
       "file": "vcf.wdl",
       "inputs": [
         {
-          "type": "file",
-          "id": "vcf_file",
+          "type": "file[]",
+          "id": "vcf_files",
           "extensions": [".vcf"]
         },
         {
@@ -51,14 +53,16 @@
       ],
       "outputs": [
         {
-          "id": "vcf_gz_file",
-          "type": "file",
-          "value": "{vcf_file}.gz"
+          "id": "vcf_gz_files",
+          "type": "file[]",
+          "map_input": "vcf_gz_files",
+          "value": "{}.gz"
         },
         {
-          "id": "tbi_file",
-          "type": "file",
-          "value": "{vcf_file}.gz.tbi"
+          "id": "tbi_files",
+          "type": "file[]",
+          "map_input": "vcf_gz_files",
+          "value": "{}.gz.tbi"
         }
       ]
     }

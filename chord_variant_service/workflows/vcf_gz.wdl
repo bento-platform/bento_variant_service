@@ -1,20 +1,22 @@
 workflow vcf_gz {
-    File vcf_gz_file
+    Array[File] vcf_gz_files
     String assembly_id
 
-    call generate_tbi as generate_tbi_1 {
-        input: vcf_gz_file=vcf_gz_file
-    }
+    scatter(file in vcf_gz_files) {
+        call generate_tbi as generate_tbi_1 {
+            input: vcf_gz_file=file
+        }
 
-    # Need to pass TBI file in here, otherwise execution occurs out-of-order
-    call vcf_annotate {
-        input: vcf_gz_file = vcf_gz_file,
-               tbi_file = generate_tbi_1.tbi_file,
-               assembly_id = assembly_id
-    }
+        # Need to pass TBI file in here, otherwise execution occurs out-of-order
+        call vcf_annotate {
+            input: vcf_gz_file = file,
+                   tbi_file = generate_tbi_1.tbi_file,
+                   assembly_id = assembly_id
+        }
 
-    call generate_tbi as generate_tbi_2 {
-        input: vcf_gz_file=vcf_annotate.annotated_vcf_gz_file
+        call generate_tbi as generate_tbi_2 {
+            input: vcf_gz_file=vcf_annotate.annotated_vcf_gz_file
+        }
     }
 }
 
