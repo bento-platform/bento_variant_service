@@ -22,13 +22,13 @@
         {
           "id": "vcf_gz_files",
           "type": "file[]",
-          "map_input": "vcf_gz_files",
+          "map_from_input": "vcf_gz_files",
           "value": "{}"
         },
         {
           "id": "tbi_files",
           "type": "file[]",
-          "map_input": "vcf_gz_files",
+          "map_from_input": "vcf_gz_files",
           "value": "{}.tbi"
         }
       ]
@@ -55,13 +55,13 @@
         {
           "id": "vcf_gz_files",
           "type": "file[]",
-          "map_input": "vcf_gz_files",
+          "map_from_input": "vcf_gz_files",
           "value": "{}.gz"
         },
         {
           "id": "tbi_files",
           "type": "file[]",
-          "map_input": "vcf_gz_files",
+          "map_from_input": "vcf_gz_files",
           "value": "{}.gz.tbi"
         }
       ]
