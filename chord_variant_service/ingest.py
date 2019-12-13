@@ -66,7 +66,10 @@ def ingest():
                                       ingest_file_path(formatted_output(output, output_params))))
 
             elif output["type"] == WORKFLOW_TYPE_FILE_ARRAY:
-                files_to_move += list(zip(workflow_outputs[output["id"]], formatted_output(output, output_params)))
+                files_to_move.extend(zip(
+                    workflow_outputs[output["id"]],
+                    map(ingest_file_path, formatted_output(output, output_params))
+                ))
 
         for tmp_file_path, file_path in files_to_move:
             # Move the file from its temporary location to its location in the service's data folder.
