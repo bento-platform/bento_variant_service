@@ -1,8 +1,18 @@
-import chord_lib
 import os
 import shutil
 import uuid
 
+from chord_lib.ingestion import (
+    WORKFLOW_TYPE_FILE,
+    WORKFLOW_TYPE_FILE_ARRAY,
+
+    find_common_prefix,
+    file_with_prefix,
+    formatted_output,
+    make_output_params
+)
+from chord_lib.schemas.chord import CHORD_INGEST_SCHEMA
+from chord_lib.workflows import workflow_exists
 from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
@@ -18,7 +28,7 @@ bp_ingest = Blueprint("ingest", __name__)
 @bp_ingest.route("/ingest", methods=["POST"])
 def ingest():
     try:
-        validate(request.json, chord_lib.schemas.chord.CHORD_INGEST_SCHEMA)
+        validate(request.json, CHORD_INGEST_SCHEMA)
 
         dataset_id = request.json["dataset_id"]
 
@@ -30,15 +40,20 @@ def ingest():
         workflow_outputs = request.json["workflow_outputs"]
         workflow_params = request.json["workflow_params"]
 
-        assert chord_lib.workflows.workflow_exists(workflow_id, WORKFLOWS)  # Check that the workflow exists here...
+        assert workflow_exists(workflow_id, WORKFLOWS)  # Check that the workflow exists here...
 
-        output_params = chord_lib.ingestion.make_output_params(workflow_id, workflow_params,
-                                                               workflow_metadata["inputs"])
-
-        prefix = chord_lib.ingestion.find_common_prefix(os.path.join(DATA_PATH, dataset_id), workflow_metadata,
-                                                        output_params)
+        output_params = make_output_params(workflow_id, workflow_params, workflow_metadata["inputs"])
+        prefix = find_common_prefix(os.path.join(DATA_PATH, dataset_id), workflow_metadata, output_params)
 
         # TODO: Customize to table manager specifics
+
+        def ingest_file_path(f):
+            # Full path to to-be-newly-ingested file
+            #  - Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
+            #  - If prefix is None, it will not be added
+            return os.path.join(DATA_PATH, dataset_id, file_with_prefix(f, prefix))
+
+        files_to_move = []
 
         for output in workflow_metadata["outputs"]:
             if output["id"] not in workflow_outputs:
@@ -46,18 +61,16 @@ def ingest():
                 print("Missing {} in {}".format(output["id"], workflow_outputs))
                 return current_app.response_class(status=400)
 
-            if output["type"] == chord_lib.ingestion.WORKFLOW_TYPE_FILE:
-                # Full path to to-be-newly-ingested file
-                file_path = os.path.join(DATA_PATH, dataset_id,
-                                         chord_lib.ingestion.formatted_output(output, output_params))
+            if output["type"] == WORKFLOW_TYPE_FILE:
+                files_to_move.append((workflow_outputs[output["id"]],
+                                      ingest_file_path(formatted_output(output, output_params))))
 
-                # Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
-                if prefix is not None:
-                    file_path = os.path.join(DATA_PATH, dataset_id, chord_lib.ingestion.file_with_prefix(
-                        chord_lib.ingestion.formatted_output(output, output_params), prefix))
+            elif output["type"] == WORKFLOW_TYPE_FILE_ARRAY:
+                files_to_move += list(zip(workflow_outputs[output["id"]], formatted_output(output, output_params)))
 
-                # Move the file from its temporary location to its location in the service's data folder.
-                shutil.move(workflow_outputs[output["id"]], file_path)
+        for tmp_file_path, file_path in files_to_move:
+            # Move the file from its temporary location to its location in the service's data folder.
+            shutil.move(tmp_file_path, file_path)
 
         current_app.config["TABLE_MANAGER"].update_datasets()
 
