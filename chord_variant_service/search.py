@@ -1,5 +1,4 @@
 import re
-import tabix
 
 from chord_lib.search.data_structure import check_ast_against_data_structure
 from chord_lib.search.queries import (
@@ -39,10 +38,7 @@ def search_worker_prime(
     rest_of_query: Optional[AST],
     internal_data: bool,
     assembly_id: Optional[str],
-    table_manager: TableManager
 ) -> Tuple[Optional[VariantTable], List[dict]]:
-    refresh_at_end = False
-
     found = False
     matches = []
 
@@ -67,19 +63,11 @@ def search_worker_prime(
         except StopIteration:
             break
 
-        except tabix.TabixError:  # pragma: no cover
-            # Dataset might be removed or corrupt, skip it and refresh datasets at the end
-            print("Error processing a tabix file in dataset {}".format(dataset.table_id))
-            refresh_at_end = True
-
         except ValueError as e:  # pragma: no cover
             # int casts from VCF
             # TODO
             print(str(e))
             break
-
-    if refresh_at_end:  # pragma: no cover
-        table_manager.update_datasets()
 
     return (dataset if found else None), matches
 
@@ -98,28 +86,20 @@ def generic_variant_search(
     assembly_id: Optional[str] = None,
     dataset_ids: Optional[List[str]] = None
 ) -> Iterable[Tuple[VariantTable, List[dict]]]:
-
     # TODO: Sane defaults
     # TODO: Figure out inclusion/exclusion with start_min/end_max
 
-    dataset_results = ()
     ds = set(dataset_ids) if dataset_ids is not None else None
 
-    try:
-        pool = get_pool()
-        pool_map: Iterable[Tuple[Optional[VariantTable], List[dict]]] = pool.imap_unordered(
-            search_worker,
-            ((dataset, chromosome, start_min, start_max, rest_of_query, internal_data,
-              assembly_id, table_manager) for dataset in table_manager.get_datasets().values()
-             if (ds is None or dataset.table_id in ds) and (assembly_id is None or assembly_id in dataset.assembly_ids))
-        )
+    pool = get_pool()
+    pool_map: Iterable[Tuple[Optional[VariantTable], List[dict]]] = pool.imap_unordered(
+        search_worker,
+        ((dataset, chromosome, start_min, start_max, rest_of_query, internal_data, assembly_id)
+         for dataset in table_manager.get_datasets().values()
+         if (ds is None or dataset.table_id in ds) and (assembly_id is None or assembly_id in dataset.assembly_ids))
+    )
 
-        dataset_results = ((d, m) for d, m in pool_map if len(m) > 0 or (not internal_data and d is not None))
-
-    except ValueError as e:
-        print(str(e))
-
-    return dataset_results
+    return ((d, m) for d, m in pool_map if len(m) > 0 or (not internal_data and d is not None))
 
 
 def query_key_op_value(query_item: AST, field: str, op: str):

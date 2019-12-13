@@ -172,40 +172,44 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                  start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
         for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
                                         self.file_metadata.items()):
-            tbx = tabix.open(vcf)
+            try:
+                # May throw ValueError from cast
 
-            # TODO: Security of passing this? Verify values in non-Beacon searches
-            # TODO: What if the VCF includes telomeres (off the end)?
-            for row in tbx.query(chromosome,
-                                 start_min if start_min is not None else 0,
-                                 start_max if start_max is not None else MAX_SIGNED_INT_32):
-                if len(row) < 9:
-                    # Badly formatted VCF  TODO: Catch on ingest
-                    continue
+                tbx = tabix.open(vcf)
 
-                for sample_id, row_data in zip(vcf_metadata["sample_ids"], row[9:]):
-                    row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
-
-                    if VCF_GENOTYPE not in row_info:
+                # TODO: Security of passing this? Verify values in non-Beacon searches
+                # TODO: What if the VCF includes telomeres (off the end)?
+                for row in tbx.query(chromosome,
+                                     start_min if start_min is not None else 0,
+                                     start_max if start_max is not None else MAX_SIGNED_INT_32):
+                    if len(row) < 9:
+                        # Badly formatted VCF  TODO: Catch on ingest
                         continue
 
-                    genotype = re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE])
+                    for sample_id, row_data in zip(vcf_metadata["sample_ids"], row[9:]):
+                        row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
 
-                    if len([g for g in genotype if g not in ("0", ".")]) == len(genotype):
-                        # Uninteresting, not present on sample
-                        continue
+                        if VCF_GENOTYPE not in row_info:
+                            continue
 
-                    yield SampleVariant(
-                        assembly_id=vcf_metadata["assembly_id"],
-                        chromosome=row[0],
-                        start_pos=int(row[1]),
-                        ref_bases=row[3],
-                        alt_bases=row[4],
-                        sample_id=sample_id
-                    )
+                        genotype = re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE])
 
-            # May throw tabix.TabixError (should be handled)
-            # May throw ValueError from cast
+                        if len([g for g in genotype if g not in ("0", ".")]) == len(genotype):
+                            # Uninteresting, not present on sample
+                            continue
+
+                        yield SampleVariant(
+                            assembly_id=vcf_metadata["assembly_id"],
+                            chromosome=row[0],
+                            start_pos=int(row[1]),
+                            ref_bases=row[3],
+                            alt_bases=row[4],
+                            sample_id=sample_id
+                        )
+
+            except tabix.TabixError:
+                # Region not found in Tabix file
+                continue
 
 
 class IDGenerationFailure(Exception):
