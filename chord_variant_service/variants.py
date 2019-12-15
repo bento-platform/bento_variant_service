@@ -48,7 +48,7 @@ VARIANT_SCHEMA = {
         "start": {
             "type": "integer",
             "search": {
-                "operations": [SEARCH_OP_GE, SEARCH_OP_LE],  # TODO: Expand this
+                "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
                 "queryable": "all",
                 "canNegate": False,
                 "required": True,
