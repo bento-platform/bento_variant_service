@@ -194,7 +194,7 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
                         genotype = re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE])
 
-                        if len([g for g in genotype if g not in ("0", ".")]) == len(genotype):
+                        if len([g for g in genotype if g not in ("0", ".")]) == 0:
                             # Uninteresting, not present on sample
                             continue
 
