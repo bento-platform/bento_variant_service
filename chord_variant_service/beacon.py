@@ -107,14 +107,12 @@ def beacon_query():
     end_min = query.get("endMin", None) if end is None else end
     end_max = query.get("endMax", None) if end is None else end
 
-    # Check that bounds make sense and tighten them if possible
+    # Check that bounds make sense
 
     if start_min is not None and ((start_max is not None and start_max < start_min) or
                                   (end_max is not None and end_max < start_min)):
         return current_app.response_class(status=400)  # TODO: Beacon error response
 
-    if start_max is None and end_max is not None:
-        start_max = end_max - 1  # TODO: Can we assume variants are at most 1 character long?
 
     # Convert to VCF coordinates (1-indexed)
 
