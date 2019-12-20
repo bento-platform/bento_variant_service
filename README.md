@@ -14,6 +14,32 @@ The workflows exposed by this service currently depend on:
 * HTSlib
 
 
+## On Coordinates
+
+VCFs, per the [spec](https://samtools.github.io/hts-specs/VCFv4.2.pdf), use
+1-based coordinates:
+
+> POS - position:  The reference position, with the 1st base having position 1.
+> Positions are sorted numerically,in increasing order, within each reference
+> sequence CHROM. It is permitted to have multiple records with the same POS.
+> Telomeres are indicated by using positions 0 or N+1, where N is the length of
+> the corresponding chromosome or contig.  (Integer, Required)
+
+Beacon, on the other hand,
+[specifies](https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L41)
+that 0-based coordinates should be used:
+
+> ... Precise start coordinate position, allele locus (0-based, inclusive).
+
+All `/beacon` endpoints thus use **0-based** coordinates, whereas CHORD search
+endpoints (e.g. `/search`) use **1-based** coordinates.
+
+More precisely, 1 is added to any coordinate passed to a Beacon endpoint before
+it's passed to the querying system, whereas no alterations are made to
+coordinates passed into other endpoints. It's up to the person who ingests the
+data to ensure that their VCFs are using the correct coordinate system.
+
+
 ## Environment Variables
 
 Default values for environment variables are listed on the right-hand side.
