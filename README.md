@@ -16,9 +16,27 @@ The workflows exposed by this service currently depend on:
 
 ## Environment Variables
 
+Default values for environment variables are listed on the right-hand side.
+
 ```bash
+SERVICE_ID=ca.c3g.chord:variant:VERSION
 DATA=/path/to/data/directory
 CHORD_URL=http://localhost/  # URL of CHORD node or service URL
+```
+
+### Notes
+
+  * If left unset, `SERVICE_ID` will default to `ca.c3g.chord:variant:VERSION`,
+    where `VERSION` is the current version of the service package.
+
+  * `CHORD_URL` is used to construct the reverse domain-name notation identifier
+    for the GA4GH Beacon endpoints.
+
+
+## Running in Development
+
+```bash
+FLASK_APP=chord_variant_service.app FLASK_DEBUG=True flask run
 ```
 
 
@@ -26,11 +44,4 @@ CHORD_URL=http://localhost/  # URL of CHORD node or service URL
 
 ```bash
 python3 -m pytest --cov=chord_variant_service --cov-branch
-```
-
-
-## Running the Development Server
-
-```bash
-FLASK_APP=chord_variant_service.app FLASK_DEBUG=True flask run
 ```
