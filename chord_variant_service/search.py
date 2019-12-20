@@ -48,8 +48,6 @@ def search_worker_prime(
         try:
             variant = next(possible_matches)
 
-            # TODO: Deal with sample homozygous / heterozygous
-
             match = rest_of_query is None or check_ast_against_data_structure(
                 rest_of_query, variant.as_chord_representation(), VARIANT_SCHEMA)
             found = found or match
