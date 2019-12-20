@@ -293,6 +293,14 @@ INVALID_BEACON_REQUEST_5 = {
     "end": 5000,  # "
 }
 
+INVALID_BEACON_REQUEST_6 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "T",
+    "start": "b",  # Invalid start
+    "end": 5000,
+}
+
 
 def test_generate_beacon_id():
     assert generate_beacon_id("example.org") == "org.example.beacon"
@@ -348,26 +356,40 @@ def test_beacon_response(app, client):
 
             # -- Invalid queries
             for q in (INVALID_BEACON_REQUEST_1, INVALID_BEACON_REQUEST_2, INVALID_BEACON_REQUEST_3,
-                      INVALID_BEACON_REQUEST_4, INVALID_BEACON_REQUEST_5):
+                      INVALID_BEACON_REQUEST_4, INVALID_BEACON_REQUEST_5, INVALID_BEACON_REQUEST_6):
+                invalid_data = []
+
                 rv = client.post("/beacon/query", json=q)
                 assert rv.status_code == 400
-                data = rv.get_json()
-                assert isinstance(data, dict) and len(list(data.keys())) in (1, 2) and "errorCode" in data
-                assert data["errorCode"] == 400
-                assert "errorMessage" not in data or isinstance(data["errorMessage"], str)
+                invalid_data.append(rv.get_json())
+
+                rv = client.get("/beacon/query", query_string=q)
+                assert rv.status_code == 400
+                invalid_data.append(rv.get_json())
+
+                for data in invalid_data:
+                    assert isinstance(data, dict) and len(list(data.keys())) in (1, 2) and "errorCode" in data
+                    assert data["errorCode"] == 400
+                    assert "errorMessage" not in data or isinstance(data["errorMessage"], str)
 
             # - Valid queries
 
             for q in (BEACON_REQUEST_1, BEACON_REQUEST_2, BEACON_REQUEST_3):
+                valid_data = []
+
                 rv = client.post("/beacon/query", json=q)
                 assert rv.status_code == 200
+                valid_data.append(rv.get_json())
 
-                data = rv.get_json()
+                rv = client.get("/beacon/query", query_string=q)
+                assert rv.status_code == 200
+                valid_data.append(rv.get_json())
 
-                validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
-                assert data["exists"]
-                assert len(data["datasetAlleleResponses"]) == 1
-                assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
+                for data in valid_data:
+                    validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+                    assert data["exists"]
+                    assert len(data["datasetAlleleResponses"]) == 1
+                    assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
 
             # Test different includeDatasetResponses values
 

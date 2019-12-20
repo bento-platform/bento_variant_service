@@ -17,7 +17,7 @@ from chord_lib.search.queries import (
 from flask import Blueprint, current_app, json, jsonify, request, Response
 from itertools import chain
 from jsonschema import validate, ValidationError
-from typing import Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from .datasets import TableManager
@@ -77,7 +77,27 @@ def beacon_get():
     })
 
 
+def beacon_allele_response(exists: bool, allele_request: dict, dataset_allele_responses: List[dict]) -> Response:
+    # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L441
+    return jsonify({
+        "beaconId": BEACON_ID,
+        "apiVersion": BEACON_API_VERSION,
+        "exists": exists,
+        "alleleRequest": allele_request,
+        "datasetAlleleResponses": dataset_allele_responses
+    })
+
+
+def apply_if_not_none(f: Callable, v: Optional):
+    return f(v) if v is not None else None
+
+
+def filter_dict_none_values(d: dict):
+    return {k: v for k, v in d.items() if v is not None}
+
+
 def beacon_coord_to_vcf_coord(v: Optional[int]) -> Optional[int]:
+    # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L357
     return v + 1 if v is not None else None
 
 
@@ -88,30 +108,42 @@ def beacon_query():
     if request.method == "POST" and not isinstance(request.json, dict):
         return beacon_error(400, "Missing or invalid query")
 
-    query = {
-        k: v for k, v in (request.json.items() if request.method == "POST" else {
-            "referenceName": request.args.get("referenceName"),
-            "start": request.args.get("start", None),
-            "startMin": request.args.get("startMin", None),
-            "startMax": request.args.get("startMax", None),
-            "end": request.args.get("end", None),
-            "endMin": request.args.get("endMin", None),
-            "endMax": request.args.get("endMax", None),
-            "referenceBases": request.args.get("referenceBases", "N"),
-            "alternateBases": request.args.get("alternateBases", "N"),
-            "variantType": request.args.get("variantType", None),
-            "assemblyId": request.args.get("assemblyId"),
-            "datasetIds": request.args.get("datasetIds", None),
-            "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
-        }) if v is not None
-    }
+    if request.method == "POST":
+        query = request.json
+    else:
+        try:
+            query = {
+                "referenceName": request.args["referenceName"],
+                "start": apply_if_not_none(int, request.args.get("start", None)),
+                "startMin": apply_if_not_none(int, request.args.get("startMin", None)),
+                "startMax": apply_if_not_none(int, request.args.get("startMax", None)),
+                "end": apply_if_not_none(int, request.args.get("end", None)),
+                "endMin": apply_if_not_none(int, request.args.get("endMin", None)),
+                "endMax": apply_if_not_none(int, request.args.get("endMax", None)),
+                "referenceBases": request.args["referenceBases"],
+                "alternateBases": request.args.get("alternateBases", None),
+                "variantType": request.args.get("variantType", None),
+                "assemblyId": request.args["assemblyId"],
+                "datasetIds": request.args.getlist("datasetIds"),
+                "includeDatasetResponses": request.args.get("includeDatasetResponses", BEACON_IDR_NONE)
+            }
+
+            # TODO: Empty list vs. not specified...
+            if len(query["datasetIds"]) == 0:
+                del query["datasetIds"]
+
+        except (KeyError, ValueError):
+            return beacon_error(400, "Invalid query")
+
+    # Filter out null values from query for validation
+    query = filter_dict_none_values(query)
 
     # Validate query
 
     try:
         validate(instance=query, schema=BEACON_ALLELE_REQUEST_SCHEMA)
     except ValidationError:
-        return beacon_error(400, "Invalid query")
+        return beacon_error(400, "Invalid query")  # TODO: Detailed schema error message
 
     # TODO: Other validation, or put more in schema?
 
@@ -189,10 +221,6 @@ def beacon_query():
         # Don't return anything
         beacon_dataset_hits = []
 
-    return jsonify({
-        "beaconId": BEACON_ID,
-        "apiVersion": BEACON_API_VERSION,
-        "exists": len(dataset_matches) > 0,
-        "alleleRequest": query,
-        "datasetAlleleResponses": beacon_dataset_hits
-    })
+    return beacon_allele_response(exists=len(dataset_matches) > 0,
+                                  allele_request=query,
+                                  dataset_allele_responses=beacon_dataset_hits)
