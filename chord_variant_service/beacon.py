@@ -1,3 +1,6 @@
+# Implementation of the GA4GH Beacon v1.0.1 specification
+# https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml
+
 import chord_variant_service
 import os
 
@@ -11,9 +14,10 @@ from chord_lib.search.queries import (
     FUNCTION_EQ
 )
 
+from flask import Blueprint, current_app, json, jsonify, request, Response
 from itertools import chain
-from flask import Blueprint, current_app, json, jsonify, request
 from jsonschema import validate, ValidationError
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 from .datasets import TableManager
@@ -44,6 +48,14 @@ def generate_beacon_id(domain: str) -> str:
     ))
 
 
+def beacon_error(error_code: int, error_message: Optional[str]) -> Tuple[Response, int]:
+    # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L619
+    return jsonify({
+        "errorCode": error_code,
+        **({"errorMessage": error_message} if error_message is not None else {})
+    }), error_code
+
+
 # Create a reverse DNS beacon ID, e.g. com.dlougheed.1.beacon
 BEACON_ID = generate_beacon_id(CHORD_DOMAIN)
 
@@ -70,7 +82,7 @@ def beacon_query():
     # TODO: Careful with end, it should be exclusive
 
     if request.method == "POST" and not isinstance(request.json, dict):
-        return current_app.response_class(status=400)  # TODO: Beacon error response
+        return beacon_error(400, "Missing or invalid query")
 
     query = {
         k: v for k, v in (request.json.items() if request.method == "POST" else {
@@ -95,7 +107,7 @@ def beacon_query():
     try:
         validate(instance=query, schema=BEACON_ALLELE_REQUEST_SCHEMA)
     except ValidationError:
-        return current_app.response_class(status=400)  # TODO: Beacon error response
+        return beacon_error(400, "Invalid query")
 
     # TODO: Other validation, or put more in schema?
 
@@ -111,8 +123,7 @@ def beacon_query():
 
     if start_min is not None and ((start_max is not None and start_max < start_min) or
                                   (end_max is not None and end_max < start_min)):
-        return current_app.response_class(status=400)  # TODO: Beacon error response
-
+        return beacon_error(400, "Invalid variant bounds")
 
     # Convert to VCF coordinates (1-indexed)
 
@@ -130,7 +141,7 @@ def beacon_query():
 
     if (alt_bases is None and alt_id is None) or (alt_bases is not None and alt_id is not None):
         # Error one or the other is required
-        return current_app.response_class(status=400)  # TODO: Beacon error response
+        return beacon_error(400, "Exactly one of alternateBases or variantType must be specified")
 
     # Get limiting assembly ID / dataset IDs for query
 

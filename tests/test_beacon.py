@@ -351,6 +351,10 @@ def test_beacon_response(app, client):
                       INVALID_BEACON_REQUEST_4, INVALID_BEACON_REQUEST_5):
                 rv = client.post("/beacon/query", json=q)
                 assert rv.status_code == 400
+                data = rv.get_json()
+                assert isinstance(data, dict) and len(list(data.keys())) in (1, 2) and "errorCode" in data
+                assert data["errorCode"] == 400
+                assert "errorMessage" not in data or isinstance(data["errorMessage"], str)
 
             # - Valid queries
 
