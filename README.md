@@ -21,7 +21,7 @@ Default values for environment variables are listed on the right-hand side.
 ```bash
 SERVICE_ID=ca.c3g.chord:variant:VERSION
 DATA=/path/to/data/directory
-CHORD_URL=http://localhost/  # URL of CHORD node or service URL
+CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
 ```
 
 ### Notes
@@ -35,6 +35,15 @@ CHORD_URL=http://localhost/  # URL of CHORD node or service URL
 
 ## Running in Development
 
+Development dependencies are described in `requirements.txt` and can be
+installed using the following command:
+
+```bash
+pip install -r requirements.txt
+```
+
+The Flask development server can be run with the following command:
+
 ```bash
 FLASK_APP=chord_variant_service.app FLASK_DEBUG=True flask run
 ```
@@ -42,6 +51,16 @@ FLASK_APP=chord_variant_service.app FLASK_DEBUG=True flask run
 
 ## Running Tests
 
+To run all tests and calculate coverage, including branch coverage, run the
+following command:
+
 ```bash
 python3 -m pytest --cov=chord_variant_service --cov-branch
 ```
+
+
+## Deploying
+
+In production, the service should be deployed using a WSGI service like
+[uWSGI](https://uwsgi-docs.readthedocs.io/en/latest/) or
+[Gunicorn](https://gunicorn.org/).
