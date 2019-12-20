@@ -41,6 +41,7 @@ with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bar
 
 
 def generate_beacon_id(domain: str) -> str:
+    # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L288
     return ".".join((
         *(reversed(domain.split(":")[0].split("."))),
         *((domain.split(':')[1],) if len(domain.split(":")) > 1 else ()),
@@ -62,6 +63,7 @@ BEACON_ID = generate_beacon_id(CHORD_DOMAIN)
 
 @bp_beacon.route("/beacon", methods=["GET"])
 def beacon_get():
+    # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L279
     return jsonify({
         "id": BEACON_ID,
         "name": f"CHORD Beacon (ID: {BEACON_ID})",  # TODO: Nicer name
