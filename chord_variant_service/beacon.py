@@ -77,6 +77,10 @@ def beacon_get():
     })
 
 
+def beacon_coord_to_vcf_coord(v: Optional[int]) -> Optional[int]:
+    return v + 1 if v is not None else None
+
+
 @bp_beacon.route("/beacon/query", methods=["GET", "POST"])
 def beacon_query():
     # TODO: Careful with end, it should be exclusive
@@ -111,26 +115,19 @@ def beacon_query():
 
     # TODO: Other validation, or put more in schema?
 
-    start = query.get("start", None)
-    start_min = query.get("startMin", None) if start is None else start
-    start_max = query.get("startMax", None) if start is None else start
+    # Retrieve coordinates and convert to VCF coordinates (1-indexed)
 
-    end = query.get("end", None)
-    end_min = query.get("endMin", None) if end is None else end
-    end_max = query.get("endMax", None) if end is None else end
+    start_min = beacon_coord_to_vcf_coord(query.get("start", query.get("startMin", None)))
+    start_max = beacon_coord_to_vcf_coord(query.get("start", query.get("startMax", None)))
+
+    end_min = beacon_coord_to_vcf_coord(query.get("end", query.get("endMin", None)))
+    end_max = beacon_coord_to_vcf_coord(query.get("end", query.get("endMax", None)))
 
     # Check that bounds make sense
 
     if start_min is not None and ((start_max is not None and start_max < start_min) or
                                   (end_max is not None and end_max < start_min)):
         return beacon_error(400, "Invalid variant bounds")
-
-    # Convert to VCF coordinates (1-indexed)
-
-    start_min = start_min + 1 if start_min is not None else None
-    start_max = start_max + 1 if start_max is not None else None
-    end_min = end_min + 1 if end_min is not None else None
-    end_max = end_max + 1 if end_max is not None else None
 
     # Sort out reference vs. alternate
 
