@@ -6,6 +6,7 @@ import shutil
 import tabix
 import uuid
 
+from chord_lib.auth.flask_decorators import flask_permissions
 from flask import Blueprint, current_app, json, jsonify, request
 from itertools import chain
 from jsonschema import validate, ValidationError
@@ -390,6 +391,7 @@ def data_type_404(data_type_id):
 
 # Fetch or create datasets
 @bp_datasets.route("/datasets", methods=["GET", "POST"])
+@flask_permissions({"POST": {"owner"}})
 def dataset_list():
     dt = request.args.getlist("data-type")
 
@@ -422,8 +424,9 @@ def dataset_list():
     return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_datasets().values()])
 
 
-# TODO: Implement GET, POST
+# TODO: Implement GET, POST (separate permissions)
 @bp_datasets.route("/datasets/<string:dataset_id>", methods=["DELETE"])
+@flask_permissions({"DELETE": {"owner"}})
 def dataset_detail(dataset_id):
     if current_app.config["TABLE_MANAGER"].get_dataset(dataset_id) is None:
         # TODO: More standardized error

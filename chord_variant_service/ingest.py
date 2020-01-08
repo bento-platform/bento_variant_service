@@ -25,7 +25,7 @@ bp_ingest = Blueprint("ingest", __name__)
 
 # Ingest files into datasets
 # Ingestion doesn't allow uploading files directly, it simply moves them from a different location on the filesystem.
-@bp_ingest.route("/ingest", methods=["POST"])
+@bp_ingest.route("/private/ingest", methods=["POST"])
 def ingest():
     try:
         validate(request.json, CHORD_INGEST_SCHEMA)

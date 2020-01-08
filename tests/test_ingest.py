@@ -16,10 +16,10 @@ def make_ingest(dataset_id):
 
 
 def test_ingest(client):
-    rv = client.post("/ingest", json={})
+    rv = client.post("/private/ingest", json={})
     assert rv.status_code == 400
 
-    rv = client.post("/ingest", json=make_ingest("invalid_dataset_id"))
+    rv = client.post("/private/ingest", json=make_ingest("invalid_dataset_id"))
     assert rv.status_code == 400
 
     # TODO: Test workflow ID validation
