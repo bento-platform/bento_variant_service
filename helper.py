@@ -37,12 +37,12 @@ def ingest(args):
         "workflow_id": "vcf_gz",
         "workflow_metadata": workflow,
         "workflow_params": {
-            "vcf_gz.vcf_gz_file": os.path.abspath(args[2]),
+            "vcf_gz.vcf_gz_files": [os.path.abspath(args[2])],
             "vcf_gz.assembly_id": assembly_id
         },
         "workflow_outputs": {
-            "vcf_gz_file": vcf_file,
-            "tbi_file": tbi_file
+            "vcf_gz_files": [vcf_file],
+            "tbi_files": [tbi_file]
         }
     })
 

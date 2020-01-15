@@ -1,8 +1,12 @@
-.idea/workspace.xml
-.idea/dataSources*
 .coverage
 data/**/.*
 htmlcov/
 env
 __pycache__
 *.vcf*
+
+# IDE stuff
+.idea/workspace.xml
+.idea/dataSources*
+*.swp
+*.swo
