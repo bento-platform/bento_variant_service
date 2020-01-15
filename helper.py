@@ -32,7 +32,7 @@ def ingest(args):
 
     workflow = json.load(open("./chord_variant_service/workflows/chord_workflows.json"))["ingestion"]["vcf_gz"]
 
-    r = requests.post("http://localhost:5000/ingest", json={
+    r = requests.post("http://localhost:5000/private/ingest", json={
         "dataset_id": dataset_id,
         "workflow_id": "vcf_gz",
         "workflow_metadata": workflow,
