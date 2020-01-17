@@ -10,8 +10,14 @@ setuptools.setup(
     version="0.1.0",
 
     python_requires=">=3.6",
-    install_requires=["chord_lib @ git+https://github.com/c3g/chord_lib#egg=chord_lib[flask]", "Flask>=1.1,<2.0",
-                      "jsonschema>=3.2,<4.0", "pysam>=0.15,<0.16", "pytabix==0.0.2", "requests>=2.22,<3.0"],
+    install_requires=[
+        "chord_lib[flask]==0.1.0",
+        "Flask>=1.1,<2.0",
+        "jsonschema>=3.2,<4.0",
+        "pysam>=0.15,<0.16",
+        "pytabix==0.0.2",  # The author mis-versioned this. 0.0.2 is an update for 0.1.
+        "requests>=2.22,<3.0",
+    ],
 
     author="David Lougheed",
     author_email="david.lougheed@mail.mcgill.ca",
