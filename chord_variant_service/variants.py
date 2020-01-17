@@ -24,6 +24,7 @@ VARIANT_SCHEMA = {
         "assembly_id": {
             "type": "string",
             "enum": ["GRCh38", "GRCh37", "NCBI36", "Other"],
+            "description": "Reference genome assembly ID.",
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "queryable": "all",
@@ -36,6 +37,7 @@ VARIANT_SCHEMA = {
         "chromosome": {
             "type": "string",
             # TODO: Choices
+            "description": "Reference genome chromosome identifier (e.g. 17 or X)",
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "queryable": "all",
@@ -47,6 +49,7 @@ VARIANT_SCHEMA = {
         },
         "start": {
             "type": "integer",
+            "description": "1-indexed start location of the variant on the chromosome.",
             "search": {
                 "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
                 "queryable": "all",
@@ -58,6 +61,8 @@ VARIANT_SCHEMA = {
         },
         "end": {
             "type": "integer",
+            "description": ("1-indexed end location of the variant on the chromosome, in terms of the number of bases "
+                            "in the reference sequence for the variant."),
             "search": {
                 "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
                 "queryable": "all",
@@ -69,6 +74,7 @@ VARIANT_SCHEMA = {
         },
         "ref": {
             "type": "string",
+            "description": "Reference base sequence for the variant.",
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "queryable": "all",
@@ -80,6 +86,7 @@ VARIANT_SCHEMA = {
         },
         "alt": {
             "type": "string",
+            "description": "Alternate (non-reference) base sequence for the variant.",
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "queryable": "all",
@@ -91,6 +98,7 @@ VARIANT_SCHEMA = {
         },
         "sample_id": {
             "type": "string",
+            "description": "Variant sample ID.",  # TODO: More detailed?
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "queryable": "internal",
