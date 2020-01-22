@@ -3,10 +3,12 @@ import datetime
 import os
 import re
 import shutil
+import sys
 import tabix
 import uuid
 
 from chord_lib.auth.flask_decorators import flask_permissions
+from chord_lib.responses.flask_errors import *
 from flask import Blueprint, current_app, json, jsonify, request
 from itertools import chain
 from jsonschema import validate, ValidationError
@@ -380,15 +382,6 @@ class VCFTableManager(TableManager):  # pragma: no cover
 bp_tables = Blueprint("tables", __name__)
 
 
-def data_type_404(data_type_id):
-    return jsonify({
-        "code": 404,
-        "message": "Data type not found",
-        "timestamp": datetime.datetime.utcnow().isoformat("T") + "Z",
-        "errors": [{"code": "not_found", "message": f"Data type with ID {data_type_id} was not found"}]
-    }), 404
-
-
 # Fetch or create tables
 @bp_tables.route("/tables", methods=["GET", "POST"])
 @flask_permissions({"POST": {"owner"}})
@@ -396,21 +389,31 @@ def table_list():
     dt = request.args.getlist("data-type")
 
     if "variant" not in dt or len(dt) != 1:
-        return data_type_404(dt)
+        return flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
         if request.json is None:
-            # TODO: Better error
-            return current_app.response_class(status=400)
+            return flask_bad_request_error("Missing or invalid request body")
 
-        name = request.json["name"].strip()
+        # TODO: Query schema
+
+        if not isinstance(request.json, dict):
+            return flask_bad_request_error("Request body is not an object")
+
+        if "metadata" not in request.json:
+            return flask_bad_request_error("Missing metadata field")
+
+        name = request.json.get("name", "").strip()
         metadata = request.json["metadata"]
+
+        if name == "":
+            return flask_bad_request_error("Missing or blank name field")
 
         try:
             validate(metadata, VARIANT_TABLE_METADATA_SCHEMA)
         except ValidationError:
-            return current_app.response_class(status=400)  # TODO: Error message
+            return flask_bad_request_error("Invalid metadata format (validation failed)")  # TODO: Validation message
 
         try:
             new_table = current_app.config["TABLE_MANAGER"].create_table_and_update(name, metadata)
@@ -418,8 +421,8 @@ def table_list():
                                               mimetype=MIME_TYPE, status=201)
 
         except IDGenerationFailure:
-            print("Couldn't generate new ID")
-            return current_app.response_class(status=500)
+            print("[CHORD Variant Service] Couldn't generate new ID", file=sys.stderr)
+            return flask_internal_server_error("Could not generate new ID for table")
 
     return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_tables().values()])
 
@@ -429,9 +432,8 @@ def table_list():
 @flask_permissions({"DELETE": {"owner"}})
 def table_detail(table_id):
     if current_app.config["TABLE_MANAGER"].get_table(table_id) is None:
-        # TODO: More standardized error
         # TODO: Refresh cache if needed?
-        return current_app.response_class(status=404)
+        return flask_not_found_error(f"No table with ID {table_id}")
 
     current_app.config["TABLE_MANAGER"].delete_table_and_update(table_id)
 

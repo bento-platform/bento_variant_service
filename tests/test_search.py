@@ -63,6 +63,10 @@ def test_chord_variant_search(app, client):
             rv2 = client.post("/private/search", json={})
             assert rv.status_code == 400 and rv2.status_code == 400
 
+            rv = client.post("/search", json=["data_type", "query"])
+            rv2 = client.post("/private/search", json=["data_type", "query"])
+            assert rv.status_code == 400 and rv2.status_code == 400
+
             rv = client.post("/search", json={"data_type": "variant"})
             rv2 = client.post("/search", json={"data_type": "variant"})
             assert rv.status_code == 400 and rv2.status_code == 400
@@ -148,6 +152,9 @@ def test_chord_variant_search(app, client):
             assert rv.status_code == 400
 
             rv = client.post("/private/tables/fixed_id/search", json={})
+            assert rv.status_code == 400
+
+            rv = client.post("/private/tables/fixed_id/search", json=["query"])
             assert rv.status_code == 400
 
             rv = client.post("/private/tables/fixed_id/search", json={"query": QUERY_1})

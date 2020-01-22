@@ -1,6 +1,5 @@
 import os
 import shutil
-import uuid
 
 from chord_lib.ingestion import (
     WORKFLOW_TYPE_FILE,
@@ -11,6 +10,7 @@ from chord_lib.ingestion import (
     formatted_output,
     make_output_params
 )
+from chord_lib.responses.flask_errors import *
 from chord_lib.schemas.chord import CHORD_INGEST_SCHEMA
 from chord_lib.workflows import workflow_exists
 from flask import Blueprint, current_app, request
@@ -33,7 +33,6 @@ def ingest():
         table_id = request.json["table_id"]
 
         assert table_id in current_app.config["TABLE_MANAGER"].get_tables()
-        table_id = str(uuid.UUID(table_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
         workflow_id = request.json["workflow_id"].strip()
         workflow_metadata = request.json["workflow_metadata"]
@@ -79,12 +78,8 @@ def ingest():
 
         return current_app.response_class(status=204)
 
-    except AssertionError:
-        # TODO: Better errors
-        print("Assertion error")
-        return current_app.response_class(status=400)
+    except AssertionError:  # TODO: More detailed error messages
+        return flask_bad_request_error("Assertion error")
 
-    except (ValidationError, ValueError):  # UUID, or JSON schema failure
-        # TODO: Better errors
-        print("Validation error")
-        return current_app.response_class(status=400)
+    except (ValidationError, ValueError):  # UUID, or JSON schema failure TODO: More detailed error messages
+        return flask_bad_request_error("Validation error")

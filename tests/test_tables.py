@@ -16,7 +16,7 @@ DATASET_SCHEMA = {
 
 def test_tables(client):
     rv = client.get("/tables")
-    assert rv.status_code == 404
+    assert rv.status_code == 400
 
     rv = client.get("/tables?data-type=variant")
     data = rv.get_json()
@@ -24,6 +24,9 @@ def test_tables(client):
     assert isinstance(data, list) and len(data) == 0
 
     rv = client.post("/tables?data-type=variant")
+    assert rv.status_code == 400
+
+    rv = client.post("/tables?data-type=invalid_data_type")
     assert rv.status_code == 400
 
     rv = client.post("/tables?data-type=variant", json={
@@ -35,18 +38,25 @@ def test_tables(client):
     assert rv.status_code == 201
     validate(data, DATASET_SCHEMA)
 
+    rv = client.post("/tables?data-type=variant", json=["name", "metadata"])
+    assert rv.status_code == 400  # Not an object
+
+    rv = client.post("/tables?data-type=variant", json={"metadata": {}})
+    assert rv.status_code == 400  # No name
+
+    rv = client.post("/tables?data-type=variant", json={"name": "test table"})
+    assert rv.status_code == 400  # No metadata
+
     rv = client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": None
     })
-
     assert rv.status_code == 400
 
     rv = client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": {}
     })
-
     assert rv.status_code == 500  # No IDs left
 
 

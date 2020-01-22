@@ -1,5 +1,6 @@
 import re
 
+from chord_lib.responses.flask_errors import *
 from chord_lib.search.data_structure import check_ast_against_data_structure
 from chord_lib.search.queries import (
     convert_query_to_ast_and_preprocess,
@@ -217,32 +218,39 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
 bp_chord_search = Blueprint("chord_search", __name__)
 
 
-@bp_chord_search.route("/search", methods=["POST"])
-def search_endpoint():
-    # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
-    # TODO: PROBABLY VULNERABLE IN SOME WAY
+def _search_endpoint(internal_data=False):
+    # TODO: Request validation schema
 
-    if request.json is None or "data_type" not in request.json or "query" not in request.json:
-        return current_app.response_class(status=400)
+    if request.json is None:
+        return flask_bad_request_error("Missing request body")
+
+    if not isinstance(request.json, dict):
+        return flask_bad_request_error("Request body is not an object")
+
+    if "data_type" not in request.json:
+        return flask_bad_request_error("Missing data type in request body")
+
+    if "query" not in request.json:
+        return flask_bad_request_error("Missing data type in request body")
 
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
                                             request.json["data_type"],
                                             request.json["query"],
-                                            internal_data=False)})
+                                            internal_data=internal_data)})
+
+
+@bp_chord_search.route("/search", methods=["POST"])
+def search_endpoint():
+    # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
+    # TODO: PROBABLY VULNERABLE IN SOME WAY
+    return _search_endpoint()
 
 
 @bp_chord_search.route("/private/search", methods=["POST"])
 def private_search_endpoint():
     # Proxy should ensure that non-services cannot access this
     # TODO: Figure out security properly
-
-    if request.json is None or "data_type" not in request.json or "query" not in request.json:
-        return current_app.response_class(status=400)
-
-    return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
-                                            request.json["data_type"],
-                                            request.json["query"],
-                                            internal_data=True)})
+    return _search_endpoint(internal_data=True)
 
 
 @bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["POST"])
@@ -250,12 +258,19 @@ def table_search(table_id):
     table = current_app.config["TABLE_MANAGER"].get_table(table_id)
 
     if table is None:
-        # TODO: More standardized error
         # TODO: Refresh cache if needed?
-        return current_app.response_class(status=404)
+        return flask_not_found_error(f"No table with ID {table_id}")
 
-    if request.json is None or "query" not in request.json:
-        return current_app.response_class(status=400)
+    if request.json is None:
+        return flask_bad_request_error("Missing search body")
+
+    # TODO: Schema for request body
+
+    if not isinstance(request.json, dict):
+        return flask_bad_request_error("Search body must be an object")
+
+    if "query" not in request.json:
+        return flask_bad_request_error("Query not included in search body")
 
     # If it exists in the variant table manager, it's of data type 'variant'
 
