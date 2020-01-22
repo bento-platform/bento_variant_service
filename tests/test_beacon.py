@@ -1,6 +1,6 @@
 # noinspection PyProtectedMember
 from chord_variant_service.beacon import generate_beacon_id
-from chord_variant_service.datasets import make_beacon_dataset_id
+from chord_variant_service.tables import make_beacon_dataset_id
 from chord_variant_service.pool import get_pool, teardown_pool
 from jsonschema import validate
 from uuid import uuid4
@@ -322,7 +322,7 @@ def test_beacon_response(app, client):
             mm = app.config["TABLE_MANAGER"]
 
             # Create a new dataset with ID fixed_id and name test table, and add a variant to it
-            ds = mm.create_dataset_and_update("test table", {})
+            ds = mm.create_table_and_update("test table", {})
 
             # Test valid but empty dataset
             rv = client.post("/beacon/query", json=BEACON_REQUEST_3)

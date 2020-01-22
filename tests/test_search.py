@@ -51,7 +51,7 @@ def test_chord_variant_search(app, client):
             mm = app.config["TABLE_MANAGER"]
 
             # Create a new dataset with ID fixed_id and name test
-            ds = mm.create_dataset_and_update("test", {})
+            ds = mm.create_table_and_update("test", {})
 
             ds.variant_store.append(VARIANT_1)
 

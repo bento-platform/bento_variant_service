@@ -14,19 +14,19 @@ DATASET_SCHEMA = {
 }
 
 
-def test_datasets(client):
-    rv = client.get("/datasets")
+def test_tables(client):
+    rv = client.get("/tables")
     assert rv.status_code == 404
 
-    rv = client.get("/datasets?data-type=variant")
+    rv = client.get("/tables?data-type=variant")
     data = rv.get_json()
 
     assert isinstance(data, list) and len(data) == 0
 
-    rv = client.post("/datasets?data-type=variant")
+    rv = client.post("/tables?data-type=variant")
     assert rv.status_code == 400
 
-    rv = client.post("/datasets?data-type=variant", json={
+    rv = client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": {}
     })
@@ -35,14 +35,14 @@ def test_datasets(client):
     assert rv.status_code == 201
     validate(data, DATASET_SCHEMA)
 
-    rv = client.post("/datasets?data-type=variant", json={
+    rv = client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": None
     })
 
     assert rv.status_code == 400
 
-    rv = client.post("/datasets?data-type=variant", json={
+    rv = client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": {}
     })
@@ -50,14 +50,14 @@ def test_datasets(client):
     assert rv.status_code == 500  # No IDs left
 
 
-def test_dataset_detail(client):
-    client.post("/datasets?data-type=variant", json={
+def test_table_detail(client):
+    client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": {}
     })
 
-    rv = client.delete("/datasets/fixed_id")
+    rv = client.delete("/tables/fixed_id")
     assert rv.status_code == 204
 
-    rv = client.delete("/datasets/fixed_id")
+    rv = client.delete("/tables/fixed_id")
     assert rv.status_code == 404

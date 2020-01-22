@@ -16,24 +16,24 @@ from chord_lib.workflows import workflow_exists
 from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
-from .datasets import DATA_PATH
+from .tables import DATA_PATH
 from .workflows import WORKFLOWS
 
 
 bp_ingest = Blueprint("ingest", __name__)
 
 
-# Ingest files into datasets
+# Ingest files into tables
 # Ingestion doesn't allow uploading files directly, it simply moves them from a different location on the filesystem.
 @bp_ingest.route("/private/ingest", methods=["POST"])
 def ingest():
     try:
         validate(request.json, CHORD_INGEST_SCHEMA)
 
-        dataset_id = request.json["dataset_id"]
+        table_id = request.json["table_id"]
 
-        assert dataset_id in current_app.config["TABLE_MANAGER"].get_datasets()
-        dataset_id = str(uuid.UUID(dataset_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
+        assert table_id in current_app.config["TABLE_MANAGER"].get_tables()
+        table_id = str(uuid.UUID(table_id))  # Check that it's a valid UUID and normalize it to UUID's str format.
 
         workflow_id = request.json["workflow_id"].strip()
         workflow_metadata = request.json["workflow_metadata"]
@@ -43,7 +43,7 @@ def ingest():
         assert workflow_exists(workflow_id, WORKFLOWS)  # Check that the workflow exists here...
 
         output_params = make_output_params(workflow_id, workflow_params, workflow_metadata["inputs"])
-        prefix = find_common_prefix(os.path.join(DATA_PATH, dataset_id), workflow_metadata, output_params)
+        prefix = find_common_prefix(os.path.join(DATA_PATH, table_id), workflow_metadata, output_params)
 
         # TODO: Customize to table manager specifics
 
@@ -51,7 +51,7 @@ def ingest():
             # Full path to to-be-newly-ingested file
             #  - Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
             #  - If prefix is None, it will not be added
-            return os.path.join(DATA_PATH, dataset_id, file_with_prefix(f, prefix))
+            return os.path.join(DATA_PATH, table_id, file_with_prefix(f, prefix))
 
         files_to_move = []
 
@@ -75,7 +75,7 @@ def ingest():
             # Move the file from its temporary location to its location in the service's data folder.
             shutil.move(tmp_file_path, file_path)
 
-        current_app.config["TABLE_MANAGER"].update_datasets()
+        current_app.config["TABLE_MANAGER"].update_tables()
 
         return current_app.response_class(status=204)
 

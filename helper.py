@@ -11,7 +11,7 @@ import sys
 
 
 def usage():
-    print("Usage: ./helper.py ingest dataset_id assembly_id file.vcf.gz \n"
+    print("Usage: ./helper.py ingest table_id assembly_id file.vcf.gz \n"
           "  [or] ./helper.py new_table 'table name' \n"
           "  [or] ./helper.py search 1 0 10000")
     exit(1)
@@ -21,7 +21,7 @@ def ingest(args):
     if len(args) != 3:
         usage()
 
-    dataset_id, assembly_id, vcf_file = args
+    table_id, assembly_id, vcf_file = args
 
     vcf_file = os.path.abspath(vcf_file)
     tbi_file = f"{vcf_file}.tbi"
@@ -33,7 +33,7 @@ def ingest(args):
     workflow = json.load(open("./chord_variant_service/workflows/chord_workflows.json"))["ingestion"]["vcf_gz"]
 
     r = requests.post("http://localhost:5000/private/ingest", json={
-        "dataset_id": dataset_id,
+        "table_id": table_id,
         "workflow_id": "vcf_gz",
         "workflow_metadata": workflow,
         "workflow_params": {
@@ -54,7 +54,7 @@ def new_table(args):
     if len(args) != 1:
         usage()
 
-    r = requests.post("http://localhost:5000/datasets?data-type=variant", json={
+    r = requests.post("http://localhost:5000/tables?data-type=variant", json={
         "name": args[0],
         "metadata": {}
     })

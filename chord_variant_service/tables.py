@@ -18,7 +18,7 @@ from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA, SampleVaria
 
 __all__ = [
     "DATA_PATH",
-    "DATASET_NAME_FILE",
+    "TABLE_NAME_FILE",
     "ID_RETRIES",
     "MIME_TYPE",
 
@@ -35,7 +35,7 @@ __all__ = [
     "MemoryTableManager",
     "VCFTableManager",
 
-    "bp_datasets",
+    "bp_tables",
 ]
 
 
@@ -45,8 +45,8 @@ MAX_SIGNED_INT_32 = 2 ** 31 - 1
 ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
 
 DATA_PATH = os.environ.get("DATA", "data/")
-DATASET_NAME_FILE = ".chord_dataset_name"
-DATASET_METADATA_FILE = ".chord_dataset_metadata"
+TABLE_NAME_FILE = ".chord_table_name"
+TABLE_METADATA_FILE = ".chord_table_metadata"
 ID_RETRIES = 100
 MIME_TYPE = "application/json"
 
@@ -220,11 +220,11 @@ class IDGenerationFailure(Exception):
 class TableManager(ABC):  # pragma: no cover
     # TODO: Rename
     @abstractmethod
-    def get_dataset(self, dataset_id: str) -> Optional[VariantTable]:
+    def get_table(self, table_id: str) -> Optional[VariantTable]:
         pass
 
     @abstractmethod
-    def get_datasets(self) -> Dict[str, VCFVariantTable]:  # TODO: Rename get_tables
+    def get_tables(self) -> Dict[str, VCFVariantTable]:  # TODO: Rename get_tables
         return {}
 
     @abstractmethod
@@ -232,69 +232,69 @@ class TableManager(ABC):  # pragma: no cover
         return {}
 
     @abstractmethod
-    def update_datasets(self):
+    def update_tables(self):
         pass
 
     @abstractmethod
-    def _generate_dataset_id(self) -> Optional[str]:
-        pass
-
-    # TODO: Rename create_table_and_update, table_id
-    @abstractmethod
-    def create_dataset_and_update(self, name: str, metadata: dict) -> VariantTable:
+    def _generate_table_id(self) -> Optional[str]:
         pass
 
     # TODO: Rename create_table_and_update, table_id
     @abstractmethod
-    def delete_dataset_and_update(self, dataset_id: str):
+    def create_table_and_update(self, name: str, metadata: dict) -> VariantTable:
+        pass
+
+    # TODO: Rename create_table_and_update, table_id
+    @abstractmethod
+    def delete_table_and_update(self, table_id: str):
         pass
 
 
 class MemoryTableManager(TableManager):
     def __init__(self):
-        self.datasets = {}
+        self.tables = {}
         self.id_to_generate = "fixed_id"
 
-    def get_dataset(self, dataset_id: str) -> Optional[dict]:
-        return self.datasets.get(dataset_id, None)
+    def get_table(self, table_id: str) -> Optional[dict]:
+        return self.tables.get(table_id, None)
 
-    def get_datasets(self) -> dict:
-        return self.datasets
+    def get_tables(self) -> dict:
+        return self.tables
 
     def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
-        return {bd.beacon_id_tuple: bd for bd in chain.from_iterable(d.beacon_datasets for d in self.datasets.values())}
+        return {bd.beacon_id_tuple: bd for bd in chain.from_iterable(d.beacon_datasets for d in self.tables.values())}
 
-    def update_datasets(self):  # pragma: no cover
+    def update_tables(self):  # pragma: no cover
         pass
 
-    def _generate_dataset_id(self) -> Optional[str]:
-        return None if self.id_to_generate in self.datasets else self.id_to_generate
+    def _generate_table_id(self) -> Optional[str]:
+        return None if self.id_to_generate in self.tables else self.id_to_generate
 
-    def create_dataset_and_update(self, name: str, metadata: dict) -> MemoryVariantTable:
-        dataset_id = self._generate_dataset_id()
-        if dataset_id is None:
+    def create_table_and_update(self, name: str, metadata: dict) -> MemoryVariantTable:
+        table_id = self._generate_table_id()
+        if table_id is None:
             raise IDGenerationFailure()
 
-        new_dataset = MemoryVariantTable(table_id=dataset_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
-        self.datasets[dataset_id] = new_dataset
+        new_table = MemoryVariantTable(table_id=table_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
+        self.tables[table_id] = new_table
 
-        return new_dataset
+        return new_table
 
-    def delete_dataset_and_update(self, dataset_id: str):
-        del self.datasets[dataset_id]
+    def delete_table_and_update(self, table_id: str):
+        del self.tables[table_id]
 
 
 class VCFTableManager(TableManager):  # pragma: no cover
     def __init__(self, data_path: str):
         self.DATA_PATH = data_path
-        self.datasets = {}
+        self.tables = {}
         self.beacon_datasets = {}
 
-    def get_dataset(self, dataset_id: str) -> Optional[dict]:
-        return self.datasets.get(dataset_id, None)
+    def get_table(self, table_id: str) -> Optional[dict]:
+        return self.tables.get(table_id, None)
 
-    def get_datasets(self) -> dict:
-        return self.datasets
+    def get_tables(self) -> dict:
+        return self.tables
 
     def get_beacon_datasets(self) -> dict:
         return self.beacon_datasets
@@ -313,15 +313,15 @@ class VCFTableManager(TableManager):  # pragma: no cover
         vcf = VariantFile(vcf_path)
         return tuple(vcf.header.samples)
 
-    def update_datasets(self):
+    def update_tables(self):
         for d in os.listdir(self.DATA_PATH):
             table_dir = os.path.join(self.DATA_PATH, d)
 
             if not os.path.isdir(table_dir):
                 continue
 
-            name_path = os.path.join(table_dir, DATASET_NAME_FILE)
-            metadata_path = os.path.join(table_dir, DATASET_METADATA_FILE)
+            name_path = os.path.join(table_dir, TABLE_NAME_FILE)
+            metadata_path = os.path.join(table_dir, TABLE_METADATA_FILE)
             vcf_files = tuple(os.path.join(table_dir, file) for file in os.listdir(table_dir)
                               if file[-6:] == "vcf.gz")
             assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
@@ -336,30 +336,30 @@ class VCFTableManager(TableManager):  # pragma: no cover
                                for f, a, s in zip(vcf_files, assembly_ids, sample_ids)}
             )
 
-            self.datasets[d] = ds
+            self.tables[d] = ds
             for bd in ds.beacon_datasets:
                 self.beacon_datasets[bd.beacon_id_tuple] = bd
 
-    def _generate_dataset_id(self) -> Optional[str]:
+    def _generate_table_id(self) -> Optional[str]:
         new_id = str(uuid.uuid4())
         i = 0
-        while new_id in self.datasets and i < ID_RETRIES:
+        while new_id in self.tables and i < ID_RETRIES:
             new_id = str(uuid.uuid4())
             i += 1
 
         return None if i == ID_RETRIES else new_id
 
-    def create_dataset_and_update(self, name: str, metadata: dict) -> VCFVariantTable:
-        dataset_id = self._generate_dataset_id()
-        if dataset_id is None:
+    def create_table_and_update(self, name: str, metadata: dict) -> VCFVariantTable:
+        table_id = self._generate_table_id()
+        if table_id is None:
             raise IDGenerationFailure()
 
-        os.makedirs(os.path.join(self.DATA_PATH, dataset_id))
+        os.makedirs(os.path.join(self.DATA_PATH, table_id))
 
-        with open(os.path.join(self.DATA_PATH, dataset_id, DATASET_NAME_FILE), "w") as nf:
+        with open(os.path.join(self.DATA_PATH, table_id, TABLE_NAME_FILE), "w") as nf:
             nf.write(name)
 
-        with open(os.path.join(self.DATA_PATH, dataset_id, DATASET_METADATA_FILE), "w") as nf:
+        with open(os.path.join(self.DATA_PATH, table_id, TABLE_METADATA_FILE), "w") as nf:
             now = datetime.datetime.utcnow().isoformat() + "Z"
             json.dump({
                 "name": name,
@@ -368,16 +368,16 @@ class VCFTableManager(TableManager):  # pragma: no cover
                 "updated": now
             }, nf)
 
-        self.update_datasets()
+        self.update_tables()
 
-        return self.datasets[dataset_id]  # TODO: Handle KeyError (i.e. something wrong somewhere...)
+        return self.tables[table_id]  # TODO: Handle KeyError (i.e. something wrong somewhere...)
 
-    def delete_dataset_and_update(self, dataset_id: str):
-        shutil.rmtree(os.path.join(self.DATA_PATH, str(dataset_id)))
-        self.update_datasets()
+    def delete_table_and_update(self, table_id: str):
+        shutil.rmtree(os.path.join(self.DATA_PATH, str(table_id)))
+        self.update_tables()
 
 
-bp_datasets = Blueprint("datasets", __name__)
+bp_tables = Blueprint("tables", __name__)
 
 
 def data_type_404(data_type_id):
@@ -389,10 +389,10 @@ def data_type_404(data_type_id):
     }), 404
 
 
-# Fetch or create datasets
-@bp_datasets.route("/datasets", methods=["GET", "POST"])
+# Fetch or create tables
+@bp_tables.route("/tables", methods=["GET", "POST"])
 @flask_permissions({"POST": {"owner"}})
-def dataset_list():
+def table_list():
     dt = request.args.getlist("data-type")
 
     if "variant" not in dt or len(dt) != 1:
@@ -413,7 +413,7 @@ def dataset_list():
             return current_app.response_class(status=400)  # TODO: Error message
 
         try:
-            new_table = current_app.config["TABLE_MANAGER"].create_dataset_and_update(name, metadata)
+            new_table = current_app.config["TABLE_MANAGER"].create_table_and_update(name, metadata)
             return current_app.response_class(response=json.dumps(new_table.as_table_response()),
                                               mimetype=MIME_TYPE, status=201)
 
@@ -421,25 +421,25 @@ def dataset_list():
             print("Couldn't generate new ID")
             return current_app.response_class(status=500)
 
-    return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_datasets().values()])
+    return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_tables().values()])
 
 
 # TODO: Implement GET, POST (separate permissions)
-@bp_datasets.route("/datasets/<string:dataset_id>", methods=["DELETE"])
+@bp_tables.route("/tables/<string:table_id>", methods=["DELETE"])
 @flask_permissions({"DELETE": {"owner"}})
-def dataset_detail(dataset_id):
-    if current_app.config["TABLE_MANAGER"].get_dataset(dataset_id) is None:
+def table_detail(table_id):
+    if current_app.config["TABLE_MANAGER"].get_table(table_id) is None:
         # TODO: More standardized error
         # TODO: Refresh cache if needed?
         return current_app.response_class(status=404)
 
-    current_app.config["TABLE_MANAGER"].delete_dataset_and_update(dataset_id)
+    current_app.config["TABLE_MANAGER"].delete_table_and_update(table_id)
 
     # TODO: More complete response?
     return current_app.response_class(status=204)
 
 
-@bp_datasets.route("/data-types", methods=["GET"])
+@bp_tables.route("/data-types", methods=["GET"])
 def data_type_list():
     # Data types are basically stand-ins for schema blocks
 
@@ -450,7 +450,7 @@ def data_type_list():
     }])
 
 
-@bp_datasets.route("/data-types/variant", methods=["GET"])
+@bp_tables.route("/data-types/variant", methods=["GET"])
 def data_type_detail():
     return jsonify({
         "id": "variant",
@@ -459,12 +459,12 @@ def data_type_detail():
     })
 
 
-@bp_datasets.route("/data-types/variant/schema", methods=["GET"])
+@bp_tables.route("/data-types/variant/schema", methods=["GET"])
 def data_type_schema():
     return jsonify(VARIANT_SCHEMA)
 
 
 # TODO: Consistent snake or kebab
-@bp_datasets.route("/data-types/variant/metadata_schema", methods=["GET"])
+@bp_tables.route("/data-types/variant/metadata_schema", methods=["GET"])
 def data_type_metadata_schema():
     return jsonify(VARIANT_TABLE_METADATA_SCHEMA)

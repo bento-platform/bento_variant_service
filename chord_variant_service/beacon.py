@@ -20,7 +20,7 @@ from jsonschema import validate, ValidationError
 from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from .datasets import TableManager
+from .tables import TableManager
 from .search import generic_variant_search
 
 

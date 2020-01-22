@@ -21,7 +21,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from typing import Callable, List, Iterable, Optional, Tuple
 
-from .datasets import VariantTable, TableManager
+from .tables import VariantTable, TableManager
 from .pool import get_pool
 from .variants import VARIANT_SCHEMA
 
@@ -93,7 +93,7 @@ def generic_variant_search(
     pool_map: Iterable[Tuple[Optional[VariantTable], List[dict]]] = pool.imap_unordered(
         search_worker,
         ((dataset, chromosome, start_min, start_max, rest_of_query, internal_data, assembly_id)
-         for dataset in table_manager.get_datasets().values()
+         for dataset in table_manager.get_tables().values()
          if (ds is None or dataset.table_id in ds) and (assembly_id is None or assembly_id in dataset.assembly_ids))
     )
 
@@ -247,7 +247,7 @@ def private_search_endpoint():
 
 @bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["POST"])
 def table_search(table_id):
-    table = current_app.config["TABLE_MANAGER"].get_dataset(table_id)
+    table = current_app.config["TABLE_MANAGER"].get_table(table_id)
 
     if table is None:
         # TODO: More standardized error

@@ -4,7 +4,7 @@ import os
 from flask import Flask, jsonify
 
 from .beacon import bp_beacon
-from .datasets import DATA_PATH, VCFTableManager, bp_datasets
+from .tables import DATA_PATH, VCFTableManager, bp_tables
 from .ingest import bp_ingest
 from .pool import teardown_pool
 from .search import bp_chord_search
@@ -16,12 +16,12 @@ application = Flask(__name__)
 # TODO: How to share this across processes?
 table_manager = VCFTableManager(DATA_PATH)
 application.config["TABLE_MANAGER"] = table_manager
-table_manager.update_datasets()
+table_manager.update_tables()
 
 application.register_blueprint(bp_beacon)
 application.register_blueprint(bp_chord_search)
-application.register_blueprint(bp_datasets)
 application.register_blueprint(bp_ingest)
+application.register_blueprint(bp_tables)
 application.register_blueprint(bp_workflows)
 
 
@@ -39,7 +39,7 @@ def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
 
     return jsonify({
-        "id": SERVICE_ID,     # TODO: Should be globally unique
+        "id": SERVICE_ID,
         "name": "CHORD Variant Service",  # TODO: Should be globally unique?
         "type": SERVICE_TYPE,
         "description": "Variant service for a CHORD application.",
