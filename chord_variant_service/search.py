@@ -275,4 +275,4 @@ def table_search(table_id):
     # If it exists in the variant table manager, it's of data type 'variant'
 
     search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=True)
-    return jsonify({"results": search[table_id]["matches"] if len(search) > 0 else []})
+    return jsonify({"results": search.get(table_id, {}).get("matches", [])})
