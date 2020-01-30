@@ -20,7 +20,7 @@ from chord_lib.search.queries import (
 )
 from flask import Blueprint, current_app, jsonify, request
 
-from typing import Callable, List, Iterable, Optional, Tuple
+from typing import Any, Callable, List, Iterable, Optional, Tuple
 
 from .tables import VariantTable, TableManager
 from .pool import get_pool
@@ -101,8 +101,8 @@ def generic_variant_search(
     return ((d, m) for d, m in pool_map if len(m) > 0 or (not internal_data and d is not None))
 
 
-def query_key_op_value(query_item: AST, field: str, op: str):
-    # format: [#op [#resolve field] "value"]
+def query_key_op_value(query_item: AST, field: str, op: str) -> Optional[Literal]:
+    # checks format of query_item is [#op [#resolve field] "value"] and yields "value" if so
 
     if (isinstance(query_item, Expression) and
             query_item.fn == op and
@@ -116,19 +116,28 @@ def query_key_op_value(query_item: AST, field: str, op: str):
     return None
 
 
-def query_key_op_value_or_pass(value, state_changed: bool, query_item: AST, field: str, op: str,
-                               transform: Callable = lambda x: x):
-    if value is None:
-        value = query_key_op_value(query_item, field, op)
-        if value is not None:
-            value = transform(value)
-            return value, True
+def query_key_op_value_or_pass(query_item: AST, field: str, value: Optional[Literal], state_changed: bool, op: str,
+                               transform: Callable = lambda x: x) -> Tuple[Optional[Any], bool]:
+    if value is None:  # No value has been parsed from the query yet
+        value = query_key_op_value(query_item, field, op)  # May yield a value
+        if value is not None:  # New value derived from query_key_op_value call
+            value = transform(value)  # Transform the value to standardize it in the context of the query
+            return value, True  # Something got transformed, so return True for state_changed
 
-    return value, state_changed or False
+    return value, state_changed
 
 
 class InvalidQuery(Exception):
     pass
+
+
+def pipeline_value_extraction(query_item: AST, initial_value: Optional[Literal], initial_state_changed: bool,
+                              extractors: Tuple[Tuple[str, str, Callable], ...]) -> Tuple[Optional[Any], bool]:
+    field, op, transform = extractors[0]
+    v, s = query_key_op_value_or_pass(query_item, field, initial_value, initial_state_changed, op, transform)
+    for field, op, transform in extractors[1:]:
+        v, s = query_key_op_value_or_pass(query_item, field, v, s, op, transform)
+    return v, s
 
 
 def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Optional[int], AST]:
@@ -145,22 +154,24 @@ def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Opt
 
         state_changed = False
 
-        chromosome, state_changed = query_key_op_value_or_pass(chromosome, state_changed, q, "chromosome", FUNCTION_EQ)
+        chromosome, state_changed = query_key_op_value_or_pass(q, "chromosome", chromosome, state_changed, FUNCTION_EQ)
 
-        start_min, state_changed = query_key_op_value_or_pass(start_min, state_changed, q, "start", FUNCTION_EQ, int)
-        start_min, state_changed = query_key_op_value_or_pass(start_min, state_changed, q, "start", FUNCTION_GE, int)
-        start_min, state_changed = query_key_op_value_or_pass(start_min, state_changed, q, "start", FUNCTION_GT,
-                                                              lambda x: int(x) + 1)  # Convert > to >=
+        # Reminder: start_min is inclusive (start_min = X is the same as start >= X)
+        start_min, state_changed = pipeline_value_extraction(q, start_min, state_changed, (
+            ("start", FUNCTION_EQ, int),  # Convert start = X to start_min = X (start_max handled below)
+            ("start", FUNCTION_GE, int),  # Extract start >= X into start_min = X
+            ("start", FUNCTION_GT, lambda x: int(x) + 1),  # Convert start > X to start_min = X + 1
+        ))
 
-        start_max, state_changed = query_key_op_value_or_pass(start_max, state_changed, q, "start", FUNCTION_EQ, int)
-        start_max, state_changed = query_key_op_value_or_pass(start_max, state_changed, q, "start", FUNCTION_LE, int)
-        start_max, state_changed = query_key_op_value_or_pass(start_max, state_changed, q, "start", FUNCTION_LT,
-                                                              lambda x: int(x) - 1)  # Convert < to <=
-
-        start_max, state_changed = query_key_op_value_or_pass(
-            start_max, state_changed, q, "end", FUNCTION_LE, lambda x: int(x) - 1)  # Convert end <= X to start <= X - 1
-        start_max, state_changed = query_key_op_value_or_pass(
-            start_max, state_changed, q, "end", FUNCTION_LT, lambda x: int(x) - 2)  # Convert end < X to start <= X - 2
+        # Reminder: start_max is inclusive (start_max = X is the same as start <= X); variants are at least 1 nucleotide
+        #   long, meaning that if end is limited in some way we can sometimes derive a start_max.
+        start_max, state_changed = pipeline_value_extraction(q, start_max, state_changed, (
+            ("start", FUNCTION_EQ, int),  # Convert start = X to start_max = X (start_min handled above)
+            ("start", FUNCTION_LE, int),  # Extract start <= X to start_max = X
+            ("start", FUNCTION_LT, lambda x: int(x) - 1),  # Convert start > X to start_max = X + 1
+            ("end", FUNCTION_LE, lambda x: int(x) - 1),  # Convert end <= X to start_max = X - 1
+            ("end", FUNCTION_LT, lambda x: int(x) - 2),  # Convert end < X to start_max = X - 2
+        ))
 
         if not state_changed:
             other_query_items.append(q)
