@@ -163,21 +163,18 @@ def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Opt
             ("start", FUNCTION_GT, lambda x: int(x) + 1),  # Convert start > X to start_min = X + 1
         ))
 
-        # Reminder: start_max is inclusive (start_max = X is the same as start <= X); variants are at least 1 nucleotide
+        # Reminder: start_max is exclusive (start_max = X is the same as start < X); variants are at least 1 nucleotide
         #   long, meaning that if end is limited in some way we can sometimes derive a start_max.
         start_max, state_changed = pipeline_value_extraction(q, start_max, state_changed, (
-            ("start", FUNCTION_EQ, int),  # Convert start = X to start_max = X (start_min handled above)
-            ("start", FUNCTION_LE, int),  # Extract start <= X to start_max = X
-            ("start", FUNCTION_LT, lambda x: int(x) - 1),  # Convert start > X to start_max = X + 1
-            ("end", FUNCTION_LE, lambda x: int(x) - 1),  # Convert end <= X to start_max = X - 1
-            ("end", FUNCTION_LT, lambda x: int(x) - 2),  # Convert end < X to start_max = X - 2
+            ("start", FUNCTION_EQ, lambda x: int(x) + 1),  # Convert start = X to start_max = X + 1
+            ("start", FUNCTION_LE, lambda x: int(x) + 1),  # Extract start <= X to start_max = X + 1
+            ("start", FUNCTION_LT, int),  # Convert start < X to start_max = X
+            ("end", FUNCTION_LE, int),  # Convert end <= X to start_max = X
+            ("end", FUNCTION_LT, lambda x: int(x) - 1),  # Convert end < X to start_max = X - 2
         ))
 
         if not state_changed:
             other_query_items.append(q)
-
-    if chromosome is None:
-        raise InvalidQuery
 
     return chromosome, start_min, start_max, and_asts_to_ast(tuple(other_query_items))
 
@@ -203,7 +200,8 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
     # TODO: What coordinate system do we want?
 
     try:
-        assert re.match(CHROMOSOME_REGEX, chromosome) is not None  # Check validity of VCF chromosome
+        # Check validity of VCF chromosome
+        assert chromosome is None or re.match(CHROMOSOME_REGEX, chromosome) is not None
 
         search_results = generic_variant_search(
             table_manager=table_manager,

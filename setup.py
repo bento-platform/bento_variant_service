@@ -15,7 +15,6 @@ setuptools.setup(
         "Flask>=1.1,<2.0",
         "jsonschema>=3.2,<4.0",
         "pysam>=0.15,<0.16",
-        "pytabix==0.0.2",  # The author mis-versioned this. 0.0.2 is an update for 0.1.
         "requests>=2.22,<3.0",
     ],
 

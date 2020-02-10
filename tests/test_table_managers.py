@@ -1,7 +1,7 @@
 import pytest
 
 from chord_variant_service.tables import MemoryVariantTable, IDGenerationFailure, MemoryTableManager
-from chord_variant_service.variants import SampleVariant
+from chord_variant_service.variants import Variant
 from .shared_data import VARIANT_1
 
 
@@ -14,22 +14,20 @@ def test_memory_table_manager():
 
     assert isinstance(mm.get_table("fixed_id"), MemoryVariantTable)
 
-    mm.get_table("fixed_id").variant_store.append(SampleVariant(
+    mm.get_table("fixed_id").variant_store.append(Variant(
         assembly_id="GRCh38",
         chromosome="1",
         start_pos=5000,
         ref_bases="C",
-        alt_bases="T",
-        sample_id="S0001"
+        alt_bases=("T",),
     ))
 
-    mm.get_table("fixed_id").variant_store.append(SampleVariant(
+    mm.get_table("fixed_id").variant_store.append(Variant(
         assembly_id="GRCh37",
         chromosome="5",
         start_pos=5000,
         ref_bases="C",
-        alt_bases="T",
-        sample_id="S0001"
+        alt_bases=("T",),
     ))
 
     mm.get_table("fixed_id").variant_store.append(VARIANT_1)

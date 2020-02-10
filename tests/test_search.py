@@ -81,12 +81,9 @@ def test_chord_variant_search(app, client):
 
             rv = client.post("/search", json={"data_type": "variant", "query": QUERY_FRAGMENT_1})
             assert rv.status_code == 200
-
-            # TODO: This should be a valid query or an error
-
             data = rv.get_json()
             assert "results" in data
-            assert len(data["results"]) == 0
+            assert len(data["results"]) == 1
 
             # - Invalid data type
 

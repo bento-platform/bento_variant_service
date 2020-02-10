@@ -98,7 +98,7 @@ def filter_dict_none_values(d: dict):
     return {k: v for k, v in d.items() if v is not None}
 
 
-def beacon_coord_to_vcf_coord(v: Optional[int]) -> Optional[int]:
+def beacon_last_coord_to_vcf_coord(v: Optional[int]) -> Optional[int]:
     # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L357
     return v + 1 if v is not None else None
 
@@ -149,18 +149,18 @@ def beacon_query():
 
     # TODO: Other validation, or put more in schema?
 
-    # Retrieve coordinates and convert to VCF coordinates (1-indexed)
+    # Retrieve coordinates (0-indexed)
 
-    start_min = beacon_coord_to_vcf_coord(query.get("start", query.get("startMin", None)))
-    start_max = beacon_coord_to_vcf_coord(query.get("start", query.get("startMax", None)))
+    start_min = query.get("start", query.get("startMin", None))
+    start_max = beacon_last_coord_to_vcf_coord(query.get("start", query.get("startMax", None)))
 
-    end_min = beacon_coord_to_vcf_coord(query.get("end", query.get("endMin", None)))
-    end_max = beacon_coord_to_vcf_coord(query.get("end", query.get("endMax", None)))
+    end_min = query.get("end", query.get("endMin", None))
+    end_max = beacon_last_coord_to_vcf_coord(query.get("end", query.get("endMax", None)))
 
     # Check that bounds make sense
 
-    if start_min is not None and ((start_max is not None and start_max < start_min) or
-                                  (end_max is not None and end_max < start_min)):
+    if start_min is not None and ((start_max is not None and start_max <= start_min) or
+                                  (end_max is not None and end_max <= start_min)):
         return beacon_error(400, "Invalid variant bounds")
 
     # Sort out reference vs. alternate
@@ -186,15 +186,15 @@ def beacon_query():
 
     # Create an additional filtering query based on the rest of the Beacon request
     rest_of_query = and_asts_to_ast(tuple(
-        convert_query_to_ast([fn, [FUNCTION_RESOLVE, field], value])
+        convert_query_to_ast([fn, [FUNCTION_RESOLVE, *field], value])
         for fn, field, value in (
-            (FUNCTION_GE, "end", end_min),
-            (FUNCTION_LE, "end", end_max),
-            (FUNCTION_EQ, "ref", ref),
+            (FUNCTION_GE, ("end",), end_min),
+            (FUNCTION_LE, ("end",), end_max),
+            (FUNCTION_EQ, ("ref",), ref),
 
             # One of the two below will be none
-            (FUNCTION_EQ, "alt", alt_bases),
-            (FUNCTION_EQ, "alt", alt_id),
+            (FUNCTION_EQ, ("alt", "[item]"), alt_bases),
+            (FUNCTION_EQ, ("alt", "[item]"), alt_id),
         ) if value is not None
     ))
 

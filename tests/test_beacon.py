@@ -222,24 +222,24 @@ BEACON_REQUEST_1 = {
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",
     "alternateBases": "T",
-    "start": 4999,  # 0-based coordinates
-    "end": 5000,  # "
+    "start": 5000,  # 0-based coordinates
+    "end": 5001,  # "
 }
 
 BEACON_REQUEST_2 = {  # test inference of startMax
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",
     "alternateBases": "T",
-    "startMin": 4999,  # 0-based coordinates
-    "endMax": 5001,  # "
+    "startMin": 5000,  # 0-based coordinates
+    "endMax": 5002,  # "
 }
 
 BEACON_REQUEST_3 = {
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",
     "alternateBases": "T",
-    "start": 4999,  # 0-based coordinates
-    "end": 5000,  # "
+    "start": 5000,  # 0-based coordinates
+    "end": 5001,  # "
     "datasetIds": ["fixed_id:GRCh37"]
 }
 
@@ -248,8 +248,8 @@ EMPTY_BEACON_REQUEST_1 = {
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",
     "alternateBases": "T",
-    "start": 4999,  # 0-based coordinates
-    "end": 5000,  # "
+    "start": 5000,  # 0-based coordinates
+    "end": 5001,  # "
     "datasetIds": ["does_not_exist"]
 }
 
@@ -257,24 +257,24 @@ EMPTY_BEACON_REQUEST_1 = {
 INVALID_BEACON_REQUEST_1 = {
     **SHARED_REQUEST_BASE,
     "alternateBases": "T",
-    "start": 4999,  # 0-based coordinates
-    "end": 5000,  # "
+    "start": 5000,  # 0-based coordinates
+    "end": 5001,  # "
 }
 
 INVALID_BEACON_REQUEST_2 = {
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",
     "alternateBases": "T",
-    "startMin": 5000,  # 0-based coordinates
-    "startMax": 4999,  # "
+    "startMin": 5001,  # 0-based coordinates
+    "startMax": 5000,  # "
 }
 
 INVALID_BEACON_REQUEST_3 = {
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",
     "alternateBases": "T",
-    "startMin": 5000,  # 0-based coordinates
-    "endMax": 4999,  # "
+    "startMin": 5001,  # 0-based coordinates
+    "endMax": 5000,  # "
 }
 
 INVALID_BEACON_REQUEST_4 = {
@@ -282,15 +282,15 @@ INVALID_BEACON_REQUEST_4 = {
     "referenceBases": "C",
     "alternateBases": "T",
     "variantType": "DEL",  # Conflicts with alternateBases
-    "start": 4999,  # 0-based coordinates
-    "end": 5000,  # "
+    "start": 5000,  # 0-based coordinates
+    "end": 5001,  # "
 }
 
 INVALID_BEACON_REQUEST_5 = {
     **SHARED_REQUEST_BASE,
     "referenceBases": "C",  # No alternate
-    "start": 4999,  # 0-based coordinates
-    "end": 5000,  # "
+    "start": 5000,  # 0-based coordinates
+    "end": 5001,  # "
 }
 
 INVALID_BEACON_REQUEST_6 = {
@@ -298,7 +298,7 @@ INVALID_BEACON_REQUEST_6 = {
     "referenceBases": "C",
     "alternateBases": "T",
     "start": "b",  # Invalid start
-    "end": 5000,
+    "end": 5001,
 }
 
 

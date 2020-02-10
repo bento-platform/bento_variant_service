@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 import datetime
 import os
+import pysam
 import re
 import shutil
 import sys
-import tabix
 import uuid
 
 from chord_lib.auth.flask_decorators import flask_permissions
@@ -15,7 +15,8 @@ from jsonschema import validate, ValidationError
 from pysam import VariantFile
 from typing import Dict, Generator, List, Optional, Tuple
 
-from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA, SampleVariant
+from .pool import WORKERS
+from .variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA, Variant, Call
 
 
 __all__ = [
@@ -118,26 +119,28 @@ class VariantTable(ABC):  # pragma: no cover
         )
 
     @abstractmethod
-    def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
-                 start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
+    def variants(self, assembly_id: Optional[str] = None, chromosome: Optional[str] = None,
+                 start_min: Optional[int] = None, start_max: Optional[int] = None)\
+            -> Generator[Variant, None, None]:
         yield None
 
 
 class MemoryVariantTable(VariantTable):
     def __init__(self, table_id, name, metadata, assembly_ids=()):
         super().__init__(table_id, name, metadata, assembly_ids)
-        self.variant_store: List[SampleVariant] = []
+        self.variant_store: List[Variant] = []
 
-    def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
-                 start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
+    def variants(self, assembly_id: Optional[str] = None, chromosome: Optional[str] = None,
+                 start_min: Optional[int] = None, start_max: Optional[int] = None)\
+            -> Generator[Variant, None, None]:
         for v in self.variant_store:
-            if v.chromosome != chromosome:
+            if chromosome is not None and v.chromosome != chromosome:
                 continue
 
-            if start_min is not None and v.start_pos < start_min:
+            if start_min is not None and v.start_pos < start_min:  # inclusive
                 continue
 
-            if start_max is not None and v.start_pos > start_max:
+            if start_max is not None and v.start_pos >= start_max:  # exclusive
                 continue
 
             if assembly_id is not None and v.assembly_id != assembly_id:
@@ -145,7 +148,7 @@ class MemoryVariantTable(VariantTable):
 
             yield v
 
-    def add_variant(self, variant: SampleVariant):
+    def add_variant(self, variant: Variant):
         self.variant_store.append(variant)
         self.assembly_ids.add(variant.assembly_id)
 
@@ -171,46 +174,69 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
             ) for a in sorted(self.assembly_ids)
         )
 
-    def variants(self, assembly_id: Optional[str], chromosome: str, start_min: Optional[int] = None,
-                 start_max: Optional[int] = None) -> Generator[SampleVariant, None, None]:
+    @staticmethod
+    def _variant_calls(variant, sample_ids, row):
+        for sample_id, row_data in zip(sample_ids, row[9:]):
+            row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
+
+            if VCF_GENOTYPE not in row_info:
+                # Only include samples which have genotypes
+                continue
+
+            genotype = tuple(None if g == "." else int(g) for g in
+                             re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE]))
+
+            # if len([g for g in genotype if g not in ("0", ".")]) == 0:
+            #     # Uninteresting, not present on sample
+            #     continue
+
+            yield Call(variant=variant, genotype=genotype, sample_id=sample_id)
+
+    def variants(self, assembly_id: Optional[str] = None, chromosome: Optional[str] = None,
+                 start_min: Optional[int] = None, start_max: Optional[int] = None)\
+            -> Generator[Variant, None, None]:
         for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
                                         self.file_metadata.items()):
             try:
-                # May throw ValueError from cast
-
-                tbx = tabix.open(vcf)
+                f = pysam.TabixFile(vcf, parser=pysam.asTuple(), threads=WORKERS)
 
                 # TODO: Security of passing this? Verify values in non-Beacon searches
-                # TODO: What if the VCF includes telomeres (off the end)?
-                for row in tbx.query(chromosome,
-                                     start_min if start_min is not None else 0,
-                                     start_max if start_max is not None else MAX_SIGNED_INT_32):
+                # TODO: What if the VCF includes telomeres (off the end)?]
+
+                # TODO: pysam uses 0-based indexing, double-check
+
+                query = ()
+                if chromosome is not None:
+                    query = (
+                        chromosome,
+                        start_min if start_min is not None else 0,
+                        start_max + 1 if start_max is not None else MAX_SIGNED_INT_32
+                    )
+
+                for row in f.fetch(*query):
                     if len(row) < 9:
                         # Badly formatted VCF  TODO: Catch on ingest
                         continue
 
-                    for sample_id, row_data in zip(vcf_metadata["sample_ids"], row[9:]):
-                        row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
-
-                        if VCF_GENOTYPE not in row_info:
+                    if chromosome is None:
+                        # Didn't index in, so check start_min / start_max by hand
+                        if int(row[1]) < start_min:
+                            continue
+                        elif int(row[1]) >= start_max:
                             continue
 
-                        genotype = re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE])
+                    variant = Variant(
+                        assembly_id=vcf_metadata["assembly_id"],
+                        chromosome=row[0],
+                        start_pos=int(row[1]),
+                        ref_bases=row[3],
+                        alt_bases=tuple(row[4].split(",")),
+                    )
 
-                        if len([g for g in genotype if g not in ("0", ".")]) == 0:
-                            # Uninteresting, not present on sample
-                            continue
+                    variant.calls = tuple(VCFVariantTable._variant_calls(variant, vcf_metadata["sample_ids"], row))
+                    yield variant
 
-                        yield SampleVariant(
-                            assembly_id=vcf_metadata["assembly_id"],
-                            chromosome=row[0],
-                            start_pos=int(row[1]),
-                            ref_bases=row[3],
-                            alt_bases=row[4],
-                            sample_id=sample_id
-                        )
-
-            except tabix.TabixError:
+            except ValueError:
                 # Region not found in Tabix file
                 continue
 
