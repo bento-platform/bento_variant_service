@@ -210,7 +210,7 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                     query = (
                         chromosome,
                         start_min if start_min is not None else 0,
-                        start_max + 1 if start_max is not None else MAX_SIGNED_INT_32
+                        start_max if start_max is not None else MAX_SIGNED_INT_32
                     )
 
                 for row in f.fetch(*query):
