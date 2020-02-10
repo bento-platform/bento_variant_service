@@ -1,17 +1,19 @@
 import json
 
 from chord_variant_service.pool import get_pool, teardown_pool
-from .shared_data import VARIANT_1
+from .shared_data import VARIANT_1, VARIANT_4, VARIANT_5
 
 
 QUERY_FRAGMENT_1 = ["#ge", ["#resolve", "start"], "5000"]
 QUERY_FRAGMENT_2 = ["#gt", ["#resolve", "start"], "4999"]
-QUERY_FRAGMENT_3 = ["#gt", ["#resolve", "start"], "5000"]
+QUERY_FRAGMENT_3 = ["#gt", ["#resolve", "start"], "7001"]
 QUERY_FRAGMENT_4 = ["#le", ["#resolve", "start"], "5000"]
 QUERY_FRAGMENT_5 = ["#lt", ["#resolve", "start"], "5001"]
 QUERY_FRAGMENT_6 = ["#lt", ["#resolve", "start"], "5000"]
 QUERY_FRAGMENT_7 = ["#lt", ["#resolve", "end"], "5002"]
 QUERY_FRAGMENT_8 = ["#le", ["#resolve", "end"], "5001"]
+QUERY_FRAGMENT_9 = ["#eq", ["#resolve", "start"], "7000"]
+QUERY_FRAGMENT_10 = ["#eq", ["#resolve", "start"], "7001"]
 
 QUERY_1 = ["#eq", ["#resolve", "chromosome"], "1"]
 QUERY_2 = ["#and", QUERY_1, QUERY_FRAGMENT_1]
@@ -25,6 +27,8 @@ QUERY_9 = ["#and", QUERY_8, ["#eq", ["#resolve", "ref"], "C"]]
 QUERY_10 = ["#and", QUERY_8, ["#eq", ["#resolve", "ref"], "T"]]
 QUERY_11 = ["#and", QUERY_1, QUERY_FRAGMENT_7]
 QUERY_12 = ["#and", QUERY_1, QUERY_FRAGMENT_8]
+QUERY_13 = ["#and", QUERY_1, QUERY_FRAGMENT_9]
+QUERY_14 = ["#and", QUERY_1, QUERY_FRAGMENT_10]
 
 TEST_QUERIES = (
     (QUERY_1, True),
@@ -39,6 +43,25 @@ TEST_QUERIES = (
     (QUERY_10, False),
     (QUERY_11, True),
     (QUERY_12, True),
+    (QUERY_13, True),
+    (QUERY_14, True),
+)
+
+TEST_PRIVATE_QUERIES = (
+    (QUERY_1, 3),
+    (QUERY_2, 3),
+    (QUERY_3, 3),
+    (QUERY_4, 0),
+    (QUERY_5, 1),
+    (QUERY_6, 1),
+    (QUERY_7, 0),
+    (QUERY_8, 1),
+    (QUERY_9, 1),
+    (QUERY_10, 0),
+    (QUERY_11, 1),
+    (QUERY_12, 1),
+    (QUERY_13, 1),
+    (QUERY_14, 1),
 )
 
 
@@ -50,10 +73,12 @@ def test_chord_variant_search(app, client):
 
             mm = app.config["TABLE_MANAGER"]
 
-            # Create a new dataset with ID fixed_id and name test
-            ds = mm.create_table_and_update("test", {})
+            # Create a new table with ID fixed_id and name test
+            table = mm.create_table_and_update("test", {})
 
-            ds.variant_store.append(VARIANT_1)
+            table.variant_store.append(VARIANT_1)
+            table.variant_store.append(VARIANT_4)
+            table.variant_store.append(VARIANT_5)
 
             rv = client.post("/search")
             rv2 = client.post("/private/search")
@@ -136,7 +161,7 @@ def test_chord_variant_search(app, client):
             data = rv.get_json()
             assert "results" in data
             assert "fixed_id" in data["results"]
-            assert len(data["results"]["fixed_id"]["matches"]) == 1
+            assert len(data["results"]["fixed_id"]["matches"]) == 3
             assert json.dumps(data["results"]["fixed_id"]["matches"][0], sort_keys=True) == \
                 json.dumps(VARIANT_1.as_chord_representation(), sort_keys=True)
 
@@ -160,9 +185,16 @@ def test_chord_variant_search(app, client):
             data = rv.get_json()
             assert "results" in data
 
-            assert len(data["results"]) == 1
+            assert len(data["results"]) == 3
             assert json.dumps(data["results"][0], sort_keys=True) == json.dumps(VARIANT_1.as_chord_representation(),
                                                                                 sort_keys=True)
+
+            for q, r in TEST_PRIVATE_QUERIES:
+                rv = client.post("/private/tables/fixed_id/search", json={"query": q})
+                assert rv.status_code == 200
+                data = rv.get_json()
+                assert "results" in data
+                assert len(data["results"]) == r
 
         finally:
             teardown_pool(None)

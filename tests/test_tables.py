@@ -1,5 +1,8 @@
-from chord_variant_service.variants import VARIANT_TABLE_METADATA_SCHEMA
+import json
+from chord_variant_service.variants import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
 from jsonschema import validate
+
+from .shared_data import VARIANT_1
 
 DATASET_SCHEMA = {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -66,8 +69,42 @@ def test_table_detail(client):
         "metadata": {}
     })
 
+    rv = client.get("/tables/none")
+    assert rv.status_code == 404
+
+    rv = client.get("/tables/fixed_id")
+    assert rv.status_code == 200
+    data = rv.get_json()
+    assert json.dumps(data, sort_keys=True) == json.dumps({
+        "id": "fixed_id",
+        "name": "test table",
+        "metadata": {},
+        "schema": VARIANT_SCHEMA,
+        "assembly_ids": ["GRCh37"],
+    }, sort_keys=True)
+
     rv = client.delete("/tables/fixed_id")
     assert rv.status_code == 204
 
     rv = client.delete("/tables/fixed_id")
     assert rv.status_code == 404
+
+
+def test_table_data(app, client):
+    mm = app.config["TABLE_MANAGER"]
+
+    # Create a new table with ID fixed_id and name test
+    table = mm.create_table_and_update("test", {})
+    table.variant_store.append(VARIANT_1)
+
+    rv = client.get("/private/tables/none/data")
+    assert rv.status_code == 404
+
+    rv = client.get("/private/tables/fixed_id/data")
+    assert rv.status_code == 200
+    data = rv.get_json()
+
+    assert json.dumps(data, sort_keys=True) == json.dumps({
+        "data": [VARIANT_1.as_chord_representation()],
+        "schema": VARIANT_SCHEMA
+    }, sort_keys=True)
