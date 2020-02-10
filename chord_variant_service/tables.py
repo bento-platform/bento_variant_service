@@ -482,7 +482,8 @@ def table_data(table_id):
 
     return jsonify({
         "schema": VARIANT_SCHEMA,
-        "data": list(current_app.config["TABLE_MANAGER"].get_table(table_id).variants())
+        "data": list(v.as_chord_representation()
+                     for v in current_app.config["TABLE_MANAGER"].get_table(table_id).variants())
     })
 
 
