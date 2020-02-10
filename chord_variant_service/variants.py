@@ -148,8 +148,11 @@ VARIANT_SCHEMA = {
                     "canNegate": True,
                     "required": False,
                     "type": "single",  # single / unlimited
-                    "order": 5
+                    "order": 0
                 }
+            },
+            "search": {
+                "order": 5
             }
         },
         "calls": {
