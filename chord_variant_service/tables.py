@@ -453,18 +453,37 @@ def table_list():
     return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_tables().values()])
 
 
-# TODO: Implement GET, POST (separate permissions)
-@bp_tables.route("/tables/<string:table_id>", methods=["DELETE"])
+# TODO: Implement POST (separate permissions)
+@bp_tables.route("/tables/<string:table_id>", methods=["GET", "DELETE"])
 @flask_permissions({"DELETE": {"owner"}})
 def table_detail(table_id):
     if current_app.config["TABLE_MANAGER"].get_table(table_id) is None:
         # TODO: Refresh cache if needed?
         return flask_not_found_error(f"No table with ID {table_id}")
 
-    current_app.config["TABLE_MANAGER"].delete_table_and_update(table_id)
+    if request.method == "DELETE":
+        current_app.config["TABLE_MANAGER"].delete_table_and_update(table_id)
 
-    # TODO: More complete response?
-    return current_app.response_class(status=204)
+        # TODO: More complete response?
+        return current_app.response_class(status=204)
+
+    return jsonify(current_app.config["TABLE_MANAGER"].get_table(table_id).as_table_response())
+
+
+@bp_tables.route("/private/tables/<string:table_id>/data", methods=["GET"])
+def table_data(table_id):
+    if current_app.config["TABLE_MANAGER"].get_table(table_id) is None:
+        # TODO: Refresh cache if needed?
+        return flask_not_found_error(f"No table with ID {table_id}")
+
+    # TODO: Pagination
+    # TODO: Filtering?
+    # TODO: Make consistent with search results?
+
+    return jsonify({
+        "schema": VARIANT_SCHEMA,
+        "data": list(current_app.config["TABLE_MANAGER"].get_table(table_id).variants())
+    })
 
 
 @bp_tables.route("/data-types", methods=["GET"])
