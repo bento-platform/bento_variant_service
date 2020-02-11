@@ -220,9 +220,9 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
                     if chromosome is None:
                         # Didn't index in, so check start_min / start_max by hand
-                        if int(row[1]) < start_min:
+                        if start_min is not None and int(row[1]) < start_min:
                             continue
-                        elif int(row[1]) >= start_max:
+                        elif start_max is not None and int(row[1]) >= start_max:
                             continue
 
                     variant = Variant(
