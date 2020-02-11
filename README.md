@@ -31,13 +31,7 @@ that 0-based coordinates should be used:
 
 > ... Precise start coordinate position, allele locus (0-based, inclusive).
 
-All `/beacon` endpoints thus use **0-based** coordinates, whereas CHORD search
-endpoints (e.g. `/search`) use **1-based** coordinates.
-
-More precisely, 1 is added to any coordinate passed to a Beacon endpoint before
-it's passed to the querying system, whereas no alterations are made to
-coordinates passed into other endpoints. It's up to the person who ingests the
-data to ensure that their VCFs are using the correct coordinate system.
+All endpoints use **0-based** coordinates.
 
 
 ## Environment Variables
