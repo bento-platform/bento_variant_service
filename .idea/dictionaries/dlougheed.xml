@@ -12,11 +12,13 @@
       <w>dlougheed</w>
       <w>genap</w>
       <w>genomics</w>
+      <w>gunicorn</w>
       <w>indel</w>
       <w>jsonschema</w>
       <w>lougheed</w>
       <w>mvncall</w>
       <w>ncbi</w>
+      <w>nginx</w>
       <w>pysam</w>
       <w>pytabix</w>
       <w>pytest</w>

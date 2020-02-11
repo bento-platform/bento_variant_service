@@ -90,3 +90,26 @@ python3 -m pytest --cov=chord_variant_service --cov-branch
 In production, the service should be deployed using a WSGI service like
 [uWSGI](https://uwsgi-docs.readthedocs.io/en/latest/) or
 [Gunicorn](https://gunicorn.org/).
+
+
+## Docker
+
+The Dockerfile configures the service with Gunicorn. It is thus strongly
+recommended that a reverse proxy such as NGINX is added in front of the
+container.
+
+The data for the service is stored inside the container's `/data` directory.
+This should be bound as a persistent volume on the container host.
+
+The service runs inside the container on port 8080.
+
+Running the container by itself will use the following default configuration:
+
+  * 1 worker process. Right now, the in-memory variant file cache means that
+    using more than one worker can cause unexpected behaviour. This can be
+    overridden by running the container with the option `--workers n`, where
+    `n` is the number of workers.
+
+  * `CHORD_URL=http://localhost/`. This will **NOT** work in production
+    properly, as it is meant to represent the **public** URL of the node. This
+    should be overridden.
