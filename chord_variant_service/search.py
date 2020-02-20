@@ -33,7 +33,7 @@ BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
 def search_worker_prime(
     dataset: VariantTable,
-    chromosome: str,
+    chromosome: Optional[str],
     start_min: Optional[int],
     start_max: Optional[int],
     rest_of_query: Optional[AST],
@@ -77,9 +77,9 @@ def search_worker(args):
 
 def generic_variant_search(
     table_manager: TableManager,
-    chromosome: str,
-    start_min: int,
-    start_max: int,
+    chromosome: Optional[str],
+    start_min: Optional[int],
+    start_max: Optional[int],
     rest_of_query: Optional[AST] = None,
     internal_data=False,
     assembly_id: Optional[str] = None,
