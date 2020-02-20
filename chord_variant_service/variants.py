@@ -14,6 +14,16 @@ __all__ = [
 ]
 
 
+# Haploid
+GT_REFERENCE = "REFERENCE"
+GT_ALTERNATE = "ALTERNATE"
+
+# Diploid or higher
+GT_HOMOZYGOUS_REFERENCE = "HOMOZYGOUS_REFERENCE"
+GT_HETEROZYGOUS = "HETEROZYGOUS"
+GT_HOMOZYGOUS_ALTERNATE = "HOMOZYGOUS_ALTERNATE"
+
+
 VARIANT_CALL_SCHEMA = {
     "type": "object",
     "description": "An object representing a called instance of a variant.",
@@ -47,6 +57,31 @@ VARIANT_CALL_SCHEMA = {
                 }
             }
         },
+        "genotype_type": {
+            "type": "string",
+            "description": "Variant call genotype type.",
+            "enum": [
+                # No call
+                "",
+
+                # Haploid
+                GT_REFERENCE,
+                GT_ALTERNATE,
+
+                # Diploid or higher
+                GT_HOMOZYGOUS_REFERENCE,
+                GT_HETEROZYGOUS,
+                GT_HOMOZYGOUS_ALTERNATE,
+            ],
+            "search": {
+                "operations": [SEARCH_OP_EQ],
+                "queryable": "all",
+                "canNegate": False,
+                "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
+                "type": "single",
+                "order": 1
+            }
+        },
         "phase_set": {
             "type": ["number", "null"],
             "description": "Genotype phase set, if any.",
@@ -56,7 +91,7 @@ VARIANT_CALL_SCHEMA = {
                 "canNegate": True,
                 "required": False,
                 "type": "single",
-                "order": 0
+                "order": 2
             }
         }
     }
@@ -106,7 +141,7 @@ VARIANT_SCHEMA = {
                 "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
                 "queryable": "all",
                 "canNegate": False,
-                "required": True,
+                "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
                 "type": "unlimited",  # single / unlimited
                 "order": 2
             }
@@ -243,15 +278,28 @@ class Call:
         self.variant: Variant = variant
         self.sample_id: str = sample_id
         self.genotype: Tuple[int, ...] = genotype
-        self.genotype_bases: Tuple[Optional[str], ...] = tuple(
+        self.genotype_bases: Tuple[Optional[str], ...] = tuple(  # TODO: Structural variants
             None if g is None else (self.variant.ref_bases if g == 0 else self.variant.alt_bases[g-1])
             for g in genotype)
         self.phase_set: Optional[int] = phase_set
+
+        genotype_type = ""
+        if len(self.genotype) == 1:
+            genotype_type = GT_REFERENCE if self.genotype[0] == 0 else GT_ALTERNATE
+        elif len(self.genotype) > 1:
+            genotype_type = GT_HOMOZYGOUS_ALTERNATE
+            if len(set(self.genotype)) > 1:
+                genotype_type = GT_HETEROZYGOUS
+            elif self.genotype[0] == 0:
+                # all elements are 0 if 0 is the first element and the length of the set is 1
+                genotype_type = GT_HOMOZYGOUS_REFERENCE
+        self.genotype_type = genotype_type
 
     def as_chord_representation(self, include_variant: bool = False):
         return {
             "sample_id": self.sample_id,
             "genotype_bases": list(self.genotype_bases),  # TODO: Structural variants
+            "genotype_type": self.genotype_type,
             "phase_set": self.phase_set,
             **(self.variant.as_chord_representation() if include_variant else {}),
         }
