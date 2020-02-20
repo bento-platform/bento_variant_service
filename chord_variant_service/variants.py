@@ -55,6 +55,12 @@ VARIANT_CALL_SCHEMA = {
                     "type": "single",
                     "order": 0
                 }
+            },
+            # TODO: Is this search block really needed
+            "search": {
+                "required": False,
+                "type": "unlimited",
+                "order": 1,
             }
         },
         "genotype_type": {
@@ -79,7 +85,7 @@ VARIANT_CALL_SCHEMA = {
                 "canNegate": False,
                 "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
                 "type": "single",
-                "order": 1
+                "order": 2
             }
         },
         "phase_set": {
@@ -91,7 +97,7 @@ VARIANT_CALL_SCHEMA = {
                 "canNegate": True,
                 "required": False,
                 "type": "single",
-                "order": 2
+                "order": 3
             }
         }
     }
