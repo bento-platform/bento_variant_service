@@ -82,7 +82,7 @@ VARIANT_CALL_SCHEMA = {
             "search": {
                 "operations": [SEARCH_OP_EQ],
                 "queryable": "all",
-                "canNegate": False,
+                "canNegate": True,
                 "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
                 "type": "single",
                 "order": 2
