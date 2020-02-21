@@ -11,7 +11,7 @@ setuptools.setup(
 
     python_requires=">=3.6",
     install_requires=[
-        "chord_lib[flask]==0.3.0",
+        "chord_lib[flask]==0.4.0",
         "Flask>=1.1,<2.0",
         "jsonschema>=3.2,<4.0",
         "pysam>=0.15,<0.16",
