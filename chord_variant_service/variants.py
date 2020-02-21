@@ -142,7 +142,7 @@ VARIANT_SCHEMA = {
         },
         "start": {
             "type": "integer",
-            "description": "0-indexed start location of the variant on the chromosome.",
+            "description": "1-indexed start location of the variant on the chromosome.",
             "search": {
                 "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
                 "queryable": "all",
@@ -154,7 +154,7 @@ VARIANT_SCHEMA = {
         },
         "end": {
             "type": "integer",
-            "description": ("0-indexed end location (exclusive) of the variant on the chromosome, in terms of the "
+            "description": ("1-indexed end location (exclusive) of the variant on the chromosome, in terms of the "
                             "number of bases in the reference sequence for the variant."),
             "search": {
                 "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
@@ -253,8 +253,8 @@ class Variant:
         return {
             "assembly_id": self.assembly_id,
             "chromosome": self.chromosome,
-            "start": self.start_pos,
-            "end": self.end_pos,
+            "start": self.start_pos,  # 1-based, inclusive
+            "end": self.end_pos,  # 1-based, exclusive  TODO: Convention here? exclusive or inclusive?
             "ref": self.ref_bases,
             "alt": list(self.alt_bases),  # TODO: Change property name?
             "calls": [c.as_chord_representation() for c in self.calls],

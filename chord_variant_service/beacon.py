@@ -98,9 +98,9 @@ def filter_dict_none_values(d: dict):
     return {k: v for k, v in d.items() if v is not None}
 
 
-def beacon_last_coord_to_vcf_coord(v: Optional[int]) -> Optional[int]:
+def beacon_coord_to_vcf_coord(v: Optional[int], last: bool = False) -> Optional[int]:
     # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L357
-    return v + 1 if v is not None else None
+    return v + (2 if last else 1) if v is not None else None
 
 
 @bp_beacon.route("/beacon/query", methods=["GET", "POST"])
@@ -151,11 +151,11 @@ def beacon_query():
 
     # Retrieve coordinates (0-indexed)
 
-    start_min = query.get("start", query.get("startMin", None))
-    start_max = beacon_last_coord_to_vcf_coord(query.get("start", query.get("startMax", None)))
+    start_min = beacon_coord_to_vcf_coord(query.get("start", query.get("startMin", None)))
+    start_max = beacon_coord_to_vcf_coord(query.get("start", query.get("startMax", None)), last=True)
 
-    end_min = query.get("end", query.get("endMin", None))
-    end_max = beacon_last_coord_to_vcf_coord(query.get("end", query.get("endMax", None)))
+    end_min = beacon_coord_to_vcf_coord(query.get("end", query.get("endMin", None)))
+    end_max = beacon_coord_to_vcf_coord(query.get("end", query.get("endMax", None)), last=True)
 
     # Check that bounds make sense
 

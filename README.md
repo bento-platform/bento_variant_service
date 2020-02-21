@@ -31,7 +31,9 @@ that 0-based coordinates should be used:
 
 > ... Precise start coordinate position, allele locus (0-based, inclusive).
 
-All endpoints use **0-based** coordinates.
+All **Beacon** endpoints use **0-based** coordinates with **closed** ranges.
+
+All **other** endpoints use **1-based** coordinates with **half-open** ranges.
 
 
 ## Environment Variables
