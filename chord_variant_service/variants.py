@@ -7,12 +7,23 @@ from typing import Optional, Tuple
 
 
 __all__ = [
+    "GT_UNCALLED",
+
+    "GT_REFERENCE",
+    "GT_ALTERNATE",
+
+    "GT_HOMOZYGOUS_REFERENCE",
+    "GT_HETEROZYGOUS",
+    "GT_HOMOZYGOUS_ALTERNATE",
+
     "VARIANT_SCHEMA",
     "VARIANT_TABLE_METADATA_SCHEMA",
     "Variant",
     "Call",
 ]
 
+
+GT_UNCALLED = ""
 
 # Haploid
 GT_REFERENCE = "REFERENCE"
@@ -68,7 +79,7 @@ VARIANT_CALL_SCHEMA = {
             "description": "Variant call genotype type.",
             "enum": [
                 # No call
-                "",
+                GT_UNCALLED,
 
                 # Haploid
                 GT_REFERENCE,
@@ -280,7 +291,8 @@ class Call:
     Instance of a called variant on a particular sample.
     """
 
-    def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[int, ...], phase_set: Optional[int] = None):
+    def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Optional[int], ...],
+                 phase_set: Optional[int] = None):
         self.variant: Variant = variant
         self.sample_id: str = sample_id
         self.genotype: Tuple[int, ...] = genotype
@@ -289,20 +301,22 @@ class Call:
             for g in genotype)
         self.phase_set: Optional[int] = phase_set
 
-        genotype_type = ""
+        if len(genotype) == 0:
+            raise ValueError("Calls must have a genotype length of 1 or more")
 
-        if len(genotype) >= 1 and genotype[0] is None:
+        if genotype[0] is None:
             # Cannot make a call
             genotype_type = ""
         elif len(self.genotype) == 1:
             genotype_type = GT_REFERENCE if self.genotype[0] == 0 else GT_ALTERNATE
-        elif len(self.genotype) > 1:
+        else:  # len(self.genotype) > 1:
             genotype_type = GT_HOMOZYGOUS_ALTERNATE
             if len(set(self.genotype)) > 1:
                 genotype_type = GT_HETEROZYGOUS
             elif self.genotype[0] == 0:
                 # all elements are 0 if 0 is the first element and the length of the set is 1
                 genotype_type = GT_HOMOZYGOUS_REFERENCE
+
         self.genotype_type = genotype_type
 
     def as_chord_representation(self, include_variant: bool = False):
