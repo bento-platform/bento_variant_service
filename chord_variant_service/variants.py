@@ -290,7 +290,11 @@ class Call:
         self.phase_set: Optional[int] = phase_set
 
         genotype_type = ""
-        if len(self.genotype) == 1:
+
+        if len(genotype) >= 1 and genotype[0] is None:
+            # Cannot make a call
+            genotype_type = ""
+        elif len(self.genotype) == 1:
             genotype_type = GT_REFERENCE if self.genotype[0] == 0 else GT_ALTERNATE
         elif len(self.genotype) > 1:
             genotype_type = GT_HOMOZYGOUS_ALTERNATE
