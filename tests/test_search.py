@@ -70,7 +70,6 @@ def test_chord_variant_search(app, client):
         pool = get_pool()
 
         try:
-
             mm = app.config["TABLE_MANAGER"]
 
             # Create a new table with ID fixed_id and name test
@@ -80,35 +79,37 @@ def test_chord_variant_search(app, client):
             table.variant_store.append(VARIANT_4)
             table.variant_store.append(VARIANT_5)
 
-            rv = client.post("/search")
-            rv2 = client.post("/private/search")
-            assert rv.status_code == 400 and rv2.status_code == 400
+            for rv in (client.post("/search"),
+                       client.get("/search"),
+                       client.post("/private/search"),
+                       client.get("/private/search")):
+                assert rv.status_code == 400
 
             rv = client.post("/search", json={})
             rv2 = client.post("/private/search", json={})
             assert rv.status_code == 400 and rv2.status_code == 400
 
-            rv = client.post("/search", json=["data_type", "query"])
-            rv2 = client.post("/private/search", json=["data_type", "query"])
-            assert rv.status_code == 400 and rv2.status_code == 400
+            for rv in (client.post("/search", json=["data_type", "query"]),
+                       client.post("/private/search", json=["data_type", "query"])):
+                assert rv.status_code == 400
 
-            rv = client.post("/search", json={"data_type": "variant"})
-            rv2 = client.post("/search", json={"data_type": "variant"})
-            assert rv.status_code == 400 and rv2.status_code == 400
+            for rv in (client.post("/search", json={"data_type": "variant"}),
+                       client.get("/search", query_string=json.dumps({"data_type": "variant"})),
+                       client.post("/private/search", json={"data_type": "variant"}),
+                       client.get("/private/search", query_string={"data_type": "variant"})):
+                assert rv.status_code == 400
 
-            rv = client.post("/search", json={"query": QUERY_1})
-            rv2 = client.post("/search", json={"query": QUERY_1})
-            assert rv.status_code == 400 and rv2.status_code == 400
+            for rv in (client.post("/search", json={"query": QUERY_1}),
+                       client.get("/search", query_string={"query": QUERY_1}),
+                       client.post("/private/search", json={"query": QUERY_1}),
+                       client.get("/private/search", query_string={"query": QUERY_1})):
+                assert rv.status_code == 400
+
+            for rv in (client.get("/search", query_string={"data_type": "variant", "query": "[5, 6, 7"}),
+                       client.get("/private/search", query_string={"data_type": "variant", "query": "[5, 6, 7"})):
+                assert rv.status_code == 400
 
             # Test table search
-
-            # - Missing chromosome equality
-
-            rv = client.post("/search", json={"data_type": "variant", "query": QUERY_FRAGMENT_1})
-            assert rv.status_code == 200
-            data = rv.get_json()
-            assert "results" in data
-            assert len(data["results"]) == 1
 
             # - Invalid data type
 
@@ -140,18 +141,23 @@ def test_chord_variant_search(app, client):
 
             # - Good queries
 
+            rv = client.post("/search", json={"data_type": "variant", "query": QUERY_FRAGMENT_1})
+            assert rv.status_code == 200
+            data = rv.get_json()
+            assert "results" in data
+            assert len(data["results"]) == 1
+
             for q, r in TEST_QUERIES:
-                rv = client.post("/search", json={"data_type": "variant", "query": q})
-                assert rv.status_code == 200
+                for rv in (client.post("/search", json={"data_type": "variant", "query": q}),
+                           client.get("/search", query_string={"data_type": "variant", "query": json.dumps(q)})):
+                    data = rv.get_json()
+                    assert "results" in data
 
-                data = rv.get_json()
-                assert "results" in data
-
-                if r:
-                    assert len(data["results"]) == 1
-                    assert data["results"][0]["data_type"] == "variant" and data["results"][0]["id"] == "fixed_id"
-                else:
-                    assert len(data["results"]) == 0
+                    if r:
+                        assert len(data["results"]) == 1
+                        assert data["results"][0]["data_type"] == "variant" and data["results"][0]["id"] == "fixed_id"
+                    else:
+                        assert len(data["results"]) == 0
 
             # Test private search
 

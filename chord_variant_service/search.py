@@ -243,32 +243,51 @@ bp_chord_search = Blueprint("chord_search", __name__)
 def _search_endpoint(internal_data=False):
     # TODO: Request validation schema
 
-    if request.json is None:
-        return flask_bad_request_error("Missing request body")
+    if request.method == "POST":
+        if request.json is None:
+            return flask_bad_request_error("Missing request body")
 
-    if not isinstance(request.json, dict):
-        return flask_bad_request_error("Request body is not an object")
+        if not isinstance(request.json, dict):
+            return flask_bad_request_error("Request body is not an object")
 
-    if "data_type" not in request.json:
-        return flask_bad_request_error("Missing data type in request body")
+        if "data_type" not in request.json:
+            return flask_bad_request_error("Missing data type in request body")
 
-    if "query" not in request.json:
-        return flask_bad_request_error("Missing data type in request body")
+        if "query" not in request.json:
+            return flask_bad_request_error("Missing data type in request body")
+
+        data_type = request.json["data_type"]
+        query = request.json["query"]
+
+    else:  # GET
+        data_type = request.args.get("data_type", "").strip().lower()
+        query = request.args.get("query", "").strip()
+
+        if data_type == "":
+            return flask_bad_request_error("Missing data type argument")
+
+        if query == "":
+            return flask_bad_request_error("Missing query argument")
+
+        try:
+            query = json.loads(query)
+        except json.decoder.JSONDecodeError:
+            return flask_bad_request_error("Invalid query JSON")
 
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
-                                            request.json["data_type"],
-                                            request.json["query"],
+                                            data_type,
+                                            query,
                                             internal_data=internal_data)})
 
 
-@bp_chord_search.route("/search", methods=["POST"])
+@bp_chord_search.route("/search", methods=["GET", "POST"])
 def search_endpoint():
     # TODO: NO SPEC FOR THIS YET SO I JUST MADE SOME STUFF UP
     # TODO: PROBABLY VULNERABLE IN SOME WAY
     return _search_endpoint()
 
 
-@bp_chord_search.route("/private/search", methods=["POST"])
+@bp_chord_search.route("/private/search", methods=["GET", "POST"])
 def private_search_endpoint():
     # Proxy should ensure that non-services cannot access this
     # TODO: Figure out security properly
