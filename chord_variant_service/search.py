@@ -1,3 +1,4 @@
+import json
 import re
 
 from chord_lib.responses.flask_errors import *
@@ -19,7 +20,7 @@ from chord_lib.search.queries import (
     FUNCTION_RESOLVE
 )
 from datetime import datetime
-from flask import Blueprint, current_app, json, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from typing import Any, Callable, List, Iterable, Optional, Tuple
 
@@ -48,7 +49,7 @@ def search_worker_prime(
 
     possible_matches = dataset.variants(assembly_id, chromosome, start_min, start_max)
 
-    while not found or internal_data:
+    while True:
         try:
             variant = next(possible_matches)
 
@@ -139,10 +140,6 @@ def query_key_op_value_or_pass(query_item: AST, field: str, value: Optional[Lite
     return value, state_changed
 
 
-class InvalidQuery(Exception):
-    pass
-
-
 def pipeline_value_extraction(query_item: AST, initial_value: Optional[Literal], initial_state_changed: bool,
                               extractors: Tuple[Tuple[str, str, Callable], ...]) -> Tuple[Optional[Any], bool]:
     field, op, transform = extractors[0]
@@ -201,11 +198,7 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
     # TODO: Parser error handling
     query_ast = convert_query_to_ast_and_preprocess(query)
 
-    try:
-        chromosome, start_min, start_max, rest_of_query = parse_query_for_tabix(query_ast)
-    except InvalidQuery:
-        # TODO: Don't silently ignore errors
-        return null_result
+    chromosome, start_min, start_max, rest_of_query = parse_query_for_tabix(query_ast)
 
     dataset_results = {} if internal_data else []
 
