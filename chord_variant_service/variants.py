@@ -45,7 +45,7 @@ VARIANT_CALL_SCHEMA = {
             "type": "array",
             "description": "Variant call genotype.",
             "items": {
-                "type": "string",
+                "type": ["string", "null"],
                 "description": "Variant call bases on a chromosome.",
                 "search": {
                     "operations": [SEARCH_OP_EQ],
