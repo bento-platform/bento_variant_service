@@ -34,6 +34,8 @@ BEACON_IDR_NONE = "NONE"
 
 BEACON_API_VERSION = "v1.0"
 
+BEACON_SEARCH_TIMEOUT = 30
+
 bp_beacon = Blueprint("beacon", __name__)
 
 with bp_beacon.open_resource("schemas/beacon_allele_request.schema.json") as bars:
@@ -201,7 +203,7 @@ def beacon_query():
     # noinspection PyTypeChecker
     results = generic_variant_search(table_manager, chromosome=query["referenceName"], start_min=start_min,
                                      start_max=start_max, rest_of_query=rest_of_query, assembly_id=assembly_id,
-                                     dataset_ids=dataset_ids)
+                                     dataset_ids=dataset_ids, timeout=BEACON_SEARCH_TIMEOUT)
 
     include_dataset_responses = query.get("includeDatasetResponses", BEACON_IDR_NONE)
     dataset_matches = set(bd.beacon_id for bd in chain.from_iterable(d.beacon_datasets for d, _ in results)
