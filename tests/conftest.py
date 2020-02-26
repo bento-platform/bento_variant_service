@@ -3,7 +3,7 @@ import pytest
 import requests
 
 from chord_variant_service.app import application
-from chord_variant_service.tables import MemoryTableManager
+from chord_variant_service.tables.memory import MemoryTableManager
 
 
 @pytest.fixture

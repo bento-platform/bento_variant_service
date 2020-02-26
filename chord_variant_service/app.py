@@ -6,11 +6,13 @@ from flask import Flask, jsonify
 from werkzeug.exceptions import BadRequest, NotFound
 
 from chord_variant_service.beacon.routes import bp_beacon
-from .tables import DATA_PATH, VCFTableManager, bp_tables
-from .ingest import bp_ingest
-from .pool import teardown_pool
-from .search import bp_chord_search
-from .workflows import bp_workflows
+from chord_variant_service.constants import DATA_PATH
+from chord_variant_service.ingest import bp_ingest
+from chord_variant_service.pool import teardown_pool
+from chord_variant_service.search import bp_chord_search
+from chord_variant_service.tables.routes import bp_tables
+from chord_variant_service.tables.vcf import VCFTableManager
+from chord_variant_service.workflows import bp_workflows
 
 
 SERVICE_NAME = "CHORD Variant Service"

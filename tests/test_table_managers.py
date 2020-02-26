@@ -1,6 +1,7 @@
 import pytest
 
-from chord_variant_service.tables import MemoryVariantTable, IDGenerationFailure, MemoryTableManager
+from chord_variant_service.tables.exceptions import IDGenerationFailure
+from chord_variant_service.tables.memory import MemoryVariantTable, MemoryTableManager
 from chord_variant_service.variants import Variant
 from .shared_data import VARIANT_1
 

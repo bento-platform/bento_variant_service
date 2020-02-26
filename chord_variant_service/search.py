@@ -24,7 +24,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from typing import Any, Callable, List, Iterable, Optional, Tuple
 
-from .tables import VariantTable, TableManager
+from chord_variant_service.tables.base import VariantTable, TableManager
 from .pool import get_pool, teardown_pool
 from .variants import VARIANT_SCHEMA
 

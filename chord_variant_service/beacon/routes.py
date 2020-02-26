@@ -20,7 +20,7 @@ from jsonschema import validate, ValidationError
 from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from ..tables import TableManager
+from chord_variant_service.tables.base import TableManager
 from ..search import generic_variant_search
 
 

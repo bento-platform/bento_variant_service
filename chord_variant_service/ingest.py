@@ -16,8 +16,8 @@ from chord_lib.workflows import workflow_exists
 from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
-from .tables import DATA_PATH
-from .workflows import WORKFLOWS
+from chord_variant_service.constants import DATA_PATH
+from chord_variant_service.workflows import WORKFLOWS
 
 
 bp_ingest = Blueprint("ingest", __name__)
