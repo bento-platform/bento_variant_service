@@ -14,7 +14,7 @@ setuptools.setup(
         "chord_lib[flask]==0.5.0",
         "Flask>=1.1,<2.0",
         "jsonschema>=3.2,<4.0",
-        "pysam>=0.15,<0.16",
+        "pysam>=0.15.4,<0.16",
         "requests>=2.23,<3.0",
     ],
 
