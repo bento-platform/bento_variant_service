@@ -20,8 +20,8 @@ from jsonschema import validate, ValidationError
 from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from .tables import TableManager
-from .search import generic_variant_search
+from ..tables import TableManager
+from ..search import generic_variant_search
 
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")

@@ -1,6 +1,6 @@
 # noinspection PyProtectedMember
-from chord_variant_service.beacon import generate_beacon_id
-from chord_variant_service.tables import make_beacon_dataset_id
+from chord_variant_service.beacon.routes import generate_beacon_id
+from chord_variant_service.beacon.datasets import make_beacon_dataset_id
 from chord_variant_service.pool import get_pool, teardown_pool
 from jsonschema import validate
 from uuid import uuid4

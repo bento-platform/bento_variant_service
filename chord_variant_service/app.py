@@ -5,7 +5,7 @@ from chord_lib.responses.flask_errors import *
 from flask import Flask, jsonify
 from werkzeug.exceptions import BadRequest, NotFound
 
-from .beacon import bp_beacon
+from chord_variant_service.beacon.routes import bp_beacon
 from .tables import DATA_PATH, VCFTableManager, bp_tables
 from .ingest import bp_ingest
 from .pool import teardown_pool
