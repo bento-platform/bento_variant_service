@@ -6,6 +6,12 @@ from chord_variant_service.variants.models import Variant
 from chord_variant_service.variants.schemas import VARIANT_SCHEMA
 
 
+__all__ = [
+    "VariantTable",
+    "TableManager",
+]
+
+
 class VariantTable(ABC):  # pragma: no cover
     def __init__(self, table_id, name, metadata, assembly_ids=()):
         self.table_id = table_id

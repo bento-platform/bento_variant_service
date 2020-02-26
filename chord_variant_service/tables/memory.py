@@ -7,6 +7,12 @@ from chord_variant_service.tables.base import VariantTable, TableManager
 from chord_variant_service.tables.exceptions import IDGenerationFailure
 
 
+__all__ = [
+    "MemoryVariantTable",
+    "MemoryTableManager",
+]
+
+
 class MemoryVariantTable(VariantTable):
     def __init__(self, table_id, name, metadata, assembly_ids=()):
         super().__init__(table_id, name, metadata, assembly_ids)

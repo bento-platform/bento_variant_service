@@ -17,6 +17,12 @@ from chord_variant_service.tables.exceptions import IDGenerationFailure
 from chord_variant_service.variants.models import Variant, Call
 
 
+__all__ = [
+    "VCFVariantTable",
+    "VCFTableManager",
+]
+
+
 MAX_SIGNED_INT_32 = 2 ** 31 - 1
 
 REGEX_GENOTYPE_SPLIT = re.compile(r"[|/]")
