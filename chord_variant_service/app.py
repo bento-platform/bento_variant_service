@@ -1,7 +1,5 @@
 import chord_variant_service
 import os
-import sys
-import traceback
 
 from chord_lib.responses.flask_errors import *
 from flask import Flask, jsonify
@@ -15,11 +13,16 @@ from .search import bp_chord_search
 from .workflows import bp_workflows
 
 
+SERVICE_NAME = "CHORD Variant Service"
+SERVICE_TYPE = "ca.c3g.chord:variant:{}".format(chord_variant_service.__version__)
+SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
+
+
 application = Flask(__name__)
 
 # TODO: How to share this across processes?
 table_manager = VCFTableManager(DATA_PATH)
-application.config["TABLE_MANAGER"] = table_manager
+application.config["TABLE_MANAGER"] = table_manager  # TODO: This is wrong
 table_manager.update_tables()
 
 application.register_blueprint(bp_beacon)
@@ -29,28 +32,11 @@ application.register_blueprint(bp_tables)
 application.register_blueprint(bp_workflows)
 
 
-# TODO: Figure out common pattern and move to chord_lib
-
-def _wrap_tb(func):  # pragma: no cover
-    # TODO: pass exception?
-    def handle_error(_e):
-        print("[CHORD Variant Service] Encountered error:", file=sys.stderr)
-        traceback.print_exc()
-        return func()
-    return handle_error
-
-
-def _wrap(func):  # pragma: no cover
-    return lambda _e: func()
-
-
-application.register_error_handler(Exception, _wrap_tb(flask_internal_server_error))  # Generic catch-all
-application.register_error_handler(BadRequest, _wrap(flask_bad_request_error))
-application.register_error_handler(NotFound, _wrap(flask_not_found_error))
-
-
-SERVICE_TYPE = "ca.c3g.chord:variant:{}".format(chord_variant_service.__version__)
-SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
+# Generic catch-all
+application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
+                                                                              service_name=SERVICE_NAME))
+application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_request_error))
+application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error))
 
 
 @application.teardown_appcontext
@@ -64,7 +50,7 @@ def service_info():
 
     return jsonify({
         "id": SERVICE_ID,
-        "name": "CHORD Variant Service",  # TODO: Should be globally unique?
+        "name": SERVICE_NAME,
         "type": SERVICE_TYPE,
         "description": "Variant service for a CHORD application.",
         "organization": {
