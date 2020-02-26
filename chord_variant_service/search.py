@@ -24,9 +24,9 @@ from flask import Blueprint, current_app, jsonify, request
 
 from typing import Any, Callable, List, Iterable, Optional, Tuple
 
+from chord_variant_service.pool import get_pool, teardown_pool
 from chord_variant_service.tables.base import VariantTable, TableManager
-from .pool import get_pool, teardown_pool
-from .variants import VARIANT_SCHEMA
+from chord_variant_service.variants.schemas import VARIANT_SCHEMA
 
 
 CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")

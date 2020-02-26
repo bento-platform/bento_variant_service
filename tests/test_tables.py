@@ -1,5 +1,5 @@
 import json
-from chord_variant_service.variants import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
+from chord_variant_service.variants.schemas import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
 from jsonschema import validate
 
 from .shared_data import VARIANT_1, VARIANT_2, VARIANT_3
@@ -106,7 +106,7 @@ def test_table_data(app, client):
     assert rv.status_code == 200
     data = rv.get_json()
     # TODO: Test schema
-    assert json.dumps(data["schema"], sort_keys=True ) == json.dumps(VARIANT_SCHEMA, sort_keys=True)
+    assert json.dumps(data["schema"], sort_keys=True) == json.dumps(VARIANT_SCHEMA, sort_keys=True)
     assert data["pagination"]["previous_page_url"] is None
     assert data["pagination"]["next_page_url"] is None
     assert json.dumps(data["data"], sort_keys=True) == json.dumps([

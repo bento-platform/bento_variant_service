@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, Generator, Optional, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDataset
-from chord_variant_service.variants import VARIANT_SCHEMA, Variant
+from chord_variant_service.variants.models import Variant
+from chord_variant_service.variants.schemas import VARIANT_SCHEMA
 
 
 class VariantTable(ABC):  # pragma: no cover

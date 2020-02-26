@@ -1,4 +1,4 @@
-from chord_variant_service.variants import Variant, Call
+from chord_variant_service.variants.models import Variant, Call
 
 __all__ = [
     "VARIANT_1",

@@ -7,7 +7,7 @@ from jsonschema import validate, ValidationError
 
 from chord_variant_service.tables.base import TableManager
 from chord_variant_service.tables.exceptions import IDGenerationFailure
-from chord_variant_service.variants import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
+from chord_variant_service.variants.schemas import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
 
 __all__ = [

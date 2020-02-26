@@ -2,7 +2,7 @@ from itertools import chain
 from typing import Dict, Generator, List, Optional, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDataset
-from chord_variant_service.variants import Variant
+from chord_variant_service.variants.models import Variant
 from chord_variant_service.tables.base import VariantTable, TableManager
 from chord_variant_service.tables.exceptions import IDGenerationFailure
 

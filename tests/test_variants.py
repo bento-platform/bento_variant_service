@@ -1,5 +1,6 @@
 import pytest
-from chord_variant_service.variants import *
+from chord_variant_service.variants.genotypes import *
+from chord_variant_service.variants.models import *
 from .shared_data import *
 
 

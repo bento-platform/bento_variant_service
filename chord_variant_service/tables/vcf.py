@@ -14,7 +14,7 @@ from chord_variant_service.beacon.datasets import BeaconDataset
 from chord_variant_service.pool import WORKERS
 from chord_variant_service.tables.base import VariantTable, TableManager
 from chord_variant_service.tables.exceptions import IDGenerationFailure
-from chord_variant_service.variants import Variant, Call
+from chord_variant_service.variants.models import Variant, Call
 
 
 MAX_SIGNED_INT_32 = 2 ** 31 - 1
