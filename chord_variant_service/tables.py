@@ -4,12 +4,13 @@ import os
 import pysam
 import re
 import shutil
+import subprocess
 import sys
 import uuid
 
 from chord_lib.auth.flask_decorators import flask_permissions
 from chord_lib.responses.flask_errors import *
-from flask import Blueprint, current_app, json, jsonify, request
+from flask import Blueprint, current_app, json, jsonify, request, url_for
 from itertools import chain
 from jsonschema import validate, ValidationError
 from pysam import VariantFile
@@ -118,10 +119,21 @@ class VariantTable(ABC):  # pragma: no cover
             for a in sorted(self.assembly_ids)
         )
 
+    @property
     @abstractmethod
-    def variants(self, assembly_id: Optional[str] = None, chromosome: Optional[str] = None,
-                 start_min: Optional[int] = None, start_max: Optional[int] = None)\
-            -> Generator[Variant, None, None]:
+    def n_of_variants(self) -> int:
+        pass
+
+    @abstractmethod
+    def variants(
+        self,
+        assembly_id: Optional[str] = None,
+        chromosome: Optional[str] = None,
+        start_min: Optional[int] = None,
+        start_max: Optional[int] = None,
+        offset: Optional[int] = None,
+        count: Optional[int] = None,
+    ) -> Generator[Variant, None, None]:
         yield None
 
 
@@ -130,10 +142,23 @@ class MemoryVariantTable(VariantTable):
         super().__init__(table_id, name, metadata, assembly_ids)
         self.variant_store: List[Variant] = []
 
-    def variants(self, assembly_id: Optional[str] = None, chromosome: Optional[str] = None,
-                 start_min: Optional[int] = None, start_max: Optional[int] = None)\
-            -> Generator[Variant, None, None]:
-        for v in self.variant_store:
+    @property
+    def n_of_variants(self) -> int:
+        return len(self.variant_store)
+
+    def variants(
+        self,
+        assembly_id: Optional[str] = None,
+        chromosome: Optional[str] = None,
+        start_min: Optional[int] = None,
+        start_max: Optional[int] = None,
+        offset: Optional[int] = None,
+        count: Optional[int] = None,
+    ) -> Generator[Variant, None, None]:
+        offset = 0 if offset is None else offset
+        count = len(self.variant_store) - offset if count is None else count
+
+        for v in self.variant_store[offset:offset+count]:
             if chromosome is not None and v.chromosome != chromosome:
                 continue
 
@@ -192,11 +217,33 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
             yield Call(variant=variant, genotype=genotype, sample_id=sample_id)
 
-    def variants(self, assembly_id: Optional[str] = None, chromosome: Optional[str] = None,
-                 start_min: Optional[int] = None, start_max: Optional[int] = None)\
-            -> Generator[Variant, None, None]:
+    @property
+    def n_of_variants(self) -> int:
+        return sum(v["n_of_variants"] for v in self.file_metadata.values())
+
+    def variants(
+        self,
+        assembly_id: Optional[str] = None,
+        chromosome: Optional[str] = None,
+        start_min: Optional[int] = None,
+        start_max: Optional[int] = None,
+        offset: Optional[int] = None,
+        count: Optional[int] = None,
+    ) -> Generator[Variant, None, None]:
+        variants_passed = 0
+        variants_seen = 0
+
+        # TODO: Optimize offset/count
+        #  e.g. by skipping entire VCFs if we know their row counts a-priori
+
         for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
                                         self.file_metadata.items()):
+            if vcf_metadata["n_of_variants"] < offset - variants_seen and (chromosome is None and
+                                                                           start_min is None and start_max is None):
+                # If the entire file has less variants than the remaining offset, skip it.
+                variants_seen += vcf_metadata["n_of_variants"]
+                continue
+
             try:
                 f = pysam.TabixFile(vcf, parser=pysam.asTuple(), threads=WORKERS)
 
@@ -210,13 +257,21 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                     query = (
                         chromosome,
                         start_min - 1 if start_min is not None else 0,
-                        start_max - 1 if start_max is not None else MAX_SIGNED_INT_32
+                        start_max - 1 if start_max is not None else MAX_SIGNED_INT_32,
                     )
 
                 for row in f.fetch(*query):
+                    variants_passed += 1
+
                     if len(row) < 9:
                         # Badly formatted VCF  TODO: Catch on ingest
                         continue
+
+                    if offset is not None and variants_passed < offset:
+                        continue
+
+                    if count is not None and variants_seen >= count:
+                        return
 
                     if chromosome is None:
                         # Didn't index in, so check start_min / start_max by hand
@@ -235,6 +290,8 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
                     variant.calls = tuple(VCFVariantTable._variant_calls(variant, vcf_metadata["sample_ids"], row))
                     yield variant
+
+                    variants_seen += 1
 
             except ValueError:
                 # Region not found in Tabix file
@@ -341,6 +398,11 @@ class VCFTableManager(TableManager):  # pragma: no cover
         vcf = VariantFile(vcf_path)
         return tuple(vcf.header.samples)
 
+    @staticmethod
+    def _get_vcf_row_count(vcf_path: str) -> int:
+        p = subprocess.Popen(("bcftools", "index", "--nrecords", vcf_path), stdout=subprocess.PIPE)
+        return int(p.stdout.read().strip())  # TODO: Handle error
+
     def update_tables(self):
         for d in os.listdir(self.DATA_PATH):
             table_dir = os.path.join(self.DATA_PATH, d)
@@ -354,14 +416,15 @@ class VCFTableManager(TableManager):  # pragma: no cover
                               if file[-6:] == "vcf.gz")
             assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
             sample_ids = tuple(self._get_sample_ids(vcf_path) for vcf_path in vcf_files)
+            vcf_row_counts = tuple(self._get_vcf_row_count(vcf_path) for vcf_path in vcf_files)
 
             ds = VCFVariantTable(
                 table_id=d,
                 name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
                 metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
                 files=vcf_files,
-                file_metadata={f: {"assembly_id": a, "sample_ids": s}
-                               for f, a, s in zip(vcf_files, assembly_ids, sample_ids)}
+                file_metadata={f: {"assembly_id": a, "sample_ids": s, "n_of_variants": v}
+                               for f, a, s, v in zip(vcf_files, assembly_ids, sample_ids, vcf_row_counts)}
             )
 
             self.tables[d] = ds
@@ -472,18 +535,42 @@ def table_detail(table_id):
 
 @bp_tables.route("/private/tables/<string:table_id>/data", methods=["GET"])
 def table_data(table_id):
-    if current_app.config["TABLE_MANAGER"].get_table(table_id) is None:
+    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+
+    if table_manager.get_table(table_id) is None:
         # TODO: Refresh cache if needed?
         return flask_not_found_error(f"No table with ID {table_id}")
+
+    try:
+        offset = int(request.args.get("offset", "0"))
+        count = int(request.args.get("count", "100").strip())  # TODO: Constant-ify default count
+    except ValueError:
+        return flask_bad_request_error("Invalid offset or count provided")
+
+    total_variants = table_manager.get_table(table_id).n_of_variants
 
     # TODO: Pagination
     # TODO: Filtering?
     # TODO: Make consistent with search results?
 
+    # TODO: What should be done when offset sends us off the end? 404?
+
     return jsonify({
         "schema": VARIANT_SCHEMA,
         "data": list(v.as_chord_representation()
-                     for v in current_app.config["TABLE_MANAGER"].get_table(table_id).variants())
+                     for v in current_app.config["TABLE_MANAGER"].get_table(table_id).variants(offset=offset,
+                                                                                               count=count)),
+        # TODO: Need to calculate nulls based on total variants in a table
+        "pagination": {  # TODO: CHORD_URL
+            "previous_page_url": (
+                url_for("tables.table_data", table_id=table_id) +
+                f"?offset={max(0, offset - count)}&count={count + min(0, offset - count)}"
+            ) if offset > 0 else None,
+            "next_page_url": (
+                url_for("tables.table_data", table_id=table_id) +
+                f"?offset={offset + count}&count={count}"
+            ) if offset + count < total_variants else None,
+        }
     })
 
 

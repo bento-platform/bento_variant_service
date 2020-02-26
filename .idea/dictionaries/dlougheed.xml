@@ -3,6 +3,7 @@
     <words>
       <w>acgt</w>
       <w>acgtn</w>
+      <w>bcftools</w>
       <w>bgzip</w>
       <w>chrom</w>
       <w>computationalgenomics</w>
@@ -19,6 +20,8 @@
       <w>mvncall</w>
       <w>ncbi</w>
       <w>nginx</w>
+      <w>nrecords</w>
+      <w>priori</w>
       <w>pysam</w>
       <w>pytabix</w>
       <w>pytest</w>

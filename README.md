@@ -12,6 +12,11 @@ Proposed quality control pipeline:
 The workflows exposed by this service currently depend on:
 
 * HTSlib
+* `bcftools`
+
+The service itself depends on the following non-Python utilities:
+
+* `bcftools`
 
 
 ## On Coordinates
