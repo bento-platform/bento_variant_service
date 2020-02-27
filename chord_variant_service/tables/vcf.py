@@ -88,6 +88,9 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
         offset: Optional[int] = None,
         count: Optional[int] = None,
     ) -> Generator[Variant, None, None]:
+        # If offset isn't specified, set it to 0 (the very start)
+        offset: int = 0 if offset is None else offset
+
         variants_passed = 0
         variants_seen = 0
 
@@ -97,13 +100,13 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
         for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
                                         self.file_metadata.items()):
             if (
-                chromosome is None and
-                start_min is None and
-                start_max is None and
-                offset is not None and
+                chromosome is None and  # No filters (otherwise we wouldn't be able to assume we're skipping the VCF)
+                start_min is None and  # "
+                start_max is None and  # "
                 vcf_metadata["n_of_variants"] < offset - variants_seen
             ):
-                # If the entire file has less variants than the remaining offset, skip it.
+                # If the entire file has less variants than the remaining offset, skip it. This saves time crawling
+                # through an entire VCF if we cannot use any of them.
                 variants_seen += vcf_metadata["n_of_variants"]
                 continue
 
@@ -130,7 +133,7 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                         # Badly formatted VCF  TODO: Catch on ingest
                         continue
 
-                    if offset is not None and variants_passed < offset:
+                    if variants_passed < offset:
                         continue
 
                     if count is not None and variants_seen >= count:
