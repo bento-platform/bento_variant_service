@@ -96,13 +96,13 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
         for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
                                         self.file_metadata.items()):
-            if all((
-                chromosome is None,
-                start_min is None,
-                start_max is None,
-                offset is not None,
-                vcf_metadata["n_of_variants"] < offset - variants_seen,
-            )):
+            if (
+                chromosome is None and
+                start_min is None and
+                start_max is None and
+                offset is not None and
+                vcf_metadata["n_of_variants"] < offset - variants_seen
+            ):
                 # If the entire file has less variants than the remaining offset, skip it.
                 variants_seen += vcf_metadata["n_of_variants"]
                 continue
