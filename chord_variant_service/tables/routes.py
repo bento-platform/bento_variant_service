@@ -107,7 +107,6 @@ def table_data(table_id):
 
     total_variants = table_manager.get_table(table_id).n_of_variants
 
-    # TODO: Pagination
     # TODO: Filtering?
     # TODO: Make consistent with search results?
 
