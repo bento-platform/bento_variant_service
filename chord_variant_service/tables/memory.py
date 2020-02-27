@@ -31,8 +31,13 @@ class MemoryVariantTable(VariantTable):
         offset: Optional[int] = None,
         count: Optional[int] = None,
     ) -> Generator[Variant, None, None]:
-        offset = 0 if offset is None else offset
-        count = len(self.variant_store) - offset if count is None else count
+        offset: int = 0 if offset is None else offset
+        if offset < 0 or offset >= len(self.variant_store):
+            return
+
+        count: int = len(self.variant_store) - offset if count is None else count
+        if count <= 0:
+            return
 
         for v in self.variant_store[offset:offset+count]:
             if chromosome is not None and v.chromosome != chromosome:

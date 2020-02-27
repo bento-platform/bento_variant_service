@@ -98,6 +98,12 @@ def table_data(table_id):
     except ValueError:
         return flask_bad_request_error("Invalid offset or count provided")
 
+    if offset < 0:
+        return flask_bad_request_error("Offset must be non-negative")
+
+    if count <= 0:
+        return flask_bad_request_error("Count must be positive")
+
     total_variants = table_manager.get_table(table_id).n_of_variants
 
     # TODO: Pagination

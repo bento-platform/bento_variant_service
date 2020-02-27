@@ -42,13 +42,25 @@ def test_memory_table_manager():
     with pytest.raises(StopIteration):
         next(gen)
 
-    gen2 = mm.get_table("fixed_id").variants("GRCh37", "1", 7000)
+    gen = mm.get_table("fixed_id").variants("GRCh37", "1", 7000)
     with pytest.raises(StopIteration):
-        next(gen2)
+        next(gen)
 
-    gen3 = mm.get_table("fixed_id").variants("GRCh37", "1", None, 3000)
+    gen = mm.get_table("fixed_id").variants("GRCh37", "1", None, 3000)
     with pytest.raises(StopIteration):
-        next(gen3)
+        next(gen)
+
+    gen = mm.get_table("fixed_id").variants(offset=-1)
+    with pytest.raises(StopIteration):
+        next(gen)
+
+    gen = mm.get_table("fixed_id").variants(offset=4)
+    with pytest.raises(StopIteration):
+        next(gen)
+
+    gen = mm.get_table("fixed_id").variants(count=0)
+    with pytest.raises(StopIteration):
+        next(gen)
 
     with pytest.raises(IDGenerationFailure):
         mm.create_table_and_update("test", {})
