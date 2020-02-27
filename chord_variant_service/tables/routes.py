@@ -85,6 +85,7 @@ def table_detail(table_id):
 
 
 @bp_tables.route("/private/tables/<string:table_id>/data", methods=["GET"])
+@bp_tables.route("/private/tables/<string:table_id>/variants", methods=["GET"])
 def table_data(table_id):
     table_manager: TableManager = current_app.config["TABLE_MANAGER"]
 

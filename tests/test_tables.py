@@ -144,8 +144,12 @@ def test_table_data_pagination(app, client):
     table.variant_store.append(VARIANT_3)
 
     for q, sc, r in QUERY_STRINGS_AND_RESULTS:
+        rv = client.get("/private/tables/fixed_id/variants", query_string=q)
+        assert rv.status_code == sc
+
         rv = client.get("/private/tables/fixed_id/data", query_string=q)
         assert rv.status_code == sc
+
         if r is not None:
             data = rv.get_json()
             prev_page, next_page, r_data = r
