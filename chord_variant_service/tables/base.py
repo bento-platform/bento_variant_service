@@ -36,9 +36,16 @@ class VariantTable(ABC):  # pragma: no cover
             for a in sorted(self.assembly_ids)
         )
 
+    # TODO: Breakdowns by reference genome!
+
     @property
     @abstractmethod
     def n_of_variants(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def n_of_samples(self) -> int:
         pass
 
     @abstractmethod

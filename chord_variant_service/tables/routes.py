@@ -84,6 +84,27 @@ def table_detail(table_id):
     return jsonify(current_app.config["TABLE_MANAGER"].get_table(table_id).as_table_response())
 
 
+@bp_tables.route("/private/tables/<string:table_id>/summary", methods=["GET"])
+def table_summary(table_id):
+    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table = table_manager.get_table(table_id)
+
+    if table is None:
+        # TODO: Refresh cache if needed?
+        return flask_not_found_error(f"No table with ID {table_id}")
+
+    return {
+        "count": table.n_of_variants,
+        "data_type_specific": {
+            "variants": table.n_of_variants,
+            "samples": table.n_of_samples,
+            **({"vcf_files": len(table.files)} if isinstance(table, VCFVariantTable) else {}),
+            # TODO: Average minor allele frequency? other cool variant statistics?
+            # TODO: Number of known "rare" variants? based on rs... null if not provided
+        }
+    }
+
+
 @bp_tables.route("/private/tables/<string:table_id>/data", methods=["GET"])
 @bp_tables.route("/private/tables/<string:table_id>/variants", methods=["GET"])
 def table_data(table_id):

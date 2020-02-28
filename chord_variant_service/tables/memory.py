@@ -22,6 +22,14 @@ class MemoryVariantTable(VariantTable):
     def n_of_variants(self) -> int:
         return len(self.variant_store)
 
+    @property
+    def n_of_samples(self) -> int:
+        sample_set = set()
+        for v in self.variants():
+            for c in v.calls:
+                sample_set.add(c.sample_id)
+        return len(sample_set)
+
     def variants(
         self,
         assembly_id: Optional[str] = None,

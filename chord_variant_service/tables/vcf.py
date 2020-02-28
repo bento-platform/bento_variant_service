@@ -79,6 +79,13 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
     def n_of_variants(self) -> int:
         return sum(v["n_of_variants"] for v in self.file_metadata.values())
 
+    @property
+    def n_of_samples(self) -> int:
+        sample_set = set()
+        for vcf_metadata in self.file_metadata.values():
+            sample_set.update(vcf_metadata["sample_ids"])
+        return len(sample_set)
+
     def variants(
         self,
         assembly_id: Optional[str] = None,

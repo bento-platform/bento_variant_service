@@ -91,6 +91,30 @@ def test_table_detail(client):
     assert rv.status_code == 404
 
 
+def test_table_summary(app, client):
+    mm = app.config["TABLE_MANAGER"]
+
+    # Create a new table with ID fixed_id and name test
+    table = mm.create_table_and_update("test", {})
+    table.variant_store.append(VARIANT_1)
+    table.variant_store.append(VARIANT_2)
+    table.variant_store.append(VARIANT_3)
+
+    rv = client.get("/private/tables/none/summary")
+    assert rv.status_code == 404
+
+    rv = client.get("/private/tables/fixed_id/summary")
+    assert rv.status_code == 200
+    data = rv.get_json()
+    assert json.dumps(data, sort_keys=True) == json.dumps({
+        "count": 3,
+        "data_type_specific": {
+            "variants": 3,
+            "samples": 1,
+        }
+    }, sort_keys=True)
+
+
 def test_table_data(app, client):
     mm = app.config["TABLE_MANAGER"]
 
