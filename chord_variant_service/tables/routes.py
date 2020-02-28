@@ -6,6 +6,7 @@ from flask import Blueprint, current_app, json, jsonify, request, url_for
 from jsonschema import validate, ValidationError
 
 from chord_variant_service.tables.base import TableManager
+from chord_variant_service.tables.vcf import VCFVariantTable
 from chord_variant_service.tables.exceptions import IDGenerationFailure
 from chord_variant_service.variants.schemas import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
@@ -30,6 +31,8 @@ def table_list():
 
     if "variant" not in dt or len(dt) != 1:
         return flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
+
+    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
@@ -56,7 +59,7 @@ def table_list():
             return flask_bad_request_error("Invalid metadata format (validation failed)")  # TODO: Validation message
 
         try:
-            new_table = current_app.config["TABLE_MANAGER"].create_table_and_update(name, metadata)
+            new_table = table_manager.create_table_and_update(name, metadata)
             return current_app.response_class(response=json.dumps(new_table.as_table_response()),
                                               mimetype=MIME_TYPE, status=201)
 
@@ -64,24 +67,26 @@ def table_list():
             print("[CHORD Variant Service] Couldn't generate new ID", file=sys.stderr)
             return flask_internal_server_error("Could not generate new ID for table")
 
-    return jsonify([d.as_table_response() for d in current_app.config["TABLE_MANAGER"].get_tables().values()])
+    return jsonify([t.as_table_response() for t in table_manager.get_tables().values()])
 
 
 # TODO: Implement POST (separate permissions)
 @bp_tables.route("/tables/<string:table_id>", methods=["GET", "DELETE"])
 @flask_permissions({"DELETE": {"owner"}})
 def table_detail(table_id):
-    if current_app.config["TABLE_MANAGER"].get_table(table_id) is None:
+    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table = table_manager.get_table(table_id)
+
+    if table is None:
         # TODO: Refresh cache if needed?
         return flask_not_found_error(f"No table with ID {table_id}")
 
     if request.method == "DELETE":
-        current_app.config["TABLE_MANAGER"].delete_table_and_update(table_id)
-
+        table_manager.delete_table_and_update(table_id)
         # TODO: More complete response?
         return current_app.response_class(status=204)
 
-    return jsonify(current_app.config["TABLE_MANAGER"].get_table(table_id).as_table_response())
+    return jsonify(table.as_table_response())
 
 
 @bp_tables.route("/private/tables/<string:table_id>/summary", methods=["GET"])
@@ -109,8 +114,9 @@ def table_summary(table_id):
 @bp_tables.route("/private/tables/<string:table_id>/variants", methods=["GET"])
 def table_data(table_id):
     table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table = table_manager.get_table(table_id)
 
-    if table_manager.get_table(table_id) is None:
+    if table is None:
         # TODO: Refresh cache if needed?
         return flask_not_found_error(f"No table with ID {table_id}")
 
@@ -126,18 +132,25 @@ def table_data(table_id):
     if count <= 0:
         return flask_bad_request_error("Count must be positive")
 
-    total_variants = table_manager.get_table(table_id).n_of_variants
+    # TODO: Assembly ID?
+
+    # TODO: Move this to search?
+    only_interesting = request.args.get("only_interesting", "false").strip().lower() == "true"
 
     # TODO: Filtering?
     # TODO: Make consistent with search results?
 
     # TODO: What should be done when offset sends us off the end? 404?
 
+    data = [v.as_chord_representation()
+            for v in table.variants(offset=offset, count=count, only_interesting=only_interesting)]
+
+    next_page = next(table.variants(offset=offset + count, count=count, only_interesting=only_interesting),
+                     None) is not None  # Check if there's at least one next result
+
     return jsonify({
         "schema": VARIANT_SCHEMA,
-        "data": list(v.as_chord_representation()
-                     for v in current_app.config["TABLE_MANAGER"].get_table(table_id).variants(offset=offset,
-                                                                                               count=count)),
+        "data": data,
         # TODO: Need to calculate nulls based on total variants in a table
         "pagination": {  # TODO: CHORD_URL
             "previous_page_url": (
@@ -147,7 +160,7 @@ def table_data(table_id):
             "next_page_url": (
                 url_for("tables.table_data", table_id=table_id) +
                 f"?offset={offset + count}&count={count}"
-            ) if offset + count < total_variants else None,
+            ) if next_page else None,
         }
     })
 

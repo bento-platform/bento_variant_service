@@ -38,6 +38,7 @@ class MemoryVariantTable(VariantTable):
         start_max: Optional[int] = None,
         offset: Optional[int] = None,
         count: Optional[int] = None,
+        only_interesting: bool = False,
     ) -> Generator[Variant, None, None]:
         offset: int = 0 if offset is None else offset
         if offset < 0 or offset >= len(self.variant_store):
@@ -58,6 +59,10 @@ class MemoryVariantTable(VariantTable):
                 continue
 
             if assembly_id is not None and v.assembly_id != assembly_id:
+                continue
+
+            if only_interesting and next((c for c in v.calls if c.is_interesting), None) is None:
+                # Uninteresting; skip this variant
                 continue
 
             yield v

@@ -155,6 +155,15 @@ QUERY_STRINGS_AND_RESULTS: Tuple[Tuple[dict, int, Optional[Tuple[bool, bool, lis
     ({"offset": 3, "count": 0}, 400, None),
     ({"count": -1}, 400, None),
     ({"offset": -1}, 400, None),
+    ({"only_interesting": "false"}, 200, (False, False, [
+        VARIANT_1.as_chord_representation(),
+        VARIANT_2.as_chord_representation(),
+        VARIANT_3.as_chord_representation(),
+    ])),
+    ({"only_interesting": "true"}, 200, (False, False, [
+        VARIANT_1.as_chord_representation(),
+        VARIANT_2.as_chord_representation(),
+    ])),
 )
 
 

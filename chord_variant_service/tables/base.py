@@ -57,6 +57,7 @@ class VariantTable(ABC):  # pragma: no cover
         start_max: Optional[int] = None,
         offset: Optional[int] = None,
         count: Optional[int] = None,
+        only_interesting: bool = False,
     ) -> Generator[Variant, None, None]:
         yield None
 

@@ -56,6 +56,9 @@ class Variant:
         ))
 
 
+UNINTERESTING_CALLS = frozenset({GT_UNCALLED, GT_REFERENCE, GT_HOMOZYGOUS_REFERENCE})
+
+
 class Call:
     """
     Instance of a called variant on a particular sample.
@@ -76,7 +79,7 @@ class Call:
 
         if genotype[0] is None:
             # Cannot make a call
-            genotype_type = ""
+            genotype_type = GT_UNCALLED
         elif len(self.genotype) == 1:
             genotype_type = GT_REFERENCE if self.genotype[0] == 0 else GT_ALTERNATE
         else:  # len(self.genotype) > 1:
@@ -88,6 +91,10 @@ class Call:
                 genotype_type = GT_HOMOZYGOUS_REFERENCE
 
         self.genotype_type = genotype_type
+
+    @property
+    def is_interesting(self):
+        return self.genotype_type not in UNINTERESTING_CALLS
 
     def as_chord_representation(self, include_variant: bool = False):
         return {

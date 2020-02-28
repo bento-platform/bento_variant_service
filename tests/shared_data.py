@@ -41,7 +41,7 @@ VARIANT_3 = Variant(
     alt_bases=("T",),
 )
 
-VARIANT_3.calls = (Call(variant=VARIANT_3, sample_id="S0001", genotype=(0, 1), phase_set=None),)
+VARIANT_3.calls = (Call(variant=VARIANT_3, sample_id="S0001", genotype=(0, 0), phase_set=None),)
 
 VARIANT_4 = Variant(
     assembly_id="GRCh37",
