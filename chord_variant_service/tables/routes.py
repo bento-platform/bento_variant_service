@@ -1,6 +1,6 @@
 import sys
 
-from chord_lib.auth.flask_decorators import flask_permissions
+from chord_lib.auth.flask_decorators import flask_permissions, flask_permissions_owner
 from chord_lib.responses.flask_errors import *
 from flask import Blueprint, current_app, json, jsonify, request, url_for
 from jsonschema import validate, ValidationError
@@ -89,7 +89,8 @@ def table_detail(table_id):
     return jsonify(table.as_table_response())
 
 
-@bp_tables.route("/private/tables/<string:table_id>/summary", methods=["GET"])
+@bp_tables.route("/tables/<string:table_id>/summary", methods=["GET"])
+@flask_permissions_owner
 def table_summary(table_id):
     table_manager: TableManager = current_app.config["TABLE_MANAGER"]
     table = table_manager.get_table(table_id)
@@ -101,7 +102,6 @@ def table_summary(table_id):
     return {
         "count": table.n_of_variants,
         "data_type_specific": {
-            "variants": table.n_of_variants,
             "samples": table.n_of_samples,
             **({"vcf_files": len(table.files)} if isinstance(table, VCFVariantTable) else {}),
             # TODO: Average minor allele frequency? other cool variant statistics?
