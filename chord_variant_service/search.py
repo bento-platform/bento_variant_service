@@ -32,7 +32,7 @@ from chord_variant_service.variants.schemas import VARIANT_SCHEMA
 CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")
 BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
-CHORD_SEARCH_TIMEOUT = 60
+CHORD_SEARCH_TIMEOUT = 180
 
 
 def search_worker_prime(
