@@ -109,7 +109,6 @@ def test_table_summary(app, client):
     assert json.dumps(data, sort_keys=True) == json.dumps({
         "count": 3,
         "data_type_specific": {
-            "variants": 3,
             "samples": 1,
         }
     }, sort_keys=True)
