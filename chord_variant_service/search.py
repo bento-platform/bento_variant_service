@@ -315,7 +315,7 @@ def table_search(table_id, internal=False) -> Optional[Response]:
     if internal:
         return jsonify({"results": search.get(table_id, {}).get("matches", [])})
 
-    return jsonify(len(search.get(table_id, {}).get("matches", [])) > 0)
+    return jsonify(next((s for s in search if s["id"] == table.table_id), None) is not None)
 
 
 @bp_chord_search.route("/tables/<string:table_id>/search", methods=["POST"])
