@@ -310,7 +310,7 @@ def table_search(table_id, internal=False) -> Optional[Response]:
         return flask_bad_request_error("Query not included in search body")
 
     # If it exists in the variant table manager, it's of data type 'variant'
-    search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=True)
+    search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=internal)
 
     if internal:
         return jsonify({"results": search.get(table_id, {}).get("matches", [])})
