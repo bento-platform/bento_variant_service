@@ -21,8 +21,8 @@ from chord_lib.search.queries import (
 )
 from datetime import datetime
 from flask import Blueprint, current_app, jsonify, request
-
 from typing import Any, Callable, List, Iterable, Optional, Tuple
+from werkzeug import Response
 
 from chord_variant_service.pool import get_pool, teardown_pool
 from chord_variant_service.tables.base import VariantTable, TableManager
@@ -291,8 +291,7 @@ def private_search_endpoint():
     return _search_endpoint(internal_data=True)
 
 
-@bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["POST"])
-def table_search(table_id):
+def table_search(table_id, internal=False) -> Optional[Response]:
     table = current_app.config["TABLE_MANAGER"].get_table(table_id)
 
     if table is None:
@@ -311,6 +310,19 @@ def table_search(table_id):
         return flask_bad_request_error("Query not included in search body")
 
     # If it exists in the variant table manager, it's of data type 'variant'
-
     search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=True)
-    return jsonify({"results": search.get(table_id, {}).get("matches", [])})
+
+    if internal:
+        return jsonify({"results": search.get(table_id, {}).get("matches", [])})
+
+    return jsonify(len(search.get(table_id, {}).get("matches", [])) > 0)
+
+
+@bp_chord_search.route("/tables/<string:table_id>/search", methods=["POST"])
+def public_table_search(table_id):
+    return table_search(table_id, internal=False)
+
+
+@bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["POST"])
+def private_table_search(table_id):
+    return table_search(table_id, internal=True)

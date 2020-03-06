@@ -196,7 +196,14 @@ def test_chord_variant_search(app, client):
                                                                                 sort_keys=True)
 
             for q, r in TEST_PRIVATE_QUERIES:
-                rv = client.post("/private/tables/fixed_id/search", json={"query": q})
+                qj = {"query": q}
+
+                rv = client.post("/tables/fixed_id/search", json=qj)
+                assert rv.status_code == 200
+                data = rv.get_json()
+                assert data == (r > 0)
+
+                rv = client.post("/private/tables/fixed_id/search", json=qj)
                 assert rv.status_code == 200
                 data = rv.get_json()
                 assert "results" in data
