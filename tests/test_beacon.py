@@ -253,6 +253,24 @@ EMPTY_BEACON_REQUEST_1 = {
     "datasetIds": ["does_not_exist"]
 }
 
+EMPTY_BEACON_REQUEST_2 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "G",
+    "start": 4999,  # 0-based coordinates
+    "end": 5000,  # "
+    "datasetIds": ["fixed_id:GRCh37"]
+}
+
+EMPTY_BEACON_REQUEST_3 = {
+    **SHARED_REQUEST_BASE,
+    "referenceBases": "C",
+    "alternateBases": "G",
+    "start": 4999,  # 0-based coordinates
+    "end": 5999,  # "
+    "datasetIds": ["fixed_id:GRCh37"]
+}
+
 
 INVALID_BEACON_REQUEST_1 = {
     **SHARED_REQUEST_BASE,
@@ -390,6 +408,24 @@ def test_beacon_response(app, client):
                     assert data["exists"]
                     assert len(data["datasetAlleleResponses"]) == 1
                     assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
+
+            # - Empty queries
+
+            for q in (EMPTY_BEACON_REQUEST_1, EMPTY_BEACON_REQUEST_2, EMPTY_BEACON_REQUEST_3):
+                valid_data = []
+
+                rv = client.post("/beacon/query", json=q)
+                assert rv.status_code == 200
+                valid_data.append(rv.get_json())
+
+                rv = client.get("/beacon/query", query_string=q)
+                assert rv.status_code == 200
+                valid_data.append(rv.get_json())
+
+                for data in valid_data:
+                    validate(data, BEACON_ALLELE_RESPONSE_SCHEMA)
+                    assert not data["exists"]
+                    assert len(data["datasetAlleleResponses"]) == 0
 
             # Test different includeDatasetResponses values
 

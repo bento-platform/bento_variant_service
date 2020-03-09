@@ -9,6 +9,7 @@ from chord_lib.search.queries import (
     and_asts_to_ast,
 
     FUNCTION_RESOLVE,
+    FUNCTION_NOT,
     FUNCTION_LE,
     FUNCTION_GE,
     FUNCTION_EQ
@@ -20,8 +21,9 @@ from jsonschema import validate, ValidationError
 from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
+from chord_variant_service.search import generic_variant_search
 from chord_variant_service.tables.base import TableManager
-from ..search import generic_variant_search
+from chord_variant_service.variants.genotypes import GT_HOMOZYGOUS_REFERENCE
 
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
@@ -186,18 +188,28 @@ def beacon_query():
 
     table_manager: TableManager = current_app.config["TABLE_MANAGER"]
 
-    # Create an additional filtering query based on the rest of the Beacon request
-    rest_of_query = and_asts_to_ast(tuple(
-        convert_query_to_ast([fn, [FUNCTION_RESOLVE, *field], value])
-        for fn, field, value in (
-            (FUNCTION_GE, ("end",), end_min),
-            (FUNCTION_LE, ("end",), end_max),
-            (FUNCTION_EQ, ("ref",), ref),
+    # Create an additional filtering query based on the rest of the Beacon request, plus other filtering we want to do
+    rest_of_query = and_asts_to_ast((
+        *(
+            convert_query_to_ast([fn, [FUNCTION_RESOLVE, *field], value])
+            for fn, field, value in (
+                (FUNCTION_GE, ("end",), end_min),
+                (FUNCTION_LE, ("end",), end_max),
+                (FUNCTION_EQ, ("ref",), ref),
 
-            # One of the two below will be none
-            (FUNCTION_EQ, ("alt", "[item]"), alt_bases),
-            (FUNCTION_EQ, ("alt", "[item]"), alt_id),
-        ) if value is not None
+                # One of the two below will be none
+                (FUNCTION_EQ, ("calls", "[item]", "genotype_bases", "[item]"), alt_bases),
+                # TODO: genotype_bases is a misnomer for structural variants...
+                (FUNCTION_EQ, ("calls", "[item]", "genotype_bases", "[item]"), alt_id),
+            ) if value is not None
+        ),
+
+        # Only want interesting results
+        convert_query_to_ast([FUNCTION_NOT, [
+            FUNCTION_EQ,
+            [FUNCTION_RESOLVE, "calls", "[item]", "genotype_type"],
+            GT_HOMOZYGOUS_REFERENCE
+        ]])
     ))
 
     # noinspection PyTypeChecker

@@ -27,7 +27,7 @@ VARIANT_2 = Variant(
     chromosome="1",
     start_pos=5003,
     ref_bases="C",
-    alt_bases=("T",),
+    alt_bases=("T", "A"),
 )
 
 CALL_2 = Call(variant=VARIANT_2, sample_id="S0001", genotype=(0, 1), phase_set=None)
@@ -38,7 +38,7 @@ VARIANT_3 = Variant(
     chromosome="1",
     start_pos=5003,
     ref_bases="C",
-    alt_bases=("T",),
+    alt_bases=("T", "G"),
 )
 
 VARIANT_3.calls = (Call(variant=VARIANT_3, sample_id="S0001", genotype=(0, 0), phase_set=None),)
