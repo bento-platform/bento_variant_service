@@ -1,4 +1,6 @@
 .coverage
+.idea/chord_variant_service.iml
+.idea/misc.xml
 data/**/.*
 htmlcov/
 env
