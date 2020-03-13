@@ -3,7 +3,7 @@ attrs==19.3.0
 certifi==2019.11.28
 chardet==3.0.4
 chord-lib==0.6.0
-Click==7.0
+click==7.1.1
 codecov==2.0.16
 coverage==5.0.3
 Flask==1.1.1
@@ -14,14 +14,14 @@ Jinja2==2.11.1
 jsonschema==3.2.0
 MarkupSafe==1.1.1
 more-itertools==8.2.0
-packaging==20.1
+packaging==20.3
 pluggy==0.13.1
 psycopg2-binary==2.8.4
 py==1.8.1
 pyparsing==2.4.6
 pyrsistent==0.15.7
 pysam==0.15.4
-pytest==5.3.5
+pytest==5.4.1
 pytest-cov==2.8.1
 redis==3.4.1
 requests==2.23.0
@@ -29,4 +29,4 @@ six==1.14.0
 urllib3==1.25.8
 wcwidth==0.1.8
 Werkzeug==1.0.0
-zipp==3.0.0
+zipp==3.1.0
