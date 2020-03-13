@@ -3,17 +3,16 @@ import os
 import pysam
 import re
 import shutil
-import subprocess
 import uuid
 
 from flask import json
-from pysam import VariantFile
-from typing import Generator, Optional, Tuple
+from typing import Generator, Optional, Set, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDataset
 from chord_variant_service.pool import WORKERS
 from chord_variant_service.tables.base import VariantTable, TableManager
 from chord_variant_service.tables.exceptions import IDGenerationFailure
+from chord_variant_service.tables.vcf_file import VCFFile
 from chord_variant_service.variants.models import Variant, Call
 
 
@@ -29,20 +28,22 @@ REGEX_GENOTYPE_SPLIT = re.compile(r"[|/]")
 VCF_GENOTYPE = "GT"
 
 
-ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
-
 TABLE_NAME_FILE = ".chord_table_name"
 TABLE_METADATA_FILE = ".chord_table_metadata"
 ID_RETRIES = 100
 
 
 class VCFVariantTable(VariantTable):  # pragma: no cover
-    def __init__(self, table_id, name, metadata, assembly_ids=(), files=(), file_metadata: dict = None):
+    def __init__(
+        self,
+        table_id,
+        name,
+        metadata,
+        assembly_ids=(),
+        files: Tuple[VCFFile] = (),
+    ):
         super().__init__(table_id, name, metadata, assembly_ids)
-        # TODO: Redo assembly IDs here
-        self.assembly_ids = set(assembly_ids) if file_metadata is None else \
-            set(fm["assembly_id"] for fm in file_metadata.values())
-        self.file_metadata = file_metadata if file_metadata is not None else {}
+        self.assembly_ids: Set[str] = set(vf.assembly_id for vf in files)
         self.files = files
 
     @property
@@ -53,7 +54,7 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                 table_name=self.name,
                 table_metadata=self.metadata,
                 assembly_id=a,
-                files=tuple(f1 for f1, v in self.file_metadata.items() if v["assembly_id"] == a)
+                files=tuple(vf for vf in self.files if vf.assembly_id == a)
             ) for a in sorted(self.assembly_ids)
         )
 
@@ -79,13 +80,13 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
 
     @property
     def n_of_variants(self) -> int:
-        return sum(v["n_of_variants"] for v in self.file_metadata.values())
+        return sum(vf.n_of_variants for vf in self.files)
 
     @property
     def n_of_samples(self) -> int:
         sample_set = set()
-        for vcf_metadata in self.file_metadata.values():
-            sample_set.update(vcf_metadata["sample_ids"])
+        for vcf in self.files:
+            sample_set.update(vcf.sample_ids)
         return len(sample_set)
 
     def variants(
@@ -107,22 +108,22 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
         # TODO: Optimize offset/count
         #  e.g. by skipping entire VCFs if we know their row counts a-priori
 
-        for vcf, vcf_metadata in filter(lambda fm: assembly_id is None or fm[1]["assembly_id"] == assembly_id,
-                                        self.file_metadata.items()):
+        for vcf in filter(lambda vf: assembly_id is None or vf.assembly_id == assembly_id, self.files):
             if (
                 chromosome is None and  # No filters (otherwise we wouldn't be able to assume we're skipping the VCF)
                 start_min is None and  # "
                 start_max is None and  # "
                 not only_interesting and  # "
-                vcf_metadata["n_of_variants"] < offset - variants_seen
+                vcf.n_of_variants < offset - variants_seen
             ):
                 # If the entire file has less variants than the remaining offset, skip it. This saves time crawling
                 # through an entire VCF if we cannot use any of them.
-                variants_seen += vcf_metadata["n_of_variants"]
+                variants_seen += vcf.n_of_variants
                 continue
 
             try:
-                f = pysam.TabixFile(vcf, parser=pysam.asTuple(), threads=WORKERS)
+                # Parse as a Tabix file instead of a Variant file for performance reasons, and to get rows as tuples.
+                f = pysam.TabixFile(vcf.path, index=vcf.index_path, parser=pysam.asTuple(), threads=WORKERS)
 
                 # TODO: Security of passing this? Verify values in non-Beacon searches
                 # TODO: What if the VCF includes telomeres (off the end)?]
@@ -158,14 +159,14 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                             continue
 
                     variant = Variant(
-                        assembly_id=vcf_metadata["assembly_id"],
+                        assembly_id=vcf.assembly_id,
                         chromosome=row[0],
                         start_pos=int(row[1]),
                         ref_bases=row[3],
                         alt_bases=tuple(row[4].split(",")),
                     )
 
-                    variant.calls = tuple(VCFVariantTable._variant_calls(variant, vcf_metadata["sample_ids"], row,
+                    variant.calls = tuple(VCFVariantTable._variant_calls(variant, vcf.sample_ids, row,
                                                                          only_interesting=only_interesting))
 
                     if only_interesting and len(variant.calls) == 0:
@@ -197,23 +198,8 @@ class VCFTableManager(TableManager):  # pragma: no cover
         return self.beacon_datasets
 
     @staticmethod
-    def _get_assembly_id(vcf_path: str) -> str:
-        vcf = VariantFile(vcf_path)
-        assembly_id = "Other"
-        for h in vcf.header.records:
-            if h.key == ASSEMBLY_ID_VCF_HEADER:
-                assembly_id = h.value
-        return assembly_id
-
-    @staticmethod
-    def _get_sample_ids(vcf_path: str) -> Tuple[str, ...]:
-        vcf = VariantFile(vcf_path)
-        return tuple(vcf.header.samples)
-
-    @staticmethod
-    def _get_vcf_row_count(vcf_path: str) -> int:
-        p = subprocess.Popen(("bcftools", "index", "--nrecords", vcf_path), stdout=subprocess.PIPE)
-        return int(p.stdout.read().strip())  # TODO: Handle error
+    def _get_vcf_file_record(vcf_path: str) -> VCFFile:
+        return VCFFile(vcf_path)
 
     def update_tables(self):
         for d in os.listdir(self.DATA_PATH):
@@ -224,19 +210,15 @@ class VCFTableManager(TableManager):  # pragma: no cover
 
             name_path = os.path.join(table_dir, TABLE_NAME_FILE)
             metadata_path = os.path.join(table_dir, TABLE_METADATA_FILE)
-            vcf_files = tuple(os.path.join(table_dir, file) for file in os.listdir(table_dir)
-                              if file[-6:] == "vcf.gz")
-            assembly_ids = tuple(self._get_assembly_id(vcf_path) for vcf_path in vcf_files)
-            sample_ids = tuple(self._get_sample_ids(vcf_path) for vcf_path in vcf_files)
-            vcf_row_counts = tuple(self._get_vcf_row_count(vcf_path) for vcf_path in vcf_files)
+
+            vcf_files = tuple(self._get_vcf_file_record(os.path.join(table_dir, file))
+                              for file in os.listdir(table_dir))
 
             ds = VCFVariantTable(
                 table_id=d,
                 name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
                 metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
                 files=vcf_files,
-                file_metadata={f: {"assembly_id": a, "sample_ids": s, "n_of_variants": v}
-                               for f, a, s, v in zip(vcf_files, assembly_ids, sample_ids, vcf_row_counts)}
             )
 
             self.tables[d] = ds

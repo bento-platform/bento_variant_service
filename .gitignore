@@ -6,6 +6,7 @@ htmlcov/
 env
 __pycache__
 *.vcf*
+.tox/
 
 # IDE stuff
 .idea/workspace.xml

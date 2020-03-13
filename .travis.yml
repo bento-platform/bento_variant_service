@@ -5,6 +5,6 @@ python:
 install:
   - pip install -r requirements.txt
 script:
-  python3 -m pytest --cov=chord_variant_service --cov-branch
+  python3 -m tox
 after_success:
   - codecov

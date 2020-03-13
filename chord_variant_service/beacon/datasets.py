@@ -1,5 +1,6 @@
 import datetime
 from typing import Tuple
+from chord_variant_service.tables.vcf_file import VCFFile
 
 
 __all__ = [
@@ -13,7 +14,14 @@ def make_beacon_dataset_id(tp: Tuple[str, str]) -> str:
 
 
 class BeaconDataset:
-    def __init__(self, table_id: str, table_name: str, table_metadata: dict, assembly_id: str, files=()):
+    def __init__(
+        self,
+        table_id: str,
+        table_name: str,
+        table_metadata: dict,
+        assembly_id: str,
+        files: Tuple[VCFFile] = ()
+    ):
         self.table_id = table_id
         self.table_name = table_name
         self.table_metadata = table_metadata
