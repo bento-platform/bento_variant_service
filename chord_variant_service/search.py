@@ -1,7 +1,7 @@
 import json
 import re
 
-from chord_lib.responses.flask_errors import *
+from chord_lib.responses import flask_errors
 from chord_lib.search.data_structure import check_ast_against_data_structure
 from chord_lib.search.queries import (
     convert_query_to_ast_and_preprocess,
@@ -242,16 +242,16 @@ def _search_endpoint(internal_data=False):
 
     if request.method == "POST":
         if request.json is None:
-            return flask_bad_request_error("Missing request body")
+            return flask_errors.flask_bad_request_error("Missing request body")
 
         if not isinstance(request.json, dict):
-            return flask_bad_request_error("Request body is not an object")
+            return flask_errors.flask_bad_request_error("Request body is not an object")
 
         if "data_type" not in request.json:
-            return flask_bad_request_error("Missing data type in request body")
+            return flask_errors.flask_bad_request_error("Missing data type in request body")
 
         if "query" not in request.json:
-            return flask_bad_request_error("Missing data type in request body")
+            return flask_errors.flask_bad_request_error("Missing data type in request body")
 
         data_type = request.json["data_type"]
         query = request.json["query"]
@@ -261,15 +261,15 @@ def _search_endpoint(internal_data=False):
         query = request.args.get("query", "").strip()
 
         if data_type == "":
-            return flask_bad_request_error("Missing data type argument")
+            return flask_errors.flask_bad_request_error("Missing data type argument")
 
         if query == "":
-            return flask_bad_request_error("Missing query argument")
+            return flask_errors.flask_bad_request_error("Missing query argument")
 
         try:
             query = json.loads(query)
         except json.decoder.JSONDecodeError:
-            return flask_bad_request_error("Invalid query JSON")
+            return flask_errors.flask_bad_request_error("Invalid query JSON")
 
     return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
                                             data_type,
@@ -296,18 +296,18 @@ def table_search(table_id, internal=False) -> Optional[Response]:
 
     if table is None:
         # TODO: Refresh cache if needed?
-        return flask_not_found_error(f"No table with ID {table_id}")
+        return flask_errors.flask_not_found_error(f"No table with ID {table_id}")
 
     if request.json is None:
-        return flask_bad_request_error("Missing search body")
+        return flask_errors.flask_bad_request_error("Missing search body")
 
     # TODO: Schema for request body
 
     if not isinstance(request.json, dict):
-        return flask_bad_request_error("Search body must be an object")
+        return flask_errors.flask_bad_request_error("Search body must be an object")
 
     if "query" not in request.json:
-        return flask_bad_request_error("Query not included in search body")
+        return flask_errors.flask_bad_request_error("Query not included in search body")
 
     # If it exists in the variant table manager, it's of data type 'variant'
     search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=internal)

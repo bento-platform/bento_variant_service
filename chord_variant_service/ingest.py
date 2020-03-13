@@ -10,7 +10,7 @@ from chord_lib.ingestion import (
     formatted_output,
     make_output_params
 )
-from chord_lib.responses.flask_errors import *
+from chord_lib.responses import flask_errors
 from chord_lib.schemas.chord import CHORD_INGEST_SCHEMA
 from chord_lib.workflows import workflow_exists
 from flask import Blueprint, current_app, request
@@ -79,7 +79,7 @@ def ingest():
         return current_app.response_class(status=204)
 
     except AssertionError:  # TODO: More detailed error messages
-        return flask_bad_request_error("Assertion error")
+        return flask_errors.flask_bad_request_error("Assertion error")
 
     except (ValidationError, ValueError):  # UUID, or JSON schema failure TODO: More detailed error messages
-        return flask_bad_request_error("Validation error")
+        return flask_errors.flask_bad_request_error("Validation error")

@@ -1,7 +1,7 @@
 import chord_variant_service
 import os
 
-from chord_lib.responses.flask_errors import *
+from chord_lib.responses import flask_errors
 from flask import Flask, jsonify
 from werkzeug.exceptions import BadRequest, NotFound
 
@@ -35,10 +35,15 @@ application.register_blueprint(bp_workflows)
 
 
 # Generic catch-all
-application.register_error_handler(Exception, flask_error_wrap_with_traceback(flask_internal_server_error,
-                                                                              service_name=SERVICE_NAME))
-application.register_error_handler(BadRequest, flask_error_wrap(flask_bad_request_error))
-application.register_error_handler(NotFound, flask_error_wrap(flask_not_found_error))
+application.register_error_handler(
+    Exception,
+    flask_errors.flask_error_wrap_with_traceback(
+        flask_errors.flask_internal_server_error,
+        service_name=SERVICE_NAME
+    )
+)
+application.register_error_handler(BadRequest, flask_errors.flask_error_wrap(flask_errors.flask_bad_request_error))
+application.register_error_handler(NotFound, flask_errors.flask_error_wrap(flask_errors.flask_not_found_error))
 
 
 @application.teardown_appcontext
