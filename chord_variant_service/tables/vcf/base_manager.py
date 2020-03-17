@@ -6,7 +6,7 @@ import uuid
 
 from collections import namedtuple
 from flask import json
-from typing import Dict, Generator, Optional
+from typing import Dict, Sequence, Optional
 
 from chord_variant_service.beacon.datasets import BeaconDatasetIDTuple, BeaconDataset
 from chord_variant_service.tables.base import TableManager
@@ -30,15 +30,15 @@ ID_RETRIES = 100
 VCFTableFolder = namedtuple("VCFTableFolder", ("id", "dir", "name", "metadata"))
 
 
-class BaseVCFTableManager(abc.ABC, TableManager):  # pragma: no cover
+class BaseVCFTableManager(TableManager, abc.ABC):  # pragma: no cover
     def __init__(self, data_path: str):
         self._DATA_PATH = data_path
         self._tables: Dict[str, VCFVariantTable] = {}
         self._beacon_datasets: Dict[BeaconDatasetIDTuple, BeaconDataset] = {}
 
     @staticmethod
-    def get_vcf_file_record(vcf_path: str) -> VCFFile:
-        return VCFFile(vcf_path)
+    def get_vcf_file_record(vcf_path: str, index_path: Optional[str] = None) -> VCFFile:
+        return VCFFile(vcf_path, index_path)
 
     def get_table(self, table_id: str) -> Optional[dict]:
         return self._tables.get(table_id, None)
@@ -59,7 +59,7 @@ class BaseVCFTableManager(abc.ABC, TableManager):  # pragma: no cover
         return None if i == ID_RETRIES else new_id
 
     @property
-    def table_folders(self) -> Generator[VCFTableFolder]:
+    def table_folders(self) -> Sequence[VCFTableFolder]:
         for t in os.listdir(self._DATA_PATH):
             table_dir = os.path.join(self._DATA_PATH, t)
 

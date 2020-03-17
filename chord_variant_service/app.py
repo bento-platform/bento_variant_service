@@ -9,7 +9,7 @@ from chord_variant_service.ingest import bp_ingest
 from chord_variant_service.pool import teardown_pool
 from chord_variant_service.search import bp_chord_search
 from chord_variant_service.tables.routes import bp_tables
-from chord_variant_service.tables.vcf import VCFTableManager
+from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
 from chord_variant_service.workflows import bp_workflows
 
 

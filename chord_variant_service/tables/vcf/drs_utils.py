@@ -4,9 +4,16 @@ import requests
 import requests_unixsocket
 import sys
 
-from ..constants import CHORD_URL, SERVICE_NAME
 from typing import Dict, Optional, Tuple
 from urllib.parse import quote, urlparse
+
+from chord_variant_service.constants import CHORD_URL, SERVICE_NAME
+
+
+__all__ = [
+    "DRS_DATA_SCHEMA",
+    "drs_vcf_to_internal_paths",
+]
 
 
 # Monkey-patch in socket request support to query DRS internally
@@ -20,6 +27,20 @@ OptionalHeaders = Optional[Dict[str, str]]
 HTTP_PATTERN = re.compile(r"^https?")
 NGINX_INTERNAL_SOCKET = quote(os.environ.get("NGINX_INTERNAL_SOCKET", "/chord/tmp/nginx_internal.sock"), safe="")
 UNIX_DRS_REQUEST_TEMPLATE = f"http+unix://{NGINX_INTERNAL_SOCKET}/api/drs"
+
+
+DRS_DATA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "data": {
+            "type": "string"
+        },
+        "index": {
+            "type": "string"
+        }
+    },
+    "required": ["data", "index"]
+}
 
 
 def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:
