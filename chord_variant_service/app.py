@@ -1,23 +1,16 @@
-import chord_variant_service
-import os
-
 from chord_lib.responses import flask_errors
 from flask import Flask, jsonify
 from werkzeug.exceptions import BadRequest, NotFound
 
+from chord_variant_service import __version__
 from chord_variant_service.beacon.routes import bp_beacon
-from chord_variant_service.constants import DATA_PATH
+from chord_variant_service.constants import DATA_PATH, SERVICE_NAME, SERVICE_TYPE, SERVICE_ID
 from chord_variant_service.ingest import bp_ingest
 from chord_variant_service.pool import teardown_pool
 from chord_variant_service.search import bp_chord_search
 from chord_variant_service.tables.routes import bp_tables
 from chord_variant_service.tables.vcf import VCFTableManager
 from chord_variant_service.workflows import bp_workflows
-
-
-SERVICE_NAME = "CHORD Variant Service"
-SERVICE_TYPE = "ca.c3g.chord:variant:{}".format(chord_variant_service.__version__)
-SERVICE_ID = os.environ.get("SERVICE_ID", SERVICE_TYPE)
 
 
 application = Flask(__name__)
@@ -65,5 +58,5 @@ def service_info():
             "url": "http://c3g.ca"
         },
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
-        "version": chord_variant_service.__version__
+        "version": __version__
     })
