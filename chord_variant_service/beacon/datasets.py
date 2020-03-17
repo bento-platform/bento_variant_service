@@ -4,12 +4,16 @@ from chord_variant_service.tables.vcf_file import VCFFile
 
 
 __all__ = [
+    "BeaconDatasetIDTuple",
     "make_beacon_dataset_id",
     "BeaconDataset",
 ]
 
 
-def make_beacon_dataset_id(tp: Tuple[str, str]) -> str:
+BeaconDatasetIDTuple = Tuple[str, str]
+
+
+def make_beacon_dataset_id(tp: BeaconDatasetIDTuple) -> str:
     return f"{tp[0]}:{tp[1]}"
 
 
@@ -29,18 +33,18 @@ class BeaconDataset:
         self.files = files
 
     @property
-    def beacon_id_tuple(self):
+    def beacon_id_tuple(self) -> BeaconDatasetIDTuple:
         return self.table_id, self.assembly_id
 
     @property
-    def beacon_id(self):
+    def beacon_id(self) -> str:
         return make_beacon_dataset_id(self.beacon_id_tuple)
 
     @property
-    def beacon_name(self):
+    def beacon_name(self) -> str:
         return f"{self.table_name} ({self.assembly_id})"
 
-    def as_beacon_dataset_response(self):
+    def as_beacon_dataset_response(self) -> dict:
         return {
             "id": self.beacon_id,
             "name": self.beacon_name,
