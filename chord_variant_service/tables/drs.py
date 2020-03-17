@@ -22,6 +22,10 @@ NGINX_INTERNAL_SOCKET = quote(os.environ.get("NGINX_INTERNAL_SOCKET", "/chord/tm
 UNIX_DRS_REQUEST_TEMPLATE = f"http+unix://{NGINX_INTERNAL_SOCKET}/api/drs"
 
 
+def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:
+    return next((a for a in drs_object_record.get("access_methods", []) if a.get("type", None) == "file"), None)
+
+
 def drs_vcf_to_internal_paths(
     vcf_url: str,
     index_url: str,
@@ -51,18 +55,16 @@ def drs_vcf_to_internal_paths(
         return None
 
     # TODO: Handle JSON parse errors
-    vcf_data = vcf_res.json()
-    idx_data = idx_res.json()
-
-    vcf_access = next((a for a in vcf_data.get("access_methods", []) if a.get("type", None) == "file"), None)
-    idx_access = next((a for a in idx_data.get("access_methods", []) if a.get("type", None) == "file"), None)
-
-    vcf_path = vcf_access.get("access_url", {}).get("url", None)
-    idx_path = idx_access.get("access_url", {}).get("url", None)
-
-    if vcf_path is None or idx_path is None:
+    vcf_access = _get_file_access_method_if_any(vcf_res.json())
+    idx_access = _get_file_access_method_if_any(idx_res.json())
+    
+    if vcf_access is None or idx_access is None:
         print(f"[{SERVICE_NAME}] Could not find access data for: '{vcf_url}' or '{index_url}'",
               file=sys.stderr, flush=True)
+        return None
+
+    vcf_path = vcf_access["access_url"]["url"]
+    idx_path = idx_access["access_url"]["url"]
 
     return (
         str(vcf_path).replace("file://", ""),  # TODO: Leave this here?
