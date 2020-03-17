@@ -5,8 +5,8 @@ certifi==2019.11.28
 chardet==3.0.4
 chord-lib==0.6.0
 click==7.1.1
-codecov==2.0.16
-coverage==5.0.3
+codecov==2.0.17
+coverage==5.0.4
 distlib==0.3.0
 entrypoints==0.3
 filelock==3.0.12
