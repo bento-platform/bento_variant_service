@@ -57,7 +57,7 @@ def drs_vcf_to_internal_paths(
     # TODO: Handle JSON parse errors
     vcf_access = _get_file_access_method_if_any(vcf_res.json())
     idx_access = _get_file_access_method_if_any(idx_res.json())
-    
+
     if vcf_access is None or idx_access is None:
         print(f"[{SERVICE_NAME}] Could not find access data for: '{vcf_url}' or '{index_url}'",
               file=sys.stderr, flush=True)
