@@ -1,9 +1,40 @@
 import pytest
 
+from flask import g
+
 from chord_variant_service.tables.exceptions import IDGenerationFailure
 from chord_variant_service.tables.memory import MemoryVariantTable, MemoryTableManager
+from chord_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
+from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from chord_variant_service.table_manager import (
+    MANAGER_TYPE_DRS,
+    MANAGER_TYPE_MEMORY,
+    MANAGER_TYPE_VCF,
+    create_table_manager_of_type,
+    clear_table_manager,
+)
 from chord_variant_service.variants.models import Variant
 from .shared_data import VARIANT_1
+
+
+def test_table_manage_creation():
+    m = create_table_manager_of_type(MANAGER_TYPE_DRS)
+    assert isinstance(m, DRSVCFTableManager)
+
+    m = create_table_manager_of_type(MANAGER_TYPE_MEMORY)
+    assert isinstance(m, MemoryTableManager)
+
+    m = create_table_manager_of_type(MANAGER_TYPE_VCF)
+    assert isinstance(m, VCFTableManager)
+
+    m = create_table_manager_of_type("garbage")
+    assert m is None
+
+
+def test_table_manager_up_down(table_manager):
+    assert isinstance(table_manager, MemoryTableManager)
+    clear_table_manager(None)
+    assert "table_manager" not in g
 
 
 def test_memory_table_manager():

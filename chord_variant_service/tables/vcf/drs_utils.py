@@ -43,14 +43,14 @@ DRS_DATA_SCHEMA = {
 }
 
 
-def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:
+def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:  # pragma: no cover
     return next((a for a in drs_object_record.get("access_methods", []) if a.get("type", None) == "file"), None)
 
 
 def drs_vcf_to_internal_paths(
     vcf_url: str,
     index_url: str,
-) -> Optional[Tuple[str, str, OptionalHeaders, OptionalHeaders]]:
+) -> Optional[Tuple[str, str, OptionalHeaders, OptionalHeaders]]:  # pragma: no cover
     parsed_vcf_url = urlparse(vcf_url)
     parsed_index_url = urlparse(index_url)
 

@@ -12,7 +12,7 @@ __all__ = [
 ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
 
 
-class VCFFile:
+class VCFFile:  # pragma: no cover
     def __init__(self, vcf_path: str, index_path: Optional[str] = None):
         vcf = VariantFile(vcf_path, index_path=index_path)
 
