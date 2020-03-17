@@ -1,3 +1,4 @@
+import abc
 import datetime
 import os
 import pysam
@@ -5,10 +6,11 @@ import re
 import shutil
 import uuid
 
+from collections import namedtuple
 from flask import json
-from typing import Generator, Optional, Set, Tuple
+from typing import Dict, Generator, Optional, Set, Tuple
 
-from chord_variant_service.beacon.datasets import BeaconDataset
+from chord_variant_service.beacon.datasets import BeaconDatasetIDTuple, BeaconDataset
 from chord_variant_service.pool import WORKERS
 from chord_variant_service.tables.base import VariantTable, TableManager
 from chord_variant_service.tables.exceptions import IDGenerationFailure
@@ -182,28 +184,42 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                 continue
 
 
-class VCFTableManager(TableManager):  # pragma: no cover
+# TODO: Data class
+VCFTableFolder = namedtuple("VCFTableFolder", ("id", "dir", "name", "metadata"))
+
+
+class BaseVCFTableManager(abc.ABC, TableManager):  # pragma: no cover
     def __init__(self, data_path: str):
-        self.DATA_PATH = data_path
-        self.tables = {}
-        self.beacon_datasets = {}
-
-    def get_table(self, table_id: str) -> Optional[dict]:
-        return self.tables.get(table_id, None)
-
-    def get_tables(self) -> dict:
-        return self.tables
-
-    def get_beacon_datasets(self) -> dict:
-        return self.beacon_datasets
+        self._DATA_PATH = data_path
+        self._tables: Dict[str, VCFVariantTable] = {}
+        self._beacon_datasets: Dict[BeaconDatasetIDTuple, BeaconDataset] = {}
 
     @staticmethod
-    def _get_vcf_file_record(vcf_path: str) -> VCFFile:
+    def get_vcf_file_record(vcf_path: str) -> VCFFile:
         return VCFFile(vcf_path)
 
-    def update_tables(self):
-        for d in os.listdir(self.DATA_PATH):
-            table_dir = os.path.join(self.DATA_PATH, d)
+    def get_table(self, table_id: str) -> Optional[dict]:
+        return self._tables.get(table_id, None)
+
+    def get_tables(self) -> dict:
+        return self._tables
+
+    def get_beacon_datasets(self) -> Dict[BeaconDatasetIDTuple, BeaconDataset]:
+        return self._beacon_datasets
+
+    def _generate_table_id(self) -> Optional[str]:
+        new_id = str(uuid.uuid4())
+        i = 0
+        while new_id in self._tables and i < ID_RETRIES:
+            new_id = str(uuid.uuid4())
+            i += 1
+
+        return None if i == ID_RETRIES else new_id
+
+    @property
+    def table_folders(self) -> Generator[VCFTableFolder]:
+        for t in os.listdir(self._DATA_PATH):
+            table_dir = os.path.join(self._DATA_PATH, t)
 
             if not os.path.isdir(table_dir):
                 continue
@@ -211,40 +227,31 @@ class VCFTableManager(TableManager):  # pragma: no cover
             name_path = os.path.join(table_dir, TABLE_NAME_FILE)
             metadata_path = os.path.join(table_dir, TABLE_METADATA_FILE)
 
-            vcf_files = tuple(self._get_vcf_file_record(os.path.join(table_dir, file))
-                              for file in os.listdir(table_dir))
+            name = None
+            if os.path.exists(name_path):
+                with open(name_path) as nf:
+                    name = nf.read().strip()
 
-            ds = VCFVariantTable(
-                table_id=d,
-                name=open(name_path, "r").read().strip() if os.path.exists(name_path) else None,
-                metadata=(json.load(open(metadata_path, "r")) if os.path.exists(metadata_path) else {}),
-                files=vcf_files,
-            )
+            metadata = {}
+            if os.path.exists(metadata_path):
+                with open(metadata_path) as mf:
+                    metadata = json.load(mf)
 
-            self.tables[d] = ds
-            for bd in ds.beacon_datasets:
-                self.beacon_datasets[bd.beacon_id_tuple] = bd
-
-    def _generate_table_id(self) -> Optional[str]:
-        new_id = str(uuid.uuid4())
-        i = 0
-        while new_id in self.tables and i < ID_RETRIES:
-            new_id = str(uuid.uuid4())
-            i += 1
-
-        return None if i == ID_RETRIES else new_id
+            yield VCFTableFolder(id=t, dir=table_dir, name=name, metadata=metadata)
 
     def create_table_and_update(self, name: str, metadata: dict) -> VCFVariantTable:
         table_id = self._generate_table_id()
         if table_id is None:
             raise IDGenerationFailure()
 
-        os.makedirs(os.path.join(self.DATA_PATH, table_id))
+        table_path = os.path.join(self._DATA_PATH, table_id)
 
-        with open(os.path.join(self.DATA_PATH, table_id, TABLE_NAME_FILE), "w") as nf:
+        os.makedirs(table_path)
+
+        with open(os.path.join(table_path, TABLE_NAME_FILE), "w") as nf:
             nf.write(name)
 
-        with open(os.path.join(self.DATA_PATH, table_id, TABLE_METADATA_FILE), "w") as nf:
+        with open(os.path.join(table_path, TABLE_METADATA_FILE), "w") as nf:
             now = datetime.datetime.utcnow().isoformat() + "Z"
             json.dump({
                 "name": name,
@@ -255,8 +262,30 @@ class VCFTableManager(TableManager):  # pragma: no cover
 
         self.update_tables()
 
-        return self.tables[table_id]  # TODO: Handle KeyError (i.e. something wrong somewhere...)
+        return self._tables[table_id]  # TODO: Handle KeyError (i.e. something wrong somewhere...)
 
     def delete_table_and_update(self, table_id: str):
-        shutil.rmtree(os.path.join(self.DATA_PATH, str(table_id)))
+        shutil.rmtree(os.path.join(self._DATA_PATH, str(table_id)))
         self.update_tables()
+
+    @abc.abstractmethod
+    def update_tables(self):
+        pass
+
+
+class VCFTableManager(BaseVCFTableManager):  # pragma: no cover
+    def update_tables(self):
+        for t in self.table_folders:
+            vcf_files = tuple(BaseVCFTableManager.get_vcf_file_record(os.path.join(t.dir, file))
+                              for file in os.listdir(t.dir))
+
+            table = VCFVariantTable(
+                table_id=t.id,
+                name=t.name,
+                metadata=t.metadata,
+                files=vcf_files,
+            )
+
+            self._tables[t] = table
+            for bd in table.beacon_datasets:
+                self._beacon_datasets[bd.beacon_id_tuple] = bd
