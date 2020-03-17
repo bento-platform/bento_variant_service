@@ -17,6 +17,7 @@ from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 
 from chord_variant_service.constants import DATA_PATH
+from chord_variant_service.table_manager import get_table_manager
 from chord_variant_service.workflows import WORKFLOWS
 
 
@@ -32,7 +33,7 @@ def ingest():
 
         table_id = request.json["table_id"]
 
-        assert table_id in current_app.config["TABLE_MANAGER"].get_tables()
+        assert table_id in get_table_manager().get_tables()
 
         workflow_id = request.json["workflow_id"].strip()
         workflow_metadata = request.json["workflow_metadata"]
@@ -74,7 +75,7 @@ def ingest():
             # Move the file from its temporary location to its location in the service's data folder.
             shutil.move(tmp_file_path, file_path)
 
-        current_app.config["TABLE_MANAGER"].update_tables()
+        get_table_manager().update_tables()
 
         return current_app.response_class(status=204)
 

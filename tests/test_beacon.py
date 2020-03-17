@@ -2,6 +2,7 @@
 from chord_variant_service.beacon.routes import generate_beacon_id
 from chord_variant_service.beacon.datasets import make_beacon_dataset_id
 from chord_variant_service.pool import get_pool, teardown_pool
+from chord_variant_service.tables.memory import MemoryTableManager
 from jsonschema import validate
 from uuid import uuid4
 
@@ -330,14 +331,14 @@ def test_make_beacon_dataset_id():
     assert make_beacon_dataset_id((some_id, "GRCh37")) == f"{some_id}:GRCh37"
 
 
-def test_beacon_response(app, client):
+def test_beacon_response(app, client, table_manager):
     # Add a dummy dataset first (beacon API needs one or more datasets)
 
     with app.app_context():
         pool = get_pool()
 
         try:
-            mm = app.config["TABLE_MANAGER"]
+            mm: MemoryTableManager = table_manager
 
             # Create a new dataset with ID fixed_id and name test table, and add a variant to it
             ds = mm.create_table_and_update("test table", {})

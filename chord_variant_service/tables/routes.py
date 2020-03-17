@@ -8,6 +8,7 @@ from jsonschema import validate, ValidationError
 from chord_variant_service.tables.base import TableManager
 from chord_variant_service.tables.vcf.table import VCFVariantTable
 from chord_variant_service.tables.exceptions import IDGenerationFailure
+from chord_variant_service.table_manager import get_table_manager
 from chord_variant_service.variants.schemas import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
 
@@ -32,7 +33,7 @@ def table_list():
     if "variant" not in dt or len(dt) != 1:
         return flask_errors.flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
 
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
@@ -75,7 +76,7 @@ def table_list():
 @bp_tables.route("/tables/<string:table_id>", methods=["GET", "DELETE"])
 @flask_permissions({"DELETE": {"owner"}})
 def table_detail(table_id):
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
     table = table_manager.get_table(table_id)
 
     if table is None:
@@ -93,7 +94,7 @@ def table_detail(table_id):
 @bp_tables.route("/tables/<string:table_id>/summary", methods=["GET"])
 @flask_permissions_owner
 def table_summary(table_id):
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
     table = table_manager.get_table(table_id)
 
     if table is None:
@@ -114,7 +115,7 @@ def table_summary(table_id):
 @bp_tables.route("/private/tables/<string:table_id>/data", methods=["GET"])
 @bp_tables.route("/private/tables/<string:table_id>/variants", methods=["GET"])
 def table_data(table_id):
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
     table = table_manager.get_table(table_id)
 
     if table is None:
@@ -169,7 +170,6 @@ def table_data(table_id):
 @bp_tables.route("/data-types", methods=["GET"])
 def data_type_list():
     # Data types are basically stand-ins for schema blocks
-
     return jsonify([{
         "id": "variant",
         "schema": VARIANT_SCHEMA,

@@ -20,12 +20,13 @@ from chord_lib.search.queries import (
     FUNCTION_RESOLVE
 )
 from datetime import datetime
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from typing import Any, Callable, List, Iterable, Optional, Tuple
 from werkzeug import Response
 
 from chord_variant_service.pool import get_pool, teardown_pool
 from chord_variant_service.tables.base import VariantTable, TableManager
+from chord_variant_service.table_manager import get_table_manager
 from chord_variant_service.variants.schemas import VARIANT_SCHEMA
 
 
@@ -271,10 +272,7 @@ def _search_endpoint(internal_data=False):
         except json.decoder.JSONDecodeError:
             return flask_errors.flask_bad_request_error("Invalid query JSON")
 
-    return jsonify({"results": chord_search(current_app.config["TABLE_MANAGER"],
-                                            data_type,
-                                            query,
-                                            internal_data=internal_data)})
+    return jsonify({"results": chord_search(get_table_manager(), data_type, query, internal_data=internal_data)})
 
 
 @bp_chord_search.route("/search", methods=["GET", "POST"])
@@ -292,7 +290,7 @@ def private_search_endpoint():
 
 
 def table_search(table_id, internal=False) -> Optional[Response]:
-    table = current_app.config["TABLE_MANAGER"].get_table(table_id)
+    table = get_table_manager().get_table(table_id)
 
     if table is None:
         # TODO: Refresh cache if needed?
@@ -310,7 +308,7 @@ def table_search(table_id, internal=False) -> Optional[Response]:
         return flask_errors.flask_bad_request_error("Query not included in search body")
 
     # If it exists in the variant table manager, it's of data type 'variant'
-    search = chord_search(current_app.config["TABLE_MANAGER"], "variant", request.json["query"], internal_data=internal)
+    search = chord_search(get_table_manager(), "variant", request.json["query"], internal_data=internal)
 
     if internal:
         return jsonify({"results": search.get(table_id, {}).get("matches", [])})

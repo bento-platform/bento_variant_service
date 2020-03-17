@@ -1,6 +1,8 @@
 import json
 
 from chord_variant_service.pool import get_pool, teardown_pool
+from chord_variant_service.tables.memory import MemoryTableManager
+
 from .shared_data import VARIANT_1, VARIANT_4, VARIANT_5
 
 
@@ -65,12 +67,12 @@ TEST_PRIVATE_QUERIES = (
 )
 
 
-def test_chord_variant_search(app, client):
+def test_chord_variant_search(app, client, table_manager):
     with app.app_context():
         pool = get_pool()
 
         try:
-            mm = app.config["TABLE_MANAGER"]
+            mm: MemoryTableManager = table_manager
 
             # Create a new table with ID fixed_id and name test
             table = mm.create_table_and_update("test", {})

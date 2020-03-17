@@ -46,12 +46,22 @@ All **other** endpoints use **1-based** coordinates with **half-open** ranges.
 Default values for environment variables are listed on the right-hand side.
 
 ```bash
+TABLE_MANAGER=drs
 SERVICE_ID=ca.c3g.chord:variant:VERSION
 DATA=/path/to/data/directory
 CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
 ```
 
 ### Notes
+
+  * `TABLE_MANAGER` is used to specify how data will be stored in the service
+    instance, and what types of data files the service will look for in the
+    `DATA` folder. The available options are:
+       * `drs`: expects data as Data Repository Service (DRS) object links to
+         `.vcf.gz` and `.vcf.gz.tbi` files
+       * `memory`: stores data in memory for the duration of the service's
+         process uptime
+       * `vcf`: expects data as `.vcf.gz` and `.vcf.gz.tbi` files directly
 
   * If left unset, `SERVICE_ID` will default to `ca.c3g.chord:variant:VERSION`,
     where `VERSION` is the current version of the service package.

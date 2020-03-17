@@ -1,7 +1,10 @@
 import json
-from chord_variant_service.variants.schemas import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
+
 from jsonschema import validate
 from typing import Optional, Tuple
+
+from chord_variant_service.tables.memory import MemoryTableManager
+from chord_variant_service.variants.schemas import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
 
 from .shared_data import VARIANT_1, VARIANT_2, VARIANT_3
 
@@ -91,8 +94,8 @@ def test_table_detail(client):
     assert rv.status_code == 404
 
 
-def test_table_summary(app, client):
-    mm = app.config["TABLE_MANAGER"]
+def test_table_summary(client, table_manager):
+    mm: MemoryTableManager = table_manager
 
     # Create a new table with ID fixed_id and name test
     table = mm.create_table_and_update("test", {})
@@ -114,8 +117,8 @@ def test_table_summary(app, client):
     }, sort_keys=True)
 
 
-def test_table_data(app, client):
-    mm = app.config["TABLE_MANAGER"]
+def test_table_data(client, table_manager):
+    mm: MemoryTableManager = table_manager
 
     # Create a new table with ID fixed_id and name test
     table = mm.create_table_and_update("test", {})
@@ -166,8 +169,8 @@ QUERY_STRINGS_AND_RESULTS: Tuple[Tuple[dict, int, Optional[Tuple[bool, bool, lis
 )
 
 
-def test_table_data_pagination(app, client):
-    mm = app.config["TABLE_MANAGER"]
+def test_table_data_pagination(client, table_manager):
+    mm: MemoryTableManager = table_manager
 
     # Create a new table with ID fixed_id and name test
     table = mm.create_table_and_update("test", {})

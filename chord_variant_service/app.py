@@ -1,24 +1,24 @@
+import os
+
 from chord_lib.responses import flask_errors
 from flask import Flask, jsonify
 from werkzeug.exceptions import BadRequest, NotFound
 
 from chord_variant_service import __version__
 from chord_variant_service.beacon.routes import bp_beacon
-from chord_variant_service.constants import DATA_PATH, SERVICE_NAME, SERVICE_TYPE, SERVICE_ID
+from chord_variant_service.constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ID
 from chord_variant_service.ingest import bp_ingest
 from chord_variant_service.pool import teardown_pool
 from chord_variant_service.search import bp_chord_search
 from chord_variant_service.tables.routes import bp_tables
-from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from chord_variant_service.table_manager import get_table_manager, clear_table_manager
 from chord_variant_service.workflows import bp_workflows
 
 
 application = Flask(__name__)
-
-# TODO: How to share this across processes?
-table_manager = VCFTableManager(DATA_PATH)
-application.config["TABLE_MANAGER"] = table_manager  # TODO: This is wrong
-table_manager.update_tables()
+application.config.from_mapping(
+    TABLE_MANAGER=os.environ.get("TABLE_MANAGER", "vcf")  # Options: drs, memory, vcf
+)
 
 application.register_blueprint(bp_beacon)
 application.register_blueprint(bp_chord_search)
@@ -39,15 +39,20 @@ application.register_error_handler(BadRequest, flask_errors.flask_error_wrap(fla
 application.register_error_handler(NotFound, flask_errors.flask_error_wrap(flask_errors.flask_not_found_error))
 
 
+with application.app_context():
+    # Force eager initialization of table manager
+    get_table_manager()
+
+
 @application.teardown_appcontext
-def app_teardown_pool(err):
+def app_teardown(err):
     teardown_pool(err)
+    clear_table_manager(err)
 
 
 @application.route("/service-info", methods=["GET"])
 def service_info():
     # Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-
     return jsonify({
         "id": SERVICE_ID,
         "name": SERVICE_NAME,

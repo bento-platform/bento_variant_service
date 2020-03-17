@@ -2,15 +2,25 @@ import json
 import pytest
 import requests
 
+from chord_variant_service import table_manager as tm
 from chord_variant_service.app import application
-from chord_variant_service.tables.memory import MemoryTableManager
 
 
 @pytest.fixture
 def app():
     application.config["TESTING"] = True
-    application.config["TABLE_MANAGER"] = MemoryTableManager()
+    application.config["TABLE_MANAGER"] = "memory"
+    with application.app_context():
+        tm._table_manager = None
+        tm.get_table_manager()
     yield application
+
+
+@pytest.fixture()
+def table_manager():
+    with application.app_context():
+        tm._table_manager = None
+        yield tm.get_table_manager()
 
 
 @pytest.fixture
