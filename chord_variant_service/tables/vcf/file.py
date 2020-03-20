@@ -14,7 +14,7 @@ ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
 
 class VCFFile:  # pragma: no cover
     def __init__(self, vcf_path: str, index_path: Optional[str] = None):
-        vcf = VariantFile(vcf_path, index_path=index_path)
+        vcf = VariantFile(vcf_path, index_filename=index_path)
 
         # Store path for later opening
         self._path: str = vcf_path

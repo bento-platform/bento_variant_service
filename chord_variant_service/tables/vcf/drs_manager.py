@@ -41,6 +41,6 @@ class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
                 files=tuple(vcf_files),
             )
 
-            self._tables[t] = table
+            self._tables[t.id] = table
             for bd in table.beacon_datasets:
                 self._beacon_datasets[bd.beacon_id_tuple] = bd
