@@ -114,5 +114,12 @@ class BaseVCFTableManager(TableManager, abc.ABC):
         self.update_tables()
 
     @abc.abstractmethod
-    def update_tables(self):
+    def _update_tables(self):
         pass
+
+    def update_tables(self):
+        # Clear existing tables so that any removed tables aren't present in memory
+        self._tables = {}
+
+        # Call data storage type-specific clearing method
+        self._update_tables()

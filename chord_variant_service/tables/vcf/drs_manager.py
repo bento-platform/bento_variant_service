@@ -11,7 +11,7 @@ from chord_variant_service.tables.vcf.table import VCFVariantTable
 
 
 class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
-    def update_tables(self):
+    def _update_tables(self):
         for t in self.table_folders:
             vcf_files = []
 
