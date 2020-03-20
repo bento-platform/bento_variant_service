@@ -30,20 +30,23 @@ ID_RETRIES = 100
 VCFTableFolder = namedtuple("VCFTableFolder", ("id", "dir", "name", "metadata"))
 
 
-class BaseVCFTableManager(TableManager, abc.ABC):  # pragma: no cover
+TableDict = Dict[str, VCFVariantTable]
+
+
+class BaseVCFTableManager(TableManager, abc.ABC):
     def __init__(self, data_path: str):
         self._DATA_PATH = data_path
-        self._tables: Dict[str, VCFVariantTable] = {}
+        self._tables: TableDict = {}
         self._beacon_datasets: Dict[BeaconDatasetIDTuple, BeaconDataset] = {}
 
     @staticmethod
     def get_vcf_file_record(vcf_path: str, index_path: Optional[str] = None) -> VCFFile:
         return VCFFile(vcf_path, index_path)
 
-    def get_table(self, table_id: str) -> Optional[dict]:
+    def get_table(self, table_id: str) -> Optional[VCFVariantTable]:
         return self._tables.get(table_id, None)
 
-    def get_tables(self) -> dict:
+    def get_tables(self) -> TableDict:
         return self._tables
 
     def get_beacon_datasets(self) -> Dict[BeaconDatasetIDTuple, BeaconDataset]:
