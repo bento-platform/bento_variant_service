@@ -14,7 +14,7 @@ REGEX_GENOTYPE_SPLIT = re.compile(r"[|/]")
 VCF_GENOTYPE = "GT"
 
 
-class VCFVariantTable(VariantTable):  # pragma: no cover
+class VCFVariantTable(VariantTable):
     def __init__(
         self,
         table_id,
@@ -95,10 +95,10 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                 start_min is None and  # "
                 start_max is None and  # "
                 not only_interesting and  # "
-                vcf.n_of_variants < offset - variants_seen
+                vcf.n_of_variants <= offset - variants_seen
             ):
-                # If the entire file has less variants than the remaining offset, skip it. This saves time crawling
-                # through an entire VCF if we cannot use any of them.
+                # If the entire file is covered by the remaining offset, skip it. This saves time crawling through an
+                # entire VCF if we cannot use any of them.
                 variants_seen += vcf.n_of_variants
                 continue
 

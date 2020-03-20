@@ -1,8 +1,7 @@
 import os
 from chord_variant_service.tables.vcf.file import VCFFile
 
-
-VCF_FILE_PATH = os.path.join(os.path.dirname(__file__), "data", "one_variant_22.vcf.gz")
+from .shared_data import VCF_FILE_PATH
 
 
 def test_vcf_file():

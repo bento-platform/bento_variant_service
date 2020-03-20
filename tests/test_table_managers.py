@@ -1,4 +1,6 @@
+import os
 import pytest
+import shutil
 
 from flask import g
 
@@ -14,7 +16,7 @@ from chord_variant_service.table_manager import (
     clear_table_manager,
 )
 from chord_variant_service.variants.models import Variant
-from .shared_data import VARIANT_1
+from .shared_data import VCF_FILE_PATH, VCF_INDEX_FILE_PATH, VARIANT_1
 
 
 def test_table_manage_creation():
@@ -101,3 +103,30 @@ def test_memory_table_manager():
     mm.delete_table_and_update("fixed_id")
 
     assert mm.get_table("fixed_id") is None
+
+
+def test_vcf_table_manager(tmpdir):
+    data_path = tmpdir / "data"
+    data_path.mkdir()
+    vm = VCFTableManager(data_path=str(data_path))
+
+    t1 = vm.create_table_and_update("test", {})
+    assert vm.get_table(t1.table_id) is not None
+
+    shutil.copyfile(VCF_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz"))
+    shutil.copyfile(VCF_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz.tbi"))
+    vm.update_tables()
+
+    assert vm.get_table(t1.table_id).n_of_variants == 1
+    assert vm.get_table(t1.table_id).n_of_samples == 835
+
+    assert len(vm.get_table(t1.table_id).files) == 1
+
+    assert len(tuple(vm.get_table(t1.table_id).variants())) == 1
+    assert len(tuple(vm.get_table(t1.table_id).variants(chromosome="22"))) == 1
+    assert len(tuple(vm.get_table(t1.table_id).variants(chromosome="21"))) == 0
+    assert len(tuple(vm.get_table(t1.table_id).variants(offset=1))) == 0
+    # TODO: Test that VCF is ingested better
+
+    vm.delete_table_and_update(t1.table_id)
+    assert vm.get_table(t1.table_id) is None

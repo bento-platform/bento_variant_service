@@ -1,6 +1,10 @@
+import os
 from chord_variant_service.variants.models import Variant, Call
 
 __all__ = [
+    "VCF_FILE_PATH",
+    "VCF_INDEX_FILE_PATH",
+
     "VARIANT_1",
     "VARIANT_2",
     "VARIANT_3",
@@ -10,6 +14,9 @@ __all__ = [
     "CALL_1",
     "CALL_2",
 ]
+
+VCF_FILE_PATH = os.path.join(os.path.dirname(__file__), "data", "one_variant_22.vcf.gz")
+VCF_INDEX_FILE_PATH = f"{VCF_FILE_PATH}.tbi"
 
 VARIANT_1 = Variant(
     assembly_id="GRCh37",
