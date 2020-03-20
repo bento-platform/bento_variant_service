@@ -19,6 +19,16 @@ The service itself depends on the following non-Python utilities:
 * `bcftools`
 
 
+## Copyright Notice
+
+The CHORD Variant Service is copyright &copy; 2019-2020 the Canadian Centre for
+Computational Genomics.
+
+Portions of this codebase (namely, test VCF data) comes from the 1000 Genomes
+Project, and is thus subject to their copyright and 
+[terms of use](https://www.internationalgenome.org/IGSR_disclaimer).
+
+
 ## On Coordinates
 
 VCFs, per the [spec](https://samtools.github.io/hts-specs/VCFv4.2.pdf), use
