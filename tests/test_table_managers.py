@@ -44,9 +44,11 @@ def test_memory_table_manager():
 
     mm.create_table_and_update("test", {})
 
-    assert isinstance(mm.get_table("fixed_id"), MemoryVariantTable)
+    tbl = mm.get_table("fixed_id")
 
-    mm.get_table("fixed_id").variant_store.append(Variant(
+    assert isinstance(tbl, MemoryVariantTable)
+
+    tbl.variant_store.append(Variant(
         assembly_id="GRCh38",
         chromosome="1",
         start_pos=5000,
@@ -54,7 +56,7 @@ def test_memory_table_manager():
         alt_bases=("T",),
     ))
 
-    mm.get_table("fixed_id").variant_store.append(Variant(
+    tbl.variant_store.append(Variant(
         assembly_id="GRCh37",
         chromosome="5",
         start_pos=5000,
@@ -62,9 +64,9 @@ def test_memory_table_manager():
         alt_bases=("T",),
     ))
 
-    mm.get_table("fixed_id").variant_store.append(VARIANT_1)
+    tbl.variant_store.append(VARIANT_1)
 
-    gen = mm.get_table("fixed_id").variants("GRCh37", "1")
+    gen = tbl.variants("GRCh37", "1")
 
     v = next(gen)
 
@@ -73,23 +75,23 @@ def test_memory_table_manager():
     with pytest.raises(StopIteration):
         next(gen)
 
-    gen = mm.get_table("fixed_id").variants("GRCh37", "1", 7000)
+    gen = tbl.variants("GRCh37", "1", 7000)
     with pytest.raises(StopIteration):
         next(gen)
 
-    gen = mm.get_table("fixed_id").variants("GRCh37", "1", None, 3000)
+    gen = tbl.variants("GRCh37", "1", None, 3000)
     with pytest.raises(StopIteration):
         next(gen)
 
-    gen = mm.get_table("fixed_id").variants(offset=-1)
+    gen = tbl.variants(offset=-1)
     with pytest.raises(StopIteration):
         next(gen)
 
-    gen = mm.get_table("fixed_id").variants(offset=4)
+    gen = tbl.variants(offset=4)
     with pytest.raises(StopIteration):
         next(gen)
 
-    gen = mm.get_table("fixed_id").variants(count=0)
+    gen = tbl.variants(count=0)
     with pytest.raises(StopIteration):
         next(gen)
 

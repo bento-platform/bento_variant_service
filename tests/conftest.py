@@ -17,16 +17,14 @@ def app():
 
 
 @pytest.fixture()
-def table_manager():
-    with application.app_context():
-        tm._table_manager = None
+def table_manager(app):
+    with app.app_context():
         yield tm.get_table_manager()
 
 
 @pytest.fixture
 def client(app):
-    client = app.test_client()
-    yield client
+    yield app.test_client()
 
 
 @pytest.fixture(scope="module")
