@@ -1,6 +1,10 @@
+import os
+import pysam
 import subprocess
 from pysam import VariantFile
-from typing import Optional, Tuple
+from typing import Optional, Sequence, Tuple
+
+from chord_variant_service.pool import WORKERS
 
 
 __all__ = [
@@ -12,15 +16,15 @@ __all__ = [
 ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
 
 
-class VCFFile:  # pragma: no cover
+class VCFFile:
     def __init__(self, vcf_path: str, index_path: Optional[str] = None):
         vcf = VariantFile(vcf_path, index_filename=index_path)
 
         # Store path for later opening
-        self._path: str = vcf_path
+        self._path: str = os.path.realpath(vcf_path)
 
         # Store index path for later opening - if it's None, _path + ".tbi" will be assumed by pysam.
-        self._index_path: str = index_path
+        self._index_path: str = os.path.realpath(index_path) if index_path else None
 
         # Find assembly ID
         self._assembly_id: str = "Other"
@@ -42,7 +46,7 @@ class VCFFile:  # pragma: no cover
         return self._path
 
     @property
-    def index_path(self) -> str:
+    def index_path(self) -> Optional[str]:
         return self._index_path
 
     @property
@@ -56,3 +60,10 @@ class VCFFile:  # pragma: no cover
     @property
     def n_of_variants(self) -> int:
         return self._n_of_variants
+
+    def fetch(self, *args) -> Sequence[tuple]:
+        # Takes pysam coordinates rather than CHORD coordinates
+        # Parse as a Tabix file instead of a Variant file for performance reasons, and to get rows as tuples.
+        f = pysam.TabixFile(self.path, index=self.index_path, parser=pysam.asTuple(), threads=WORKERS)
+        yield from f.fetch(*args)
+        f.close()

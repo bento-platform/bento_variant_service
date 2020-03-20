@@ -5,7 +5,7 @@ data/**/.*
 htmlcov/
 env
 __pycache__
-*.vcf*
+/*.vcf*
 .tox/
 
 # IDE stuff

@@ -1,10 +1,8 @@
-import pysam
 import re
 
 from typing import Generator, Optional, Set, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDataset
-from chord_variant_service.pool import WORKERS
 from chord_variant_service.tables.base import VariantTable
 from chord_variant_service.tables.vcf.file import VCFFile
 from chord_variant_service.variants.models import Variant, Call
@@ -105,9 +103,6 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                 continue
 
             try:
-                # Parse as a Tabix file instead of a Variant file for performance reasons, and to get rows as tuples.
-                f = pysam.TabixFile(vcf.path, index=vcf.index_path, parser=pysam.asTuple(), threads=WORKERS)
-
                 # TODO: Security of passing this? Verify values in non-Beacon searches
                 # TODO: What if the VCF includes telomeres (off the end)?]
 
@@ -121,7 +116,7 @@ class VCFVariantTable(VariantTable):  # pragma: no cover
                         start_max - 1 if start_max is not None else MAX_SIGNED_INT_32,
                     )
 
-                for row in f.fetch(*query):
+                for row in vcf.fetch(*query):
                     variants_passed += 1
 
                     if len(row) < 9:

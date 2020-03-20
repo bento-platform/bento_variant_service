@@ -4,7 +4,7 @@ from chord_variant_service.tables.vcf.base_manager import BaseVCFTableManager
 from chord_variant_service.tables.vcf.table import VCFVariantTable
 
 
-class VCFTableManager(BaseVCFTableManager):  # pragma: no cover
+class VCFTableManager(BaseVCFTableManager):
     def update_tables(self):
         for t in self.table_folders:
             vcf_files = tuple(BaseVCFTableManager.get_vcf_file_record(os.path.join(t.dir, file))
