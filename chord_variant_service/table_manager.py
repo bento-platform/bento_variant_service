@@ -2,7 +2,7 @@ import sys
 
 from flask import current_app, g
 
-from chord_variant_service.constants import DATA_PATH, SERVICE_NAME
+from chord_variant_service.constants import SERVICE_NAME
 from chord_variant_service.tables.base import TableManager
 from chord_variant_service.tables.memory import MemoryTableManager
 from chord_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
@@ -32,13 +32,13 @@ MANAGER_TYPE_MEMORY = "memory"
 MANAGER_TYPE_VCF = "vcf"
 
 
-def create_table_manager_of_type(manager_type: str) -> Optional[TableManager]:
+def create_table_manager_of_type(manager_type: str, data_path: str) -> Optional[TableManager]:
     if manager_type == MANAGER_TYPE_DRS:
-        return DRSVCFTableManager(DATA_PATH)
+        return DRSVCFTableManager(data_path)
     elif manager_type == MANAGER_TYPE_MEMORY:
         return MemoryTableManager()
     elif manager_type == MANAGER_TYPE_VCF:
-        return VCFTableManager(DATA_PATH)
+        return VCFTableManager(data_path)
 
 
 def get_table_manager() -> TableManager:
@@ -47,8 +47,9 @@ def get_table_manager() -> TableManager:
     if "table_manager" not in g:
         if _table_manager is None:
             manager_type = current_app.config["TABLE_MANAGER"]
+            data_path = current_app.config["DATA_PATH"]
 
-            _table_manager = create_table_manager_of_type(manager_type)
+            _table_manager = create_table_manager_of_type(manager_type, data_path)
             if _table_manager is None:  # pragma: no cover
                 print(f"[{SERVICE_NAME}] Invalid table manager type: {manager_type}", file=sys.stderr, flush=True)
                 exit(1)

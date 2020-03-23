@@ -19,17 +19,21 @@ from chord_variant_service.variants.models import Variant
 from .shared_data import VCF_FILE_PATH, VCF_INDEX_FILE_PATH, VARIANT_1
 
 
-def test_table_manage_creation():
-    m = create_table_manager_of_type(MANAGER_TYPE_DRS)
+def test_table_manage_creation(tmpdir):
+    data_path = tmpdir / "data"
+    data_path.mkdir()
+    data_path = str(data_path)
+
+    m = create_table_manager_of_type(MANAGER_TYPE_DRS, data_path)
     assert isinstance(m, DRSVCFTableManager)
 
-    m = create_table_manager_of_type(MANAGER_TYPE_MEMORY)
+    m = create_table_manager_of_type(MANAGER_TYPE_MEMORY, data_path)
     assert isinstance(m, MemoryTableManager)
 
-    m = create_table_manager_of_type(MANAGER_TYPE_VCF)
+    m = create_table_manager_of_type(MANAGER_TYPE_VCF, data_path)
     assert isinstance(m, VCFTableManager)
 
-    m = create_table_manager_of_type("garbage")
+    m = create_table_manager_of_type("garbage", data_path)
     assert m is None
 
 
@@ -111,6 +115,7 @@ def test_memory_table_manager():
 def test_vcf_table_manager(tmpdir):
     data_path = tmpdir / "data"
     data_path.mkdir()
+
     vm = VCFTableManager(data_path=str(data_path))
 
     t1 = vm.create_table_and_update("test", {})

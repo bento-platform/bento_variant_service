@@ -21,7 +21,7 @@ from jsonschema import validate, ValidationError
 from typing import List, Tuple
 from urllib.parse import urlparse
 
-from chord_variant_service.constants import DATA_PATH, SERVICE_NAME
+from chord_variant_service.constants import SERVICE_NAME
 from chord_variant_service.table_manager import (
     MANAGER_TYPE_DRS,
     MANAGER_TYPE_MEMORY,
@@ -50,7 +50,7 @@ def get_ingest_metadata_from_request(request_data):
 
 def write_drs_object_files(table_id: str, request_data: dict):  # pragma: no cover
     workflow_outputs = get_ingest_metadata_from_request(request_data)[2]
-    table_path = os.path.join(DATA_PATH, table_id)
+    table_path = os.path.join(current_app.config["DATA_PATH"], table_id)
 
     # Fetch the relevant files from the workflows (these should be DRS URLs...)
     vcfs: List[str] = workflow_outputs.get(WORKFLOW_OUTPUT_VCF_GZ_FILES, [])
@@ -83,7 +83,7 @@ def move_ingest_files(table_id: str, request_data: dict):
     workflow_id, workflow_outputs, workflow_params = get_ingest_metadata_from_request(request_data)
     workflow_metadata = get_workflow(workflow_id, WORKFLOWS)
 
-    table_path = os.path.join(DATA_PATH, table_id)
+    table_path = os.path.join(current_app.config["DATA_PATH"], table_id)
     output_params = make_output_params(workflow_id, workflow_params, workflow_metadata["inputs"])
     prefix = find_common_prefix(table_path, workflow_metadata, output_params)
 

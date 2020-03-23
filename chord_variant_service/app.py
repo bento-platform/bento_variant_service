@@ -17,6 +17,7 @@ from chord_variant_service.workflows import bp_workflows
 
 application = Flask(__name__)
 application.config.from_mapping(
+    DATA_PATH=os.environ.get("DATA", "data/"),
     TABLE_MANAGER=os.environ.get("TABLE_MANAGER", "vcf")  # Options: drs, memory, vcf
 )
 
