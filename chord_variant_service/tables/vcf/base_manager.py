@@ -55,7 +55,7 @@ class BaseVCFTableManager(TableManager, abc.ABC):
     def _generate_table_id(self) -> Optional[str]:
         new_id = str(uuid.uuid4())
         i = 0
-        while new_id in self._tables and i < ID_RETRIES:
+        while new_id in self._tables and i < ID_RETRIES:  # pragma: no cover
             new_id = str(uuid.uuid4())
             i += 1
 
@@ -86,7 +86,7 @@ class BaseVCFTableManager(TableManager, abc.ABC):
 
     def create_table_and_update(self, name: str, metadata: dict) -> VCFVariantTable:
         table_id = self._generate_table_id()
-        if table_id is None:
+        if table_id is None:  # pragma: no cover
             raise IDGenerationFailure()
 
         table_path = os.path.join(self._DATA_PATH, table_id)
@@ -114,7 +114,7 @@ class BaseVCFTableManager(TableManager, abc.ABC):
         self.update_tables()
 
     @abc.abstractmethod
-    def _update_tables(self):
+    def _update_tables(self):  # pragma: no cover
         pass
 
     def update_tables(self):
