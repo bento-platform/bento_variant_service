@@ -47,8 +47,11 @@ def test_memory_table_manager():
     mm.create_table_and_update("test", {})
 
     tbl = mm.get_table("fixed_id")
-
     assert isinstance(tbl, MemoryVariantTable)
+
+    ts = mm.get_tables()
+    assert len(ts) == 1
+    assert ts["fixed_id"] is tbl
 
     tbl.variant_store.append(Variant(
         assembly_id="GRCh38",
@@ -112,6 +115,9 @@ def test_vcf_table_manager(tmpdir):
 
     t1 = vm.create_table_and_update("test", {})
     assert vm.get_table(t1.table_id) is not None
+    ts = vm.get_tables()
+    assert len(ts) == 1
+    assert ts[t1.table_id] is t1
 
     shutil.copyfile(VCF_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz"))
     shutil.copyfile(VCF_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz.tbi"))
