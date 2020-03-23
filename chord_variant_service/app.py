@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from chord_lib.responses import flask_errors
 from flask import Flask, jsonify
@@ -11,15 +12,31 @@ from chord_variant_service.ingest import bp_ingest
 from chord_variant_service.pool import teardown_pool
 from chord_variant_service.search import bp_chord_search
 from chord_variant_service.tables.routes import bp_tables
-from chord_variant_service.table_manager import get_table_manager, clear_table_manager
+from chord_variant_service.table_manager import (
+    MANAGER_TYPE_MEMORY,
+    MANAGER_TYPE_VCF,
+    get_table_manager,
+    clear_table_manager,
+)
 from chord_variant_service.workflows import bp_workflows
 
 
 application = Flask(__name__)
 application.config.from_mapping(
     DATA_PATH=os.environ.get("DATA", "data/"),
-    TABLE_MANAGER=os.environ.get("TABLE_MANAGER", "vcf")  # Options: drs, memory, vcf
+    TABLE_MANAGER=os.environ.get("TABLE_MANAGER", MANAGER_TYPE_VCF)  # Options: drs, memory, vcf
 )
+
+
+# Check if we have the required BCFtools if we're starting in DRS or VCF mode
+with application.app_context():  # pragma: no cover
+    if application.config["TABLE_MANAGER"] != MANAGER_TYPE_MEMORY:
+        try:
+            subprocess.run(("bcftools", "--version"))
+        except subprocess.CalledProcessError:
+            print(f"[{SERVICE_NAME}] Missing required dependency: bcftools")
+            exit(1)
+
 
 application.register_blueprint(bp_beacon)
 application.register_blueprint(bp_chord_search)
