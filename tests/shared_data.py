@@ -5,6 +5,9 @@ __all__ = [
     "VCF_ONE_VAR_FILE_PATH",
     "VCF_ONE_VAR_INDEX_FILE_PATH",
 
+    "VCF_TEN_VAR_FILE_PATH",
+    "VCF_TEN_VAR_INDEX_FILE_PATH",
+
     "VCF_MISSING_9_FILE_PATH",
     "VCF_MISSING_9_INDEX_FILE_PATH",
 
@@ -22,6 +25,9 @@ TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), "data")
 
 VCF_ONE_VAR_FILE_PATH = os.path.join(TEST_DATA_PATH, "one_variant_22.vcf.gz")
 VCF_ONE_VAR_INDEX_FILE_PATH = f"{VCF_ONE_VAR_FILE_PATH}.tbi"
+
+VCF_TEN_VAR_FILE_PATH = os.path.join(TEST_DATA_PATH, "ten_variants_22.vcf.gz")
+VCF_TEN_VAR_INDEX_FILE_PATH = f"{VCF_TEN_VAR_FILE_PATH}.tbi"
 
 VCF_MISSING_9_FILE_PATH = os.path.join(TEST_DATA_PATH, "missing_9th_22.vcf.gz")
 VCF_MISSING_9_INDEX_FILE_PATH = f"{VCF_MISSING_9_FILE_PATH}.tbi"

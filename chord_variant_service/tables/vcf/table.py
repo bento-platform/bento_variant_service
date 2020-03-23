@@ -129,7 +129,7 @@ class VCFVariantTable(VariantTable):
                 for row in vcf.fetch(*query):
                     variants_passed += 1
 
-                    if variants_passed < offset:
+                    if variants_passed <= offset:
                         continue
 
                     if count is not None and variants_seen >= count:

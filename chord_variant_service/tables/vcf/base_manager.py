@@ -39,6 +39,10 @@ class BaseVCFTableManager(TableManager, abc.ABC):
         self._tables: TableDict = {}
         self._beacon_datasets: Dict[BeaconDatasetIDTuple, BeaconDataset] = {}
 
+    @property
+    def data_path(self):
+        return self._DATA_PATH
+
     @staticmethod
     def get_vcf_file_record(vcf_path: str, index_path: Optional[str] = None) -> VCFFile:
         return VCFFile(vcf_path, index_path)
