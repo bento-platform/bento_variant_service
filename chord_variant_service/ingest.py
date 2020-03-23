@@ -149,7 +149,7 @@ def ingest():
 
         # Check manager type to determine how the ingestion will be handled
         manager_type = current_app.config["TABLE_MANAGER"]
-        if manager_type == MANAGER_TYPE_DRS:
+        if manager_type == MANAGER_TYPE_DRS:  # pragma: no cover
             write_drs_object_files(table_id, request.json)
         elif manager_type == MANAGER_TYPE_MEMORY:
             print(f"[{SERVICE_NAME}] Unsupported: {MEMORY_CANNOT_INGEST_ERROR}", file=sys.stderr, flush=True)
