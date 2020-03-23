@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 from chord_lib.responses import flask_errors
 from flask import Flask, jsonify
@@ -34,7 +35,7 @@ with application.app_context():  # pragma: no cover
         try:
             subprocess.run(("bcftools", "--version"))
         except FileNotFoundError:
-            print(f"[{SERVICE_NAME}] Missing required dependency: bcftools")
+            print(f"[{SERVICE_NAME}] Missing required dependency: bcftools", file=sys.stderr, flush=True)
             exit(1)
 
 
