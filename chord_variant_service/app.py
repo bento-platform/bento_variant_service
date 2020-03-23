@@ -33,7 +33,7 @@ with application.app_context():  # pragma: no cover
     if application.config["TABLE_MANAGER"] != MANAGER_TYPE_MEMORY:
         try:
             subprocess.run(("bcftools", "--version"))
-        except subprocess.CalledProcessError:
+        except FileNotFoundError:
             print(f"[{SERVICE_NAME}] Missing required dependency: bcftools")
             exit(1)
 
