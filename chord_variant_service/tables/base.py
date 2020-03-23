@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Generator, Optional, Tuple
+from typing import Dict, Generator, Optional, Sequence, Set, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDataset
 from chord_variant_service.variants.models import Variant
@@ -13,11 +13,11 @@ __all__ = [
 
 
 class VariantTable(ABC):  # pragma: no cover
-    def __init__(self, table_id, name, metadata, assembly_ids=()):
+    def __init__(self, table_id: str, name: Optional[str], metadata: dict, assembly_ids: Sequence[str] = ()):
         self.table_id = table_id
         self.name = name
         self.metadata = metadata
-        self.assembly_ids = set(assembly_ids)
+        self._assembly_ids = set(assembly_ids)
 
     def as_table_response(self):
         # Don't leak sample IDs to the outside world
@@ -25,7 +25,7 @@ class VariantTable(ABC):  # pragma: no cover
             "id": self.table_id,
             "name": self.name,
             "metadata": self.metadata,
-            "assembly_ids": list(self.assembly_ids),
+            "assembly_ids": list(self._assembly_ids),
             "schema": VARIANT_SCHEMA
         }
 
@@ -33,10 +33,14 @@ class VariantTable(ABC):  # pragma: no cover
     def beacon_datasets(self):
         return tuple(
             BeaconDataset(table_id=self.table_id, table_name=self.name, table_metadata=self.metadata, assembly_id=a)
-            for a in sorted(self.assembly_ids)
+            for a in sorted(self._assembly_ids)
         )
 
     # TODO: Breakdowns by reference genome!
+
+    @property
+    def assembly_ids(self) -> Set[str]:
+        return self._assembly_ids.copy()
 
     @property
     @abstractmethod

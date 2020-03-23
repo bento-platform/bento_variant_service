@@ -69,7 +69,7 @@ class MemoryVariantTable(VariantTable):
 
     def add_variant(self, variant: Variant):
         self.variant_store.append(variant)
-        self.assembly_ids.add(variant.assembly_id)
+        self._assembly_ids.add(variant.assembly_id)
 
 
 class MemoryTableManager(TableManager):

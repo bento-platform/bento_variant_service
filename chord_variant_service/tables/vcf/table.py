@@ -1,6 +1,6 @@
 import re
 
-from typing import Generator, Optional, Set, Tuple
+from typing import Generator, List, Optional, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDataset
 from chord_variant_service.tables.base import VariantTable
@@ -20,12 +20,18 @@ class VCFVariantTable(VariantTable):
         table_id,
         name,
         metadata,
-        assembly_ids=(),
         files: Tuple[VCFFile] = (),
     ):
-        super().__init__(table_id, name, metadata, assembly_ids)
-        self.assembly_ids: Set[str] = set(vf.assembly_id for vf in files)
-        self.files = files
+        # Check passed files for well-formattedness, skip otherwise
+        good_files: List[VCFFile] = []
+        for file in files:
+            fg = next(file.fetch(), ())
+            if len(fg) >= 9:  # Need 9th column of VCF to deal with genotypes, samples, etc.
+                good_files.append(file)
+
+        self._files: Tuple[VCFFile] = tuple(good_files)
+
+        super().__init__(table_id, name, metadata, tuple(vf.assembly_id for vf in self._files))
 
     @property
     def beacon_datasets(self):
@@ -35,8 +41,8 @@ class VCFVariantTable(VariantTable):
                 table_name=self.name,
                 table_metadata=self.metadata,
                 assembly_id=a,
-                files=tuple(vf for vf in self.files if vf.assembly_id == a)
-            ) for a in sorted(self.assembly_ids)
+                files=tuple(vf for vf in self._files if vf.assembly_id == a)
+            ) for a in sorted(self._assembly_ids)
         )
 
     @staticmethod
@@ -60,13 +66,17 @@ class VCFVariantTable(VariantTable):
             yield call
 
     @property
+    def files(self) -> Tuple[VCFFile]:
+        return self._files
+
+    @property
     def n_of_variants(self) -> int:
-        return sum(vf.n_of_variants for vf in self.files)
+        return sum(vf.n_of_variants for vf in self._files)
 
     @property
     def n_of_samples(self) -> int:
         sample_set = set()
-        for vcf in self.files:
+        for vcf in self._files:
             sample_set.update(vcf.sample_ids)
         return len(sample_set)
 
@@ -89,7 +99,7 @@ class VCFVariantTable(VariantTable):
         # TODO: Optimize offset/count
         #  e.g. by skipping entire VCFs if we know their row counts a-priori
 
-        for vcf in filter(lambda vf: assembly_id is None or vf.assembly_id == assembly_id, self.files):
+        for vcf in filter(lambda vf: assembly_id is None or vf.assembly_id == assembly_id, self._files):
             if (
                 chromosome is None and  # No filters (otherwise we wouldn't be able to assume we're skipping the VCF)
                 start_min is None and  # "
@@ -118,10 +128,6 @@ class VCFVariantTable(VariantTable):
 
                 for row in vcf.fetch(*query):
                     variants_passed += 1
-
-                    if len(row) < 9:
-                        # Badly formatted VCF  TODO: Catch on ingest
-                        continue
 
                     if variants_passed < offset:
                         continue

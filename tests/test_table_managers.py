@@ -16,7 +16,15 @@ from chord_variant_service.table_manager import (
     clear_table_manager,
 )
 from chord_variant_service.variants.models import Variant
-from .shared_data import VCF_FILE_PATH, VCF_INDEX_FILE_PATH, VARIANT_1
+from .shared_data import (
+    VCF_ONE_VAR_FILE_PATH,
+    VCF_ONE_VAR_INDEX_FILE_PATH,
+
+    VCF_MISSING_9_FILE_PATH,
+    VCF_MISSING_9_INDEX_FILE_PATH,
+
+    VARIANT_1,
+)
 
 
 def test_table_manage_creation(tmpdir):
@@ -124,8 +132,12 @@ def test_vcf_table_manager(tmpdir):
     assert len(ts) == 1
     assert ts[t1.table_id] is t1
 
-    shutil.copyfile(VCF_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz"))
-    shutil.copyfile(VCF_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz.tbi"))
+    shutil.copyfile(VCF_ONE_VAR_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz"))
+    shutil.copyfile(VCF_ONE_VAR_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz.tbi"))
+
+    shutil.copyfile(VCF_MISSING_9_FILE_PATH, os.path.join(data_path, t1.table_id, "missing_9.vcf.gz"))
+    shutil.copyfile(VCF_MISSING_9_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "missing_9.vcf.gz.tbi"))
+
     vm.update_tables()
 
     assert vm.get_table(t1.table_id).n_of_variants == 1
