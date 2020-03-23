@@ -155,7 +155,10 @@ def ingest():
             print(f"[{SERVICE_NAME}] Unsupported: {MEMORY_CANNOT_INGEST_ERROR}", file=sys.stderr, flush=True)
             return flask_errors.flask_bad_request_error(MEMORY_CANNOT_INGEST_ERROR)
         elif manager_type == MANAGER_TYPE_VCF:
-            move_ingest_files(table_id, request.json)
+            try:
+                move_ingest_files(table_id, request.json)
+            except KeyError:  # From make_output_params; TODO: In future may change to custom exception
+                return flask_errors.flask_bad_request_error("Bad workflow parameter")
 
         # After files have been handled, refresh the tables in the manager
         get_table_manager().update_tables()
