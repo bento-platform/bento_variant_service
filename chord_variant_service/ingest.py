@@ -15,7 +15,7 @@ from chord_lib.ingestion import (
 )
 from chord_lib.responses import flask_errors
 from chord_lib.schemas.chord import CHORD_INGEST_SCHEMA
-from chord_lib.workflows import workflow_exists
+from chord_lib.workflows import get_workflow, workflow_exists
 from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 from typing import List, Tuple
@@ -43,14 +43,13 @@ MEMORY_CANNOT_INGEST_ERROR = "Cannot ingest into a memory-based table manager"
 
 def get_ingest_metadata_from_request(request_data):
     workflow_id = request_data["workflow_id"].strip()
-    workflow_metadata = request_data["workflow_metadata"]
     workflow_outputs = request_data["workflow_outputs"]
     workflow_params = request_data["workflow_params"]
-    return workflow_id, workflow_metadata, workflow_outputs, workflow_params
+    return workflow_id, workflow_outputs, workflow_params
 
 
-def write_drs_object_files(table_id: str, request_data: dict):
-    workflow_outputs = get_ingest_metadata_from_request(request_data)[3]
+def write_drs_object_files(table_id: str, request_data: dict):  # pragma: no cover
+    workflow_outputs = get_ingest_metadata_from_request(request_data)[2]
     table_path = os.path.join(DATA_PATH, table_id)
 
     # Fetch the relevant files from the workflows (these should be DRS URLs...)
@@ -81,9 +80,10 @@ def write_drs_object_files(table_id: str, request_data: dict):
 
 
 def move_ingest_files(table_id: str, request_data: dict):
-    workflow_id, workflow_metadata, workflow_outputs, workflow_params = get_ingest_metadata_from_request(request_data)
-    table_path = os.path.join(DATA_PATH, table_id)
+    workflow_id, workflow_outputs, workflow_params = get_ingest_metadata_from_request(request_data)
+    workflow_metadata = get_workflow(workflow_id, WORKFLOWS)
 
+    table_path = os.path.join(DATA_PATH, table_id)
     output_params = make_output_params(workflow_id, workflow_params, workflow_metadata["inputs"])
     prefix = find_common_prefix(table_path, workflow_metadata, output_params)
 
@@ -123,17 +123,23 @@ def ingest():
         if table_id not in get_table_manager().get_tables():
             return flask_errors.flask_bad_request_error(f"No table with ID: {table_id}")
 
-        workflow_id, workflow_metadata, workflow_outputs, _ = get_ingest_metadata_from_request(request.json)
+        workflow_id, workflow_outputs, _ = get_ingest_metadata_from_request(request.json)
 
         if not workflow_exists(workflow_id, WORKFLOWS):
             # Check that the workflow exists here...
             return flask_errors.flask_bad_request_error(f"No workflow with ID: {workflow_id}")
+
+        workflow_metadata = get_workflow(workflow_id, WORKFLOWS)
 
         # TODO: Customize to table manager specifics properly
         # TODO: Make sure DRS support works
         # TODO: Support memory variant loading (from VCFs?)
 
         # TODO: More extensive, standardized, chord_lib-based validation of workflow ingestion data
+
+        if len(workflow_metadata["outputs"]) != len(workflow_outputs):
+            return flask_errors.flask_bad_request_error("Output length mismatch")
+
         for output in workflow_metadata["outputs"]:
             if output["id"] not in workflow_outputs:
                 # Missing output

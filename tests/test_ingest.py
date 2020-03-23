@@ -1,17 +1,9 @@
-def make_ingest(dataset_id, workflow_id=""):
+def make_ingest(dataset_id, workflow_id="", workflow_outputs=None, workflow_params=None):
     return {
         "table_id": dataset_id,
-        "workflow_id": workflow_id,  # TODO
-        "workflow_metadata": {  # TODO
-            "inputs": [],
-            "outputs": []
-        },
-        "workflow_outputs": {  # TODO
-
-        },
-        "workflow_params": {  # TODO
-
-        }
+        "workflow_id": workflow_id,
+        "workflow_outputs": workflow_outputs or {},
+        "workflow_params": workflow_params or {}
     }
 
 
@@ -21,9 +13,11 @@ TEST_HEADERS = {"X-User": "test", "X-User-Role": "owner"}
 def test_ingest(client):
     # TODO: Test errors better
 
+    # No ingest body
     rv = client.post("/private/ingest", json={}, headers=TEST_HEADERS)
     assert rv.status_code == 400
 
+    # Non-existant table
     rv = client.post("/private/ingest", json=make_ingest("invalid_table_id"), headers=TEST_HEADERS)
     assert rv.status_code == 400
 
@@ -33,9 +27,14 @@ def test_ingest(client):
         "metadata": {}
     })
 
+    # Invalid workflow ID
     rv = client.post("/private/ingest", json=make_ingest("fixed_id", "invalid_workflow_id"), headers=TEST_HEADERS)
     assert rv.status_code == 400
 
-    # TODO: Test workflow ID validation
+    # Valid workflow ID, missing workflow output body
+    rv = client.post("/private/ingest", json=make_ingest("fixed_id", "vcf_gz"), headers=TEST_HEADERS)
+    assert rv.status_code == 400
+
+    # TODO: Test workflow ID validation - analysis vs ingestion
     # TODO: Test workflow parameters / outputs
     # TODO: Test functional ingestion

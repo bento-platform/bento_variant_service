@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 
+import configparser
+import os
 import setuptools
 
 with open("README.md", "r") as rf:
     long_description = rf.read()
+
+config = configparser.ConfigParser()
+config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chord_variant_service", "package.cfg"))
 
 setuptools.setup(
     name="chord_variant_service",
@@ -11,7 +16,7 @@ setuptools.setup(
 
     python_requires=">=3.6",
     install_requires=[
-        "chord_lib[flask]==0.6.0",
+        "chord_lib[flask]==0.7.0",
         "Flask>=1.1,<2.0",
         "jsonschema>=3.2,<4.0",
         "pysam>=0.15.4,<0.16",
