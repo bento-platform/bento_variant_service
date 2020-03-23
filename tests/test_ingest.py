@@ -35,6 +35,20 @@ def test_ingest(client):
     rv = client.post("/private/ingest", json=make_ingest("fixed_id", "vcf_gz"), headers=TEST_HEADERS)
     assert rv.status_code == 400
 
+    # Valid workflow ID, unsupported bad workflow output body
+    rv = client.post("/private/ingest", json=make_ingest("fixed_id", "vcf_gz", {
+        "vcf_files": [],  # Should be vcf_gz_files if corrected
+        "tbi_files": []
+    }), headers=TEST_HEADERS)
+    assert rv.status_code == 400
+
+    # Valid workflow ID, unsupported table manager type for ingestion
+    rv = client.post("/private/ingest", json=make_ingest("fixed_id", "vcf_gz", {
+        "vcf_gz_files": [],
+        "tbi_files": []
+    }), headers=TEST_HEADERS)
+    assert rv.status_code == 400
+
     # TODO: Test workflow ID validation - analysis vs ingestion
     # TODO: Test workflow parameters / outputs
     # TODO: Test functional ingestion
