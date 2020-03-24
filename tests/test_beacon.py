@@ -422,7 +422,7 @@ def test_beacon_response(app, client, table_manager):
                     assert data["datasetAlleleResponses"][0]["datasetId"] == "fixed_id:GRCh37"
 
             # - Empty queries
-
+            # noinspection DuplicatedCode
             for q in (EMPTY_BEACON_REQUEST_1, EMPTY_BEACON_REQUEST_2, EMPTY_BEACON_REQUEST_3):
                 valid_data = []
 

@@ -1,3 +1,14 @@
+import os
+import shutil
+
+from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
+
+from .shared_data import (
+    VCF_TEN_VAR_FILE_PATH,
+    VCF_TEN_VAR_INDEX_FILE_PATH,
+)
+
+
 def make_ingest(dataset_id, workflow_id="", workflow_outputs=None, workflow_params=None):
     return {
         "table_id": dataset_id,
@@ -66,7 +77,7 @@ EMPTY_WORKFLOW_OUTPUTS = {
 }
 
 
-def test_ingest_vcf(vcf_client):
+def test_ingest_vcf(tmpdir, vcf_client, vcf_table_manager: VCFTableManager):
     # Create a dummy table
     tr = vcf_client.post("/tables?data-type=variant", json={
         "name": "test table",
@@ -99,3 +110,28 @@ def test_ingest_vcf(vcf_client):
         }
     ), headers=TEST_HEADERS)
     assert rv.status_code == 204
+
+    data_path = tmpdir / "data_to_ingest"
+    data_path.mkdir()
+    data_path = str(data_path)
+
+    # Copy variant files to use
+    shutil.copyfile(VCF_TEN_VAR_FILE_PATH, os.path.join(data_path, "test.vcf.gz"))
+    shutil.copyfile(VCF_TEN_VAR_INDEX_FILE_PATH, os.path.join(data_path, "test.vcf.gz.tbi"))
+
+    # Valid workflow ID with a file
+    rv = vcf_client.post("/private/ingest", json=make_ingest(
+        t["id"],
+        "vcf_gz",
+        workflow_outputs={
+            "vcf_gz_files": [os.path.join(data_path, "test.vcf.gz")],
+            "tbi_files": [os.path.join(data_path, "test.vcf.gz.tbi")],
+        },
+        workflow_params={
+            "vcf_gz.vcf_gz_files": ["test.vcf.gz"],
+            "vcf_gz.assembly_id": "GRCh37"
+        }
+    ), headers=TEST_HEADERS)
+    assert rv.status_code == 204
+
+    assert len(list(vcf_table_manager.get_table(t["id"]).variants()))

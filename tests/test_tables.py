@@ -198,6 +198,8 @@ VCF_QUERY_STRINGS_AND_RESULTS = (
     ({"only_interesting": "true"}, 200, (False, False, 10, VCF_NUM_INTERESTING_CALLS)),
     ({"offset": 1}, 200, (True, False, 9, (835,) * 9)),
     ({"offset": 1, "only_interesting": "true"}, 200, (True, False, 9, VCF_NUM_INTERESTING_CALLS[1:])),
+    ({"offset": 0, "count": 3}, 200, (False, True, 3, (835,) * 3)),
+    ({"offset": 1, "count": 3,  "only_interesting": "true"}, 200, (True, True, 3, VCF_NUM_INTERESTING_CALLS[1:4])),
 )
 
 
