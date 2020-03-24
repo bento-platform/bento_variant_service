@@ -25,7 +25,6 @@ from chord_variant_service.constants import SERVICE_NAME
 from chord_variant_service.table_manager import (
     MANAGER_TYPE_DRS,
     MANAGER_TYPE_MEMORY,
-    MANAGER_TYPE_VCF,
     get_table_manager,
 )
 from chord_variant_service.workflows import WORKFLOWS
@@ -154,7 +153,7 @@ def ingest():
         elif manager_type == MANAGER_TYPE_MEMORY:
             print(f"[{SERVICE_NAME}] Unsupported: {MEMORY_CANNOT_INGEST_ERROR}", file=sys.stderr, flush=True)
             return flask_errors.flask_bad_request_error(MEMORY_CANNOT_INGEST_ERROR)
-        elif manager_type == MANAGER_TYPE_VCF:
+        else:  # MANAGER_TYPE_VCF
             try:
                 move_ingest_files(table_id, request.json)
             except KeyError:  # From make_output_params; TODO: In future may change to custom exception

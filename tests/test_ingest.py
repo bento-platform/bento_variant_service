@@ -37,10 +37,7 @@ def test_ingest_bad_table(client):
 
 def test_ingest_bad_requests(client):
     # Create a dummy table
-    client.post("/tables?data-type=variant", json={
-        "name": "test table",
-        "metadata": {}
-    })
+    client.post("/tables?data-type=variant", json={"name": "test table", "metadata": {}})
 
     # Invalid workflow ID
     rv = client.post("/private/ingest", json=make_ingest("fixed_id", "invalid_workflow_id"), headers=TEST_HEADERS)
@@ -58,13 +55,24 @@ def test_ingest_bad_requests(client):
     assert rv.status_code == 400
 
 
+# Force re-initialization of table_manager as a memory manager
+# noinspection PyUnusedLocal
 def test_ingest_memory(client):
+    # Create a dummy table
+    client.post("/tables?data-type=variant", json={"name": "test", "metadata": {}})
+
     # Valid workflow ID, unsupported table manager type for ingestion
     rv = client.post("/private/ingest", json=make_ingest("fixed_id", "vcf_gz", {
         "vcf_gz_files": [],
         "tbi_files": []
+    }, {
+        "vcf_gz.vcf_gz_files": [],
+        "vcf_gz.assembly_id": "GRCh38"
     }), headers=TEST_HEADERS)
     assert rv.status_code == 400
+    err = rv.get_json()
+    assert err["errors"][0]["message"] == "Cannot ingest into a memory-based table manager"
+    print(rv.get_json())
 
     # TODO: Test workflow ID validation - analysis vs ingestion
     # TODO: Test workflow parameters / outputs
