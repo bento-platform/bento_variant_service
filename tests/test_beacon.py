@@ -1,12 +1,23 @@
-# noinspection PyProtectedMember
+import os
+import shutil
+
+from jsonschema import validate
+from uuid import uuid4
+
 from chord_variant_service.beacon.routes import generate_beacon_id
 from chord_variant_service.beacon.datasets import make_beacon_dataset_id
 from chord_variant_service.pool import get_pool, teardown_pool
 from chord_variant_service.tables.memory import MemoryTableManager
-from jsonschema import validate
-from uuid import uuid4
+from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
 
-from .shared_data import VARIANT_1, VARIANT_2, VARIANT_3
+from .shared_data import (
+    VCF_TEN_VAR_FILE_PATH,
+    VCF_TEN_VAR_INDEX_FILE_PATH,
+
+    VARIANT_1,
+    VARIANT_2,
+    VARIANT_3,
+)
 
 # Adapted from the OpenAPI 1.0.1 spec
 # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml
@@ -487,3 +498,20 @@ def test_beacon_response(app, client, table_manager):
         finally:
             teardown_pool(None)
             pool.join()
+
+
+# noinspection DuplicatedCode
+def test_vcf_beacon(vcf_table_manager):
+    vm: VCFTableManager = vcf_table_manager
+
+    # Create a new table named test
+    t = vm.create_table_and_update("test", {})
+
+    # Add ten_variants_22.vcf.gz
+    shutil.copyfile(VCF_TEN_VAR_FILE_PATH, os.path.join(vm.data_path, t.table_id, "test.vcf.gz"))
+    shutil.copyfile(VCF_TEN_VAR_INDEX_FILE_PATH, os.path.join(vm.data_path, t.table_id, "test.vcf.gz.tbi"))
+
+    vm.update_tables()
+
+    assert len(t.beacon_datasets) == 1
+    assert len(vm.beacon_datasets) == 1

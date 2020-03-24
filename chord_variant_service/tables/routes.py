@@ -69,7 +69,7 @@ def table_list():
             print("[CHORD Variant Service] Couldn't generate new ID", file=sys.stderr)
             return flask_errors.flask_internal_server_error("Could not generate new ID for table")
 
-    return jsonify([t.as_table_response() for t in table_manager.get_tables().values()])
+    return jsonify([t.as_table_response() for t in table_manager.tables.values()])
 
 
 # TODO: Implement POST (separate permissions)

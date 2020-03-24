@@ -90,12 +90,14 @@ class TableManager(ABC):  # pragma: no cover
     def get_table(self, table_id: str) -> Optional[VariantTable]:
         pass
 
+    @property
     @abstractmethod
-    def get_tables(self) -> Dict[str, VariantTable]:  # TODO: Rename get_tables
+    def tables(self) -> Dict[str, VariantTable]:
         return {}
 
+    @property
     @abstractmethod
-    def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
+    def beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
         return {}
 
     @abstractmethod

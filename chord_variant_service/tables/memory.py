@@ -80,10 +80,12 @@ class MemoryTableManager(TableManager):
     def get_table(self, table_id: str) -> Optional[dict]:
         return self._tables.get(table_id, None)
 
-    def get_tables(self) -> dict:
+    @property
+    def tables(self) -> dict:
         return self._tables
 
-    def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
+    @property
+    def beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
         return {bd.beacon_id_tuple: bd for bd in chain.from_iterable(d.beacon_datasets for d in self._tables.values())}
 
     def update_tables(self):  # pragma: no cover

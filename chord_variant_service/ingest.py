@@ -120,7 +120,7 @@ def ingest():
 
         table_id = request.json["table_id"]
 
-        if table_id not in get_table_manager().get_tables():
+        if table_id not in get_table_manager().tables:
             return flask_errors.flask_bad_request_error(f"No table with ID: {table_id}")
 
         workflow_id, workflow_outputs, _ = get_ingest_metadata_from_request(request.json)

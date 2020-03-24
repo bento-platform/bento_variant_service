@@ -50,10 +50,12 @@ class BaseVCFTableManager(TableManager, abc.ABC):
     def get_table(self, table_id: str) -> Optional[VCFVariantTable]:
         return self._tables.get(table_id, None)
 
-    def get_tables(self) -> TableDict:
+    @property
+    def tables(self) -> TableDict:
         return self._tables
 
-    def get_beacon_datasets(self) -> Dict[BeaconDatasetIDTuple, BeaconDataset]:
+    @property
+    def beacon_datasets(self) -> Dict[BeaconDatasetIDTuple, BeaconDataset]:
         return self._beacon_datasets
 
     def _generate_table_id(self) -> Optional[str]:

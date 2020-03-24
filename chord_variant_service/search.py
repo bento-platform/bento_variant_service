@@ -37,7 +37,7 @@ CHORD_SEARCH_TIMEOUT = 180
 
 
 def search_worker_prime(
-    dataset: VariantTable,
+    table: VariantTable,
     chromosome: Optional[str],
     start_min: Optional[int],
     start_max: Optional[int],
@@ -48,7 +48,7 @@ def search_worker_prime(
     found = False
     matches = []
 
-    possible_matches = dataset.variants(assembly_id, chromosome, start_min, start_max)
+    possible_matches = table.variants(assembly_id, chromosome, start_min, start_max)
 
     while True:
         try:
@@ -73,7 +73,7 @@ def search_worker_prime(
             print(str(e))
             break
 
-    return (dataset if found else None), matches
+    return (table if found else None), matches
 
 
 def search_worker(args):
@@ -103,7 +103,7 @@ def generic_variant_search(
     search_job = pool.imap_unordered(
         search_worker,
         ((dataset, chromosome, start_min, start_max, rest_of_query, internal_data, assembly_id)
-         for dataset in table_manager.get_tables().values()
+         for dataset in table_manager.tables.values()
          if (ds is None or dataset.table_id in ds) and (assembly_id is None or assembly_id in dataset.assembly_ids))
     )
 

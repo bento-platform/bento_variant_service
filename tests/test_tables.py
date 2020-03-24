@@ -263,6 +263,7 @@ def test_vcf_table_error_handling(vcf_table_manager):
     assert len(tuple(t.variants(offset=1))) == 0
 
 
+# noinspection DuplicatedCode
 def test_vcf_table_pagination(vcf_client, vcf_table_manager):
     vm: VCFTableManager = vcf_table_manager
 

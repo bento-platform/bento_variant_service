@@ -80,7 +80,7 @@ def beacon_get():
         "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO: More specific
         "version": chord_variant_service.__version__,
         "datasets": [d.as_beacon_dataset_response()
-                     for d in get_table_manager().get_beacon_datasets().values()]
+                     for d in get_table_manager().beacon_datasets.values()]
     })
 
 
@@ -224,14 +224,14 @@ def beacon_query():
 
     if include_dataset_responses == BEACON_IDR_ALL:
         beacon_dataset_hits = [{"datasetId": bd.beacon_id, "exists": bd.beacon_id in dataset_matches}
-                               for bd in table_manager.get_beacon_datasets().values()]
+                               for bd in table_manager.beacon_datasets.values()]
 
     elif include_dataset_responses == BEACON_IDR_HIT:
         beacon_dataset_hits = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
 
     elif include_dataset_responses == BEACON_IDR_MISS:
         beacon_dataset_hits = [{"datasetId": bd.beacon_id, "exists": False}
-                               for bd in table_manager.get_beacon_datasets().values()
+                               for bd in table_manager.beacon_datasets.values()
                                if bd.beacon_id not in dataset_matches]
 
     else:  # BEACON_IDR_NONE
