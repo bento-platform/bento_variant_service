@@ -14,6 +14,7 @@ from chord_variant_service.pool import teardown_pool
 from chord_variant_service.search import bp_chord_search
 from chord_variant_service.tables.routes import bp_tables
 from chord_variant_service.table_manager import (
+    MANAGER_TYPE_DRS,
     MANAGER_TYPE_MEMORY,
     MANAGER_TYPE_VCF,
     get_table_manager,
@@ -31,6 +32,11 @@ application.config.from_mapping(
 
 # Check if we have the required BCFtools if we're starting in DRS or VCF mode
 with application.app_context():  # pragma: no cover
+    if application.config["TABLE_MANAGER"] not in (MANAGER_TYPE_DRS, MANAGER_TYPE_MEMORY, MANAGER_TYPE_VCF):
+        print(f"[{SERVICE_NAME}] Invalid table manager type: {application.config['TABLE_MANAGER']}", file=sys.stderr,
+              flush=True)
+        exit(1)
+
     if application.config["TABLE_MANAGER"] != MANAGER_TYPE_MEMORY:
         try:
             subprocess.run(("bcftools", "--version"))
