@@ -17,11 +17,16 @@ VCF_GENOTYPE = "GT"
 class VCFVariantTable(VariantTable):
     def __init__(
         self,
-        table_id,
-        name,
-        metadata,
-        files: Tuple[VCFFile] = (),
+        table_id: str,
+        name: Optional[str],
+        metadata: dict,
+        files: Tuple[VCFFile, ...] = (),
     ):
+        self._files: Tuple[VCFFile, ...] = ()
+        super().__init__(table_id, name, metadata)
+        self.update_with_files(name, metadata, files)
+
+    def update_with_files(self, name: Optional[str], metadata: dict, files: Tuple[VCFFile]):
         # Check passed files for well-formattedness, skip otherwise
         good_files: List[VCFFile] = []
         for file in files:
@@ -29,9 +34,8 @@ class VCFVariantTable(VariantTable):
             if len(fg) >= 9:  # Need 9th column of VCF to deal with genotypes, samples, etc.
                 good_files.append(file)
 
+        self.update(name, metadata, tuple(vf.assembly_id for vf in good_files))
         self._files: Tuple[VCFFile] = tuple(good_files)
-
-        super().__init__(table_id, name, metadata, tuple(vf.assembly_id for vf in self._files))
 
     @property
     def beacon_datasets(self):
@@ -80,7 +84,7 @@ class VCFVariantTable(VariantTable):
             sample_set.update(vcf.sample_ids)
         return len(sample_set)
 
-    def variants(
+    def _variants(
         self,
         assembly_id: Optional[str] = None,
         chromosome: Optional[str] = None,

@@ -11,6 +11,8 @@ __all__ = [
     "VCF_MISSING_9_FILE_PATH",
     "VCF_MISSING_9_INDEX_FILE_PATH",
 
+    "VCF_NO_TBI_FILE_PATH",
+
     "VARIANT_1",
     "VARIANT_2",
     "VARIANT_3",
@@ -31,6 +33,8 @@ VCF_TEN_VAR_INDEX_FILE_PATH = f"{VCF_TEN_VAR_FILE_PATH}.tbi"
 
 VCF_MISSING_9_FILE_PATH = os.path.join(TEST_DATA_PATH, "missing_9th_22.vcf.gz")
 VCF_MISSING_9_INDEX_FILE_PATH = f"{VCF_MISSING_9_FILE_PATH}.tbi"
+
+VCF_NO_TBI_FILE_PATH = os.path.join(TEST_DATA_PATH, "no_tbi_22.vcf.gz")
 
 VARIANT_1 = Variant(
     assembly_id="GRCh37",

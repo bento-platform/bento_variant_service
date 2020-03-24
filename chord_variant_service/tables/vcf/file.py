@@ -36,10 +36,14 @@ class VCFFile:
         self._sample_ids: Tuple[str] = tuple(vcf.header.samples)
 
         # Find row count
-        p = subprocess.Popen(("bcftools", "index", "--nrecords", vcf_path), stdout=subprocess.PIPE)
-        self._n_of_variants: int = int(p.stdout.read().strip())  # TODO: Handle error
-
-        vcf.close()
+        try:
+            p = subprocess.Popen(("bcftools", "index", "--nrecords", vcf_path), stdout=subprocess.PIPE)
+            self._n_of_variants: int = int(p.stdout.read().strip())  # TODO: Handle error
+        except (subprocess.CalledProcessError, ValueError):
+            # bcftools returned 1, or couldn't find number of records
+            raise ValueError  # Consolidate to one exception type
+        finally:
+            vcf.close()
 
     @property
     def path(self) -> str:

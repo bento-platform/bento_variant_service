@@ -6,7 +6,7 @@ import uuid
 
 from collections import namedtuple
 from flask import json
-from typing import Dict, Sequence, Optional
+from typing import Dict, Optional, Sequence, Tuple
 
 from chord_variant_service.beacon.datasets import BeaconDatasetIDTuple, BeaconDataset
 from chord_variant_service.tables.base import TableManager
@@ -115,15 +115,31 @@ class BaseVCFTableManager(TableManager, abc.ABC):
 
     def delete_table_and_update(self, table_id: str):
         shutil.rmtree(os.path.join(self._DATA_PATH, str(table_id)))
+        self._tables[table_id].delete()
         self.update_tables()
 
     @abc.abstractmethod
-    def _update_tables(self):  # pragma: no cover
+    def _get_table_vcf_files(self, table_folder: VCFTableFolder) -> Tuple[VCFFile, ...]:  # pragma: no cover
         pass
 
     def update_tables(self):
-        # Clear existing tables so that any removed tables aren't present in memory
-        self._tables = {}
+        # Loop through table folders to do the following:
+        #  - Add new tables if entries on the file system have been added
+        #  - Update existing tables
+        #  - Remove tables if entries on the file system have been removed
 
-        # Call data storage type-specific clearing method
-        self._update_tables()
+        table_folders = {t.id: t for t in self.table_folders}
+
+        for t in self.table_folders:
+            files = self._get_table_vcf_files(t)
+            if t.id in self._tables:
+                # Table exists already, so update it
+                self._tables[t.id].update_with_files(t.name, t.metadata, files)
+            else:
+                self._tables[t.id] = VCFVariantTable(table_id=t.id, name=t.name, metadata=t.metadata, files=files)
+
+            for bd in self._tables[t.id].beacon_datasets:
+                self._beacon_datasets[bd.beacon_id_tuple] = bd
+
+        # Remove any existing tables that shouldn't be there
+        self._tables = {k: v for k, v in self._tables.items() if k in table_folders}

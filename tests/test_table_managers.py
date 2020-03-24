@@ -20,9 +20,6 @@ from .shared_data import (
     VCF_ONE_VAR_FILE_PATH,
     VCF_ONE_VAR_INDEX_FILE_PATH,
 
-    VCF_MISSING_9_FILE_PATH,
-    VCF_MISSING_9_INDEX_FILE_PATH,
-
     VARIANT_1,
 )
 
@@ -135,21 +132,11 @@ def test_vcf_table_manager(tmpdir):
     shutil.copyfile(VCF_ONE_VAR_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz"))
     shutil.copyfile(VCF_ONE_VAR_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "test.vcf.gz.tbi"))
 
-    shutil.copyfile(VCF_MISSING_9_FILE_PATH, os.path.join(data_path, t1.table_id, "missing_9.vcf.gz"))
-    shutil.copyfile(VCF_MISSING_9_INDEX_FILE_PATH, os.path.join(data_path, t1.table_id, "missing_9.vcf.gz.tbi"))
-
     vm.update_tables()
 
-    assert vm.get_table(t1.table_id).n_of_variants == 1
-    assert vm.get_table(t1.table_id).n_of_samples == 835
-
-    assert len(vm.get_table(t1.table_id).files) == 1
-
-    assert len(tuple(vm.get_table(t1.table_id).variants())) == 1
-    assert len(tuple(vm.get_table(t1.table_id).variants(chromosome="22"))) == 1
-    assert len(tuple(vm.get_table(t1.table_id).variants(chromosome="21"))) == 0
-    assert len(tuple(vm.get_table(t1.table_id).variants(offset=1))) == 0
-    # TODO: Test that VCF is ingested better
+    assert t1.n_of_variants == 1
+    assert t1.n_of_samples == 835
 
     vm.delete_table_and_update(t1.table_id)
+    assert t1.deleted
     assert vm.get_table(t1.table_id) is None

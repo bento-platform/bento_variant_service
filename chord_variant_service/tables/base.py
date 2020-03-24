@@ -15,9 +15,23 @@ __all__ = [
 class VariantTable(ABC):  # pragma: no cover
     def __init__(self, table_id: str, name: Optional[str], metadata: dict, assembly_ids: Sequence[str] = ()):
         self.table_id = table_id
+        self.name: Optional[str] = None
+        self.metadata: dict = {}
+        self._assembly_ids: Set = set()
+        self.update(name, metadata, assembly_ids)
+        self._deleted = False
+
+    def update(self, name: Optional[str], metadata: dict, assembly_ids: Sequence[str] = ()):
         self.name = name
         self.metadata = metadata
         self._assembly_ids = set(assembly_ids)
+
+    def delete(self):
+        self._deleted = True
+
+    @property
+    def deleted(self):
+        return self._deleted
 
     def as_table_response(self):
         # Don't leak sample IDs to the outside world
@@ -53,7 +67,7 @@ class VariantTable(ABC):  # pragma: no cover
         pass
 
     @abstractmethod
-    def variants(
+    def _variants(
         self,
         assembly_id: Optional[str] = None,
         chromosome: Optional[str] = None,
@@ -64,6 +78,10 @@ class VariantTable(ABC):  # pragma: no cover
         only_interesting: bool = False,
     ) -> Generator[Variant, None, None]:
         yield None
+
+    def variants(self, *args, **kwargs) -> Generator[Variant, None, None]:
+        assert not self._deleted
+        return self._variants(*args, **kwargs)
 
 
 class TableManager(ABC):  # pragma: no cover
@@ -88,12 +106,10 @@ class TableManager(ABC):  # pragma: no cover
     def _generate_table_id(self) -> Optional[str]:
         pass
 
-    # TODO: Rename create_table_and_update, table_id
     @abstractmethod
     def create_table_and_update(self, name: str, metadata: dict) -> VariantTable:
         pass
 
-    # TODO: Rename create_table_and_update, table_id
     @abstractmethod
     def delete_table_and_update(self, table_id: str):
         pass

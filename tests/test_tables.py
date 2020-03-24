@@ -10,8 +10,16 @@ from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
 from chord_variant_service.variants.schemas import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
 
 from .shared_data import (
+    VCF_ONE_VAR_FILE_PATH,
+    VCF_ONE_VAR_INDEX_FILE_PATH,
+
     VCF_TEN_VAR_FILE_PATH,
     VCF_TEN_VAR_INDEX_FILE_PATH,
+
+    VCF_MISSING_9_FILE_PATH,
+    VCF_MISSING_9_INDEX_FILE_PATH,
+
+    VCF_NO_TBI_FILE_PATH,
 
     VARIANT_1,
     VARIANT_2,
@@ -228,13 +236,40 @@ def test_memory_table_data_pagination(client, table_manager):
             assert json.dumps(data["data"], sort_keys=True) == json.dumps(r_data, sort_keys=True)
 
 
+def test_vcf_table_error_handling(vcf_table_manager):
+    vm: VCFTableManager = vcf_table_manager
+
+    # Create a new table named test
+    t = vm.create_table_and_update("test", {})
+
+    shutil.copyfile(VCF_ONE_VAR_FILE_PATH, os.path.join(vm.data_path, t.table_id, "test.vcf.gz"))
+    shutil.copyfile(VCF_ONE_VAR_INDEX_FILE_PATH, os.path.join(vm.data_path, t.table_id, "test.vcf.gz.tbi"))
+
+    shutil.copyfile(VCF_MISSING_9_FILE_PATH, os.path.join(vm.data_path, t.table_id, "missing_9.vcf.gz"))
+    shutil.copyfile(VCF_MISSING_9_INDEX_FILE_PATH, os.path.join(vm.data_path, t.table_id, "missing_9.vcf.gz.tbi"))
+
+    shutil.copyfile(VCF_NO_TBI_FILE_PATH, os.path.join(vm.data_path, t.table_id, "no_tbi.vcf.gz"))
+
+    # Update to register new files
+    vm.update_tables()
+
+    assert len(t.files) == 1
+    assert t.n_of_variants == 1
+    assert t.n_of_samples == 835
+
+    assert len(tuple(t.variants())) == 1
+    assert len(tuple(t.variants(chromosome="22"))) == 1
+    assert len(tuple(t.variants(chromosome="21"))) == 0
+    assert len(tuple(t.variants(offset=1))) == 0
+
+
 def test_vcf_table_pagination(vcf_client, vcf_table_manager):
     vm: VCFTableManager = vcf_table_manager
 
     # Create a new table named test
     t = vm.create_table_and_update("test", {})
 
-    # Add one_variant_22.vcf.gz
+    # Add ten_variants_22.vcf.gz
     shutil.copyfile(VCF_TEN_VAR_FILE_PATH, os.path.join(vm.data_path, t.table_id, "test.vcf.gz"))
     shutil.copyfile(VCF_TEN_VAR_INDEX_FILE_PATH, os.path.join(vm.data_path, t.table_id, "test.vcf.gz.tbi"))
 

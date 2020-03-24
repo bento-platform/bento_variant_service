@@ -30,7 +30,7 @@ class MemoryVariantTable(VariantTable):
                 sample_set.add(c.sample_id)
         return len(sample_set)
 
-    def variants(
+    def _variants(
         self,
         assembly_id: Optional[str] = None,
         chromosome: Optional[str] = None,
@@ -74,23 +74,23 @@ class MemoryVariantTable(VariantTable):
 
 class MemoryTableManager(TableManager):
     def __init__(self):
-        self.tables = {}
+        self._tables = {}
         self.id_to_generate = "fixed_id"
 
     def get_table(self, table_id: str) -> Optional[dict]:
-        return self.tables.get(table_id, None)
+        return self._tables.get(table_id, None)
 
     def get_tables(self) -> dict:
-        return self.tables
+        return self._tables
 
     def get_beacon_datasets(self) -> Dict[Tuple[str, str], BeaconDataset]:
-        return {bd.beacon_id_tuple: bd for bd in chain.from_iterable(d.beacon_datasets for d in self.tables.values())}
+        return {bd.beacon_id_tuple: bd for bd in chain.from_iterable(d.beacon_datasets for d in self._tables.values())}
 
     def update_tables(self):  # pragma: no cover
         pass
 
     def _generate_table_id(self) -> Optional[str]:
-        return None if self.id_to_generate in self.tables else self.id_to_generate
+        return None if self.id_to_generate in self._tables else self.id_to_generate
 
     def create_table_and_update(self, name: str, metadata: dict) -> MemoryVariantTable:
         table_id = self._generate_table_id()
@@ -98,9 +98,10 @@ class MemoryTableManager(TableManager):
             raise IDGenerationFailure()
 
         new_table = MemoryVariantTable(table_id=table_id, name=name, metadata=metadata, assembly_ids=("GRCh37",))
-        self.tables[table_id] = new_table
+        self._tables[table_id] = new_table
 
         return new_table
 
     def delete_table_and_update(self, table_id: str):
-        del self.tables[table_id]
+        self._tables[table_id].delete()
+        del self._tables[table_id]
