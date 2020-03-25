@@ -1,4 +1,3 @@
-from flask import json
 from typing import Optional, Tuple
 from . import genotypes as gt
 
@@ -108,6 +107,6 @@ class Call:
 
         return all((
             self.sample_id == other.sample_id,
-            json.dumps(self.genotype) == json.dumps(other.genotype),
+            self.genotype == other.genotype,  # Tuples are comparable via ==
             (self.phase_set is None and other.phase_set is None) or self.phase_set == other.phase_set
         ))
