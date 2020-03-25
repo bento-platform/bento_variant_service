@@ -11,8 +11,8 @@ config = configparser.ConfigParser()
 config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chord_variant_service", "package.cfg"))
 
 setuptools.setup(
-    name="chord_variant_service",
-    version="0.1.0",
+    name=config["package"]["name"],
+    version=config["package"]["version"],
 
     python_requires=">=3.6",
     install_requires=[
