@@ -292,3 +292,7 @@ def test_vcf_table_pagination(vcf_client, vcf_table_manager):
             _check_pagination(prev_page, next_page, data)
             assert len(data["data"]) == r_len
             assert tuple(len(d["calls"]) for d in data["data"]) == c_lens
+
+    assert len(tuple(t.variants(start_min=16050607))) == 7  # inclusive min
+    assert len(tuple(t.variants(start_max=16050627))) == 4  # exclusive max
+    assert len(tuple(t.variants(start_min=16050607, start_max=16050627))) == 1  # "
