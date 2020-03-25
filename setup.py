@@ -21,6 +21,7 @@ setuptools.setup(
         "jsonschema>=3.2,<4.0",
         "pysam>=0.15.4,<0.16",
         "requests>=2.23,<3.0",
+        "requests_unixsocket>=0.2.0,<0.3.0",
     ],
 
     author="David Lougheed",
