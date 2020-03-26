@@ -7,7 +7,7 @@ import sys
 from typing import Dict, Optional, Tuple
 from urllib.parse import quote, urlparse
 
-from chord_variant_service.constants import CHORD_URL, SERVICE_NAME, SERVICE_URL_BASE_PATH
+from chord_variant_service.constants import CHORD_URL, DRS_URL_BASE_PATH, SERVICE_NAME
 
 
 __all__ = [
@@ -29,7 +29,7 @@ STARTING_SLASH_PATTERN = re.compile(r"^/")
 NGINX_INTERNAL_SOCKET = quote(os.environ.get("NGINX_INTERNAL_SOCKET", "/chord/tmp/nginx_internal.sock"), safe="")
 
 # TODO: Use urljoin
-UNIX_DRS_BASE_PATH = f"http+unix://{NGINX_INTERNAL_SOCKET}/{re.sub(STARTING_SLASH_PATTERN, '', SERVICE_URL_BASE_PATH)}"
+UNIX_DRS_BASE_PATH = f"http+unix://{NGINX_INTERNAL_SOCKET}/{re.sub(STARTING_SLASH_PATTERN, '', DRS_URL_BASE_PATH)}"
 
 
 DRS_DATA_SCHEMA = {

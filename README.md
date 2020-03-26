@@ -57,7 +57,9 @@ Default values for environment variables are listed on the right-hand side.
 
 ```bash
 TABLE_MANAGER=drs
+DRS_URL_BASE_PATH=/api/drs
 SERVICE_ID=ca.c3g.chord:variant:VERSION
+INITIALIZE_IMMEDIATELY=true
 DATA=/path/to/data/directory
 CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
 ```
@@ -72,6 +74,12 @@ CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
        * `memory`: stores data in memory for the duration of the service's
          process uptime
        * `vcf`: expects data as `.vcf.gz` and `.vcf.gz.tbi` files directly
+       
+  * `INITIALIZE_IMMEDIATELY` is used to specify whether to wait for a `GET` 
+    request to /private/post-start-hook to initialize the service table manager
+    
+  * `DRS_URL_BASE_PATH` is used to specify the Bento container-internal base
+    path to the container's DRS instance.
 
   * If left unset, `SERVICE_ID` will default to `ca.c3g.chord:variant:VERSION`,
     where `VERSION` is the current version of the service package.
