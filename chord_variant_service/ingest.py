@@ -56,7 +56,8 @@ def write_drs_object_files(table_id: str, request_data: dict):  # pragma: no cov
     tbis: List[str] = workflow_outputs.get(WORKFLOW_OUTPUT_TBI_FILES, [])
 
     if len(vcfs) != len(tbis):
-        print(f"[{SERVICE_NAME}] Mismatched VCF GZ and TBI array lengths: {len(vcfs)}, {len(tbis)}")
+        print(f"[{SERVICE_NAME}] Mismatched VCF GZ and TBI array lengths: {len(vcfs)}, {len(tbis)}", file=sys.stderr,
+              flush=True)
         return
 
     pairs: Tuple[Tuple[str, str], ...] = tuple(zip(vcfs, tbis))
@@ -65,16 +66,19 @@ def write_drs_object_files(table_id: str, request_data: dict):  # pragma: no cov
         v = urlparse(vcf_url)
         i = urlparse(idx_url)
         if v.scheme != "drs" or i.scheme != "drs":
-            print(f"[{SERVICE_NAME}] Invalid DRS URL: {vcf_url} or {idx_url}")
+            print(f"[{SERVICE_NAME}] Invalid DRS URL: {vcf_url} or {idx_url}", file=sys.stderr, flush=True)
             continue
 
         # TODO: Check hashes for duplicate files
 
         drs_object_file_path = os.path.join(table_path, f"{urlsafe_b64encode(vcf_url)}.drs.json")
         if os.path.exists(drs_object_file_path):
+            print(f"[{SERVICE_NAME}] DRS object already exists in table {table_id}: {drs_object_file_path}",
+                  file=sys.stderr, flush=True)
             continue
 
         with open(drs_object_file_path, "w") as df:
+            print(f"[{SERVICE_NAME}] Writing DRS object to {drs_object_file_path}", flush=True)
             json.dump({"data": vcf_url, "index": idx_url}, df)
 
 

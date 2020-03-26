@@ -44,6 +44,8 @@ with application.app_context():  # pragma: no cover
             print(f"[{SERVICE_NAME}] Missing required dependency: bcftools", file=sys.stderr, flush=True)
             exit(1)
 
+    print(f"[{SERVICE_NAME}] Started with table manager mode: {application.config['TABLE_MANAGER']}", flush=True)
+
 
 application.register_blueprint(bp_beacon)
 application.register_blueprint(bp_chord_search)
