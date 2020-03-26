@@ -7,7 +7,7 @@ import sys
 from typing import Dict, Optional, Tuple
 from urllib.parse import quote, urlparse
 
-from chord_variant_service.constants import CHORD_URL, SERVICE_NAME
+from chord_variant_service.constants import CHORD_URL, SERVICE_NAME, SERVICE_URL_BASE_PATH
 
 
 __all__ = [
@@ -25,8 +25,11 @@ OptionalHeaders = Optional[Dict[str, str]]
 
 
 HTTP_PATTERN = re.compile(r"^https?")
+STARTING_SLASH_PATTERN = re.compile(r"^/")
 NGINX_INTERNAL_SOCKET = quote(os.environ.get("NGINX_INTERNAL_SOCKET", "/chord/tmp/nginx_internal.sock"), safe="")
-UNIX_DRS_REQUEST_TEMPLATE = f"http+unix://{NGINX_INTERNAL_SOCKET}/api/drs"
+
+# TODO: Use urljoin
+UNIX_DRS_BASE_PATH = f"http+unix://{NGINX_INTERNAL_SOCKET}/{re.sub(STARTING_SLASH_PATTERN, '', SERVICE_URL_BASE_PATH)}"
 
 
 DRS_DATA_SCHEMA = {
@@ -67,12 +70,16 @@ def drs_vcf_to_internal_paths(
         return None
 
     # TODO: Make this not CHORD-specific in its URL format
-    vcf_res = requests.get(f"{UNIX_DRS_REQUEST_TEMPLATE}/objects/{parsed_vcf_url.path}")
-    idx_res = requests.get(f"{UNIX_DRS_REQUEST_TEMPLATE}/objects/{parsed_index_url.path}")
+    vcf_decoded_url = f"{UNIX_DRS_BASE_PATH}/objects/{parsed_vcf_url.path.split('/')[-1]}"
+    idx_decoded_url = f"{UNIX_DRS_BASE_PATH}/objects/{parsed_index_url.path.split('/')[-1]}"
+    vcf_res = requests.get(vcf_decoded_url)
+    idx_res = requests.get(idx_decoded_url)
 
     if vcf_res.status_code != 200 or idx_res.status_code != 200:
         print(f"[{SERVICE_NAME}] Could not fetch: '{vcf_url}' or '{index_url}'",
               file=sys.stderr, flush=True)
+        print(f"\tAttempted VCF URL: {vcf_decoded_url}", file=sys.stderr, flush=True)
+        print(f"\tAttempted TBI URL: {idx_decoded_url}", file=sys.stderr, flush=True)
         return None
 
     # TODO: Handle JSON parse errors
