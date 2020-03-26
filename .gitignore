@@ -1,6 +1,4 @@
 .coverage*
-.idea/chord_variant_service.iml
-.idea/misc.xml
 data/**/.*
 htmlcov/
 env
@@ -9,6 +7,9 @@ __pycache__
 .tox/
 
 # IDE stuff
+.idea/chord_variant_service.iml
+.idea/misc.xml
+.idea/rSettings.xml
 .idea/workspace.xml
 .idea/dataSources*
 *.swp

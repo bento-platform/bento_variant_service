@@ -48,7 +48,7 @@ def get_ingest_metadata_from_request(request_data):
 
 
 def write_drs_object_files(table_id: str, request_data: dict):  # pragma: no cover
-    workflow_outputs = get_ingest_metadata_from_request(request_data)[2]
+    workflow_outputs = get_ingest_metadata_from_request(request_data)[1]
     table_path = os.path.join(current_app.config["DATA_PATH"], table_id)
 
     # Fetch the relevant files from the workflows (these should be DRS URLs...)
