@@ -72,7 +72,10 @@ def drs_vcf_to_internal_paths(
     # TODO: Make this not CHORD-specific in its URL format
     vcf_decoded_url = f"{UNIX_DRS_BASE_PATH}/objects/{parsed_vcf_url.path.split('/')[-1]}"
     idx_decoded_url = f"{UNIX_DRS_BASE_PATH}/objects/{parsed_index_url.path.split('/')[-1]}"
+
+    print(f"[{SERVICE_NAME}] Attempting to fetch {vcf_decoded_url}", flush=True)
     vcf_res = requests.get(vcf_decoded_url)
+    print(f"[{SERVICE_NAME}] Attempting to fetch {idx_decoded_url}", flush=True)
     idx_res = requests.get(idx_decoded_url)
 
     if vcf_res.status_code != 200 or idx_res.status_code != 200:
