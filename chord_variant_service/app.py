@@ -26,7 +26,8 @@ from chord_variant_service.workflows import bp_workflows
 application = Flask(__name__)
 application.config.from_mapping(
     DATA_PATH=os.environ.get("DATA", "data/"),
-    TABLE_MANAGER=os.environ.get("TABLE_MANAGER", MANAGER_TYPE_VCF)  # Options: drs, memory, vcf
+    INITIALIZE_IMMEDIATELY=os.environ.get("INITIALIZE_IMMEDIATELY", "true").strip().lower() == "true",
+    TABLE_MANAGER=os.environ.get("TABLE_MANAGER", MANAGER_TYPE_VCF),  # Options: drs, memory, vcf
 )
 
 
@@ -66,11 +67,6 @@ application.register_error_handler(BadRequest, flask_errors.flask_error_wrap(fla
 application.register_error_handler(NotFound, flask_errors.flask_error_wrap(flask_errors.flask_not_found_error))
 
 
-with application.app_context():
-    # Force eager initialization of table manager
-    get_table_manager()
-
-
 @application.teardown_appcontext
 def app_teardown(err):
     teardown_pool(err)
@@ -92,3 +88,21 @@ def service_info():
         "contactUrl": "mailto:david.lougheed@mail.mcgill.ca",
         "version": __version__
     })
+
+
+def post_start_hook():
+    # Force initialization of table manager
+    get_table_manager()
+
+
+with application.app_context():
+    if application.config["INITIALIZE_IMMEDIATELY"]:
+        post_start_hook()
+
+
+# Register a post-start hook to initialize the table manager
+# This cannot always happen immediately upon startup, because the DRS service may not have started yet.
+@application.route("/private/post-start-hook", methods=["GET"])
+def post_start_hook_route():
+    post_start_hook()
+    return application.response_class(status=204)
