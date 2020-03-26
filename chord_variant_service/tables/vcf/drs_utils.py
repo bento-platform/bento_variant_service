@@ -92,6 +92,8 @@ def drs_vcf_to_internal_paths(
     if vcf_access is None or idx_access is None:
         print(f"[{SERVICE_NAME}] Could not find access data for: '{vcf_url}' or '{index_url}'",
               file=sys.stderr, flush=True)
+        print(f"\tVCF Response:   {vcf_res.json()}", file=sys.stderr, flush=True)
+        print(f"\tIndex Response: {idx_res.json()}", file=sys.stderr, flush=True)
         return None
 
     vcf_path = vcf_access["access_url"]["url"]
