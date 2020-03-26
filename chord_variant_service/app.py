@@ -97,6 +97,7 @@ def post_start_hook():
 
 with application.app_context():
     if application.config["INITIALIZE_IMMEDIATELY"]:
+        print(f"[{SERVICE_NAME}] Post-start hook invoked automatically at startup", flush=True)
         post_start_hook()
 
 
@@ -104,5 +105,6 @@ with application.app_context():
 # This cannot always happen immediately upon startup, because the DRS service may not have started yet.
 @application.route("/private/post-start-hook", methods=["GET"])
 def post_start_hook_route():
+    print(f"[{SERVICE_NAME}] Post-start hook invoked via URL request", flush=True)
     post_start_hook()
     return application.response_class(status=204)
