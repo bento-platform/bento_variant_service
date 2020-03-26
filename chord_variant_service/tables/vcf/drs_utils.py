@@ -78,8 +78,8 @@ def drs_vcf_to_internal_paths(
     if vcf_res.status_code != 200 or idx_res.status_code != 200:
         print(f"[{SERVICE_NAME}] Could not fetch: '{vcf_url}' or '{index_url}'",
               file=sys.stderr, flush=True)
-        print(f"\tAttempted VCF URL: {vcf_decoded_url}", file=sys.stderr, flush=True)
-        print(f"\tAttempted TBI URL: {idx_decoded_url}", file=sys.stderr, flush=True)
+        print(f"\tAttempted VCF URL: {vcf_decoded_url} (Status: {vcf_res.status_code})", file=sys.stderr, flush=True)
+        print(f"\tAttempted TBI URL: {idx_decoded_url} (Status: {idx_res.status_code})", file=sys.stderr, flush=True)
         return None
 
     # TODO: Handle JSON parse errors
