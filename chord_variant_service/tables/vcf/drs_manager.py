@@ -32,7 +32,7 @@ class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
                     continue
 
                 try:
-                    vcf, idx, _vh, _ih = drs_vcf_to_internal_paths(drs_data["data"], drs_data)
+                    vcf, idx, _vh, _ih = drs_vcf_to_internal_paths(drs_data["data"], drs_data["index"])
                     vcf_files.append(BaseVCFTableManager.get_vcf_file_record(vcf, idx))
                 except ValueError:
                     print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}'")
