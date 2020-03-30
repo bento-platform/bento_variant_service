@@ -72,7 +72,7 @@ def write_drs_object_files(table_id: str, request_data: dict):  # pragma: no cov
         # TODO: Check hashes for duplicate files
 
         drs_object_file_path = os.path.join(
-            table_path, f"{urlsafe_b64encode(str(bytes(vcf_url, encoding='utf-8'), encoding='utf-8'))}.drs.json")
+            table_path, f"{str(urlsafe_b64encode(bytes(vcf_url, encoding='utf-8')), encoding='utf-8')}.drs.json")
         if os.path.exists(drs_object_file_path):
             print(f"[{SERVICE_NAME}] DRS object already exists in table {table_id}: {drs_object_file_path}",
                   file=sys.stderr, flush=True)
