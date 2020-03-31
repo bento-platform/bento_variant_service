@@ -1,11 +1,10 @@
 from flask import g
 from multiprocessing import Pool
 
-from chord_variant_service.app import application
 from chord_variant_service.pool import WORKERS, get_pool, teardown_pool
 
 
-def test_pool_init():
+def test_pool_init(app):
     try:
         # noinspection PyUnresolvedReferences
         from pytest_cov.embed import cleanup_on_sigterm
@@ -16,7 +15,7 @@ def test_pool_init():
 
     dummy_pool = Pool(processes=WORKERS)
 
-    with application.app_context():
+    with app.app_context():
         pool = get_pool()
         assert isinstance(pool, type(dummy_pool))
 
@@ -30,11 +29,11 @@ def test_pool_init():
     dummy_pool.join()
 
 
-def test_pool_tear_down():
+def test_pool_tear_down(app):
     dummy_pool = Pool(processes=WORKERS)
 
     try:
-        with application.app_context():
+        with app.app_context():
             pool = get_pool()
             assert isinstance(pool, type(dummy_pool))
 
