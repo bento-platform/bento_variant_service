@@ -24,8 +24,8 @@ setuptools.setup(
         "requests_unixsocket>=0.2.0,<0.3.0",
     ],
 
-    author="David Lougheed",
-    author_email="david.lougheed@mail.mcgill.ca",
+    author=config["package"]["authors"],
+    author_email=config["package"]["author_emails"],
 
     description="An implementation of a variant store for the CHORD project.",
     long_description=long_description,
