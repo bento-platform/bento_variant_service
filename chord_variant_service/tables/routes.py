@@ -1,13 +1,14 @@
 import sys
 
 from chord_lib.auth.flask_decorators import flask_permissions, flask_permissions_owner
-from chord_lib.responses.flask_errors import *
+from chord_lib.responses import flask_errors
 from flask import Blueprint, current_app, json, jsonify, request, url_for
 from jsonschema import validate, ValidationError
 
 from chord_variant_service.tables.base import TableManager
-from chord_variant_service.tables.vcf import VCFVariantTable
+from chord_variant_service.tables.vcf.table import VCFVariantTable
 from chord_variant_service.tables.exceptions import IDGenerationFailure
+from chord_variant_service.table_manager import get_table_manager
 from chord_variant_service.variants.schemas import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
 
@@ -30,33 +31,34 @@ def table_list():
     dt = request.args.getlist("data-type")
 
     if "variant" not in dt or len(dt) != 1:
-        return flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
+        return flask_errors.flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
 
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
     if request.method == "POST":
         if request.json is None:
-            return flask_bad_request_error("Missing or invalid request body")
+            return flask_errors.flask_bad_request_error("Missing or invalid request body")
 
         # TODO: Query schema
 
         if not isinstance(request.json, dict):
-            return flask_bad_request_error("Request body is not an object")
+            return flask_errors.flask_bad_request_error("Request body is not an object")
 
         if "metadata" not in request.json:
-            return flask_bad_request_error("Missing metadata field")
+            return flask_errors.flask_bad_request_error("Missing metadata field")
 
         name = request.json.get("name", "").strip()
         metadata = request.json["metadata"]
 
         if name == "":
-            return flask_bad_request_error("Missing or blank name field")
+            return flask_errors.flask_bad_request_error("Missing or blank name field")
 
         try:
             validate(metadata, VARIANT_TABLE_METADATA_SCHEMA)
         except ValidationError:
-            return flask_bad_request_error("Invalid metadata format (validation failed)")  # TODO: Validation message
+            # TODO: Validation message
+            return flask_errors.flask_bad_request_error("Invalid metadata format (validation failed)")
 
         try:
             new_table = table_manager.create_table_and_update(name, metadata)
@@ -65,21 +67,21 @@ def table_list():
 
         except IDGenerationFailure:
             print("[CHORD Variant Service] Couldn't generate new ID", file=sys.stderr)
-            return flask_internal_server_error("Could not generate new ID for table")
+            return flask_errors.flask_internal_server_error("Could not generate new ID for table")
 
-    return jsonify([t.as_table_response() for t in table_manager.get_tables().values()])
+    return jsonify([t.as_table_response() for t in table_manager.tables.values()])
 
 
 # TODO: Implement POST (separate permissions)
 @bp_tables.route("/tables/<string:table_id>", methods=["GET", "DELETE"])
 @flask_permissions({"DELETE": {"owner"}})
 def table_detail(table_id):
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
     table = table_manager.get_table(table_id)
 
     if table is None:
         # TODO: Refresh cache if needed?
-        return flask_not_found_error(f"No table with ID {table_id}")
+        return flask_errors.flask_not_found_error(f"No table with ID {table_id}")
 
     if request.method == "DELETE":
         table_manager.delete_table_and_update(table_id)
@@ -92,12 +94,12 @@ def table_detail(table_id):
 @bp_tables.route("/tables/<string:table_id>/summary", methods=["GET"])
 @flask_permissions_owner
 def table_summary(table_id):
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
     table = table_manager.get_table(table_id)
 
     if table is None:
         # TODO: Refresh cache if needed?
-        return flask_not_found_error(f"No table with ID {table_id}")
+        return flask_errors.flask_not_found_error(f"No table with ID {table_id}")
 
     return {
         "count": table.n_of_variants,
@@ -113,24 +115,24 @@ def table_summary(table_id):
 @bp_tables.route("/private/tables/<string:table_id>/data", methods=["GET"])
 @bp_tables.route("/private/tables/<string:table_id>/variants", methods=["GET"])
 def table_data(table_id):
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
     table = table_manager.get_table(table_id)
 
     if table is None:
         # TODO: Refresh cache if needed?
-        return flask_not_found_error(f"No table with ID {table_id}")
+        return flask_errors.flask_not_found_error(f"No table with ID {table_id}")
 
     try:
         offset = int(request.args.get("offset", "0"))
         count = int(request.args.get("count", "100").strip())  # TODO: Constant-ify default count
     except ValueError:
-        return flask_bad_request_error("Invalid offset or count provided")
+        return flask_errors.flask_bad_request_error("Invalid offset or count provided")
 
     if offset < 0:
-        return flask_bad_request_error("Offset must be non-negative")
+        return flask_errors.flask_bad_request_error("Offset must be non-negative")
 
     if count <= 0:
-        return flask_bad_request_error("Count must be positive")
+        return flask_errors.flask_bad_request_error("Count must be positive")
 
     # TODO: Assembly ID?
 
@@ -168,7 +170,6 @@ def table_data(table_id):
 @bp_tables.route("/data-types", methods=["GET"])
 def data_type_list():
     # Data types are basically stand-ins for schema blocks
-
     return jsonify([{
         "id": "variant",
         "schema": VARIANT_SCHEMA,

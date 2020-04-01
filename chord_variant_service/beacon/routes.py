@@ -15,7 +15,7 @@ from chord_lib.search.queries import (
     FUNCTION_EQ
 )
 
-from flask import Blueprint, current_app, json, jsonify, request, Response
+from flask import Blueprint, json, jsonify, request, Response
 from itertools import chain
 from jsonschema import validate, ValidationError
 from typing import Callable, List, Optional, Tuple
@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 from chord_variant_service.search import generic_variant_search
 from chord_variant_service.tables.base import TableManager
+from chord_variant_service.table_manager import get_table_manager
 from chord_variant_service.variants.genotypes import GT_HOMOZYGOUS_REFERENCE
 
 
@@ -79,7 +80,7 @@ def beacon_get():
         "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO: More specific
         "version": chord_variant_service.__version__,
         "datasets": [d.as_beacon_dataset_response()
-                     for d in current_app.config["TABLE_MANAGER"].get_beacon_datasets().values()]
+                     for d in get_table_manager().beacon_datasets.values()]
     })
 
 
@@ -186,7 +187,7 @@ def beacon_query():
     if dataset_ids is not None:
         dataset_ids = tuple(set(d.split(":")[0] for d in dataset_ids))
 
-    table_manager: TableManager = current_app.config["TABLE_MANAGER"]
+    table_manager: TableManager = get_table_manager()
 
     # Create an additional filtering query based on the rest of the Beacon request, plus other filtering we want to do
     rest_of_query = and_asts_to_ast((
@@ -223,14 +224,14 @@ def beacon_query():
 
     if include_dataset_responses == BEACON_IDR_ALL:
         beacon_dataset_hits = [{"datasetId": bd.beacon_id, "exists": bd.beacon_id in dataset_matches}
-                               for bd in table_manager.get_beacon_datasets().values()]
+                               for bd in table_manager.beacon_datasets.values()]
 
     elif include_dataset_responses == BEACON_IDR_HIT:
         beacon_dataset_hits = [{"datasetId": ds, "exists": True} for ds in dataset_matches]
 
     elif include_dataset_responses == BEACON_IDR_MISS:
         beacon_dataset_hits = [{"datasetId": bd.beacon_id, "exists": False}
-                               for bd in table_manager.get_beacon_datasets().values()
+                               for bd in table_manager.beacon_datasets.values()
                                if bd.beacon_id not in dataset_matches]
 
     else:  # BEACON_IDR_NONE

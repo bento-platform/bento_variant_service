@@ -1,8 +1,8 @@
 # Possible operations: eq, lt, gt, le, ge, co
 # TODO: Regex verification with schema, to front end
 
-from chord_lib.search.operations import *
-from .genotypes import *
+from chord_lib.search import operations as op
+from . import genotypes as gt
 
 
 __all__ = [
@@ -21,7 +21,7 @@ VARIANT_CALL_SCHEMA = {
             "type": "string",
             "description": "Variant call sample ID.",  # TODO: More detailed?
             "search": {
-                "operations": [SEARCH_OP_EQ],
+                "operations": [op.SEARCH_OP_EQ],
                 "queryable": "internal",
                 "canNegate": True,
                 "required": False,
@@ -36,7 +36,7 @@ VARIANT_CALL_SCHEMA = {
                 "type": ["string", "null"],
                 "description": "Variant call bases on a chromosome.",
                 "search": {
-                    "operations": [SEARCH_OP_EQ],
+                    "operations": [op.SEARCH_OP_EQ],
                     "queryable": "all",
                     "canNegate": True,
                     "required": False,
@@ -56,19 +56,19 @@ VARIANT_CALL_SCHEMA = {
             "description": "Variant call genotype type.",
             "enum": [
                 # No call
-                GT_UNCALLED,
+                gt.GT_UNCALLED,
 
                 # Haploid
-                GT_REFERENCE,
-                GT_ALTERNATE,
+                gt.GT_REFERENCE,
+                gt.GT_ALTERNATE,
 
                 # Diploid or higher
-                GT_HOMOZYGOUS_REFERENCE,
-                GT_HETEROZYGOUS,
-                GT_HOMOZYGOUS_ALTERNATE,
+                gt.GT_HOMOZYGOUS_REFERENCE,
+                gt.GT_HETEROZYGOUS,
+                gt.GT_HOMOZYGOUS_ALTERNATE,
             ],
             "search": {
-                "operations": [SEARCH_OP_EQ],
+                "operations": [op.SEARCH_OP_EQ],
                 "queryable": "all",
                 "canNegate": True,
                 "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
@@ -80,7 +80,7 @@ VARIANT_CALL_SCHEMA = {
             "type": ["number", "null"],
             "description": "Genotype phase set, if any.",
             "search": {
-                "operations": [SEARCH_OP_EQ],
+                "operations": [op.SEARCH_OP_EQ],
                 "queryable": "internal",
                 "canNegate": True,
                 "required": False,
@@ -107,7 +107,7 @@ VARIANT_SCHEMA = {
             "enum": ["GRCh38", "GRCh37", "NCBI36", "Other"],
             "description": "Reference genome assembly ID.",
             "search": {
-                "operations": [SEARCH_OP_EQ],
+                "operations": [op.SEARCH_OP_EQ],
                 "queryable": "all",
                 "canNegate": False,
                 "required": True,
@@ -120,7 +120,7 @@ VARIANT_SCHEMA = {
             # TODO: Choices
             "description": "Reference genome chromosome identifier (e.g. 17 or X)",
             "search": {
-                "operations": [SEARCH_OP_EQ],
+                "operations": [op.SEARCH_OP_EQ],
                 "queryable": "all",
                 "canNegate": False,
                 "required": True,
@@ -132,7 +132,7 @@ VARIANT_SCHEMA = {
             "type": "integer",
             "description": "1-indexed start location of the variant on the chromosome.",
             "search": {
-                "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
+                "operations": [op.SEARCH_OP_EQ, op.SEARCH_OP_LT, op.SEARCH_OP_LE, op.SEARCH_OP_GT, op.SEARCH_OP_GE],
                 "queryable": "all",
                 "canNegate": False,
                 "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
@@ -145,7 +145,7 @@ VARIANT_SCHEMA = {
             "description": ("1-indexed end location (exclusive) of the variant on the chromosome, in terms of the "
                             "number of bases in the reference sequence for the variant."),
             "search": {
-                "operations": [SEARCH_OP_EQ, SEARCH_OP_LT, SEARCH_OP_LE, SEARCH_OP_GT, SEARCH_OP_GE],
+                "operations": [op.SEARCH_OP_EQ, op.SEARCH_OP_LT, op.SEARCH_OP_LE, op.SEARCH_OP_GT, op.SEARCH_OP_GE],
                 "queryable": "all",
                 "canNegate": True,
                 "required": False,
@@ -157,7 +157,7 @@ VARIANT_SCHEMA = {
             "type": "string",
             "description": "Reference base sequence for the variant.",
             "search": {
-                "operations": [SEARCH_OP_EQ],
+                "operations": [op.SEARCH_OP_EQ],
                 "queryable": "all",
                 "canNegate": True,
                 "required": False,
@@ -172,7 +172,7 @@ VARIANT_SCHEMA = {
                 "type": "string",
                 "description": "Alternate base sequence for the variant.",
                 "search": {
-                    "operations": [SEARCH_OP_EQ],
+                    "operations": [op.SEARCH_OP_EQ],
                     "queryable": "all",
                     "canNegate": True,
                     "required": False,

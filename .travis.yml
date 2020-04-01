@@ -1,10 +1,14 @@
 language: python
 python:
   - "3.6"
-  - "3.7"
+  - "3.8"
+addons:
+  apt:
+    packages:
+      - bcftools
 install:
   - pip install -r requirements.txt
 script:
-  python3 -m pytest --cov=chord_variant_service --cov-branch
+  python3 -m tox
 after_success:
   - codecov

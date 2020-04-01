@@ -1,6 +1,5 @@
-from flask import json
 from typing import Optional, Tuple
-from .genotypes import *
+from . import genotypes as gt
 
 
 __all__ = [
@@ -56,9 +55,6 @@ class Variant:
         ))
 
 
-UNINTERESTING_CALLS = frozenset({GT_UNCALLED, GT_REFERENCE, GT_HOMOZYGOUS_REFERENCE})
-
-
 class Call:
     """
     Instance of a called variant on a particular sample.
@@ -79,22 +75,22 @@ class Call:
 
         if genotype[0] is None:
             # Cannot make a call
-            genotype_type = GT_UNCALLED
+            genotype_type = gt.GT_UNCALLED
         elif len(self.genotype) == 1:
-            genotype_type = GT_REFERENCE if self.genotype[0] == 0 else GT_ALTERNATE
+            genotype_type = gt.GT_REFERENCE if self.genotype[0] == 0 else gt.GT_ALTERNATE
         else:  # len(self.genotype) > 1:
-            genotype_type = GT_HOMOZYGOUS_ALTERNATE
+            genotype_type = gt.GT_HOMOZYGOUS_ALTERNATE
             if len(set(self.genotype)) > 1:
-                genotype_type = GT_HETEROZYGOUS
+                genotype_type = gt.GT_HETEROZYGOUS
             elif self.genotype[0] == 0:
                 # all elements are 0 if 0 is the first element and the length of the set is 1
-                genotype_type = GT_HOMOZYGOUS_REFERENCE
+                genotype_type = gt.GT_HOMOZYGOUS_REFERENCE
 
         self.genotype_type = genotype_type
 
     @property
     def is_interesting(self):
-        return self.genotype_type not in UNINTERESTING_CALLS
+        return self.genotype_type not in gt.GT_UNINTERESTING_CALLS
 
     def as_chord_representation(self, include_variant: bool = False):
         return {
@@ -111,6 +107,6 @@ class Call:
 
         return all((
             self.sample_id == other.sample_id,
-            json.dumps(self.genotype) == json.dumps(other.genotype),
+            self.genotype == other.genotype,  # Tuples are comparable via ==
             (self.phase_set is None and other.phase_set is None) or self.phase_set == other.phase_set
         ))

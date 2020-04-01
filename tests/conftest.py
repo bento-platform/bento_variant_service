@@ -2,21 +2,67 @@ import json
 import pytest
 import requests
 
-from chord_variant_service.app import application
-from chord_variant_service.tables.memory import MemoryTableManager
+from chord_variant_service import table_manager as tm
+from chord_variant_service.app import create_app
 
 
 @pytest.fixture
 def app():
-    application.config["TESTING"] = True
-    application.config["TABLE_MANAGER"] = MemoryTableManager()
-    yield application
+    tm._table_manager = None
+    yield create_app({
+        "TESTING": True,
+        "TABLE_MANAGER": tm.MANAGER_TYPE_MEMORY
+    })
+
+
+@pytest.fixture
+def uninitialized_app():
+    tm._table_manager = None
+    yield create_app({
+        "TESTING": True,
+        "TABLE_MANAGER": tm.MANAGER_TYPE_MEMORY,
+        "INITIALIZE_IMMEDIATELY": False
+    })
+
+
+@pytest.fixture
+def vcf_app(tmpdir):
+    data_path = tmpdir / "vcf_data"
+    data_path.mkdir()
+
+    tm._table_manager = None
+    yield create_app({
+        "TESTING": True,
+        "DATA_PATH": str(data_path),
+        "TABLE_MANAGER": tm.MANAGER_TYPE_VCF,
+    })
+
+
+@pytest.fixture()
+def table_manager(app):
+    with app.app_context():
+        yield tm.get_table_manager()
+
+
+@pytest.fixture()
+def vcf_table_manager(vcf_app):
+    with vcf_app.app_context():
+        yield tm.get_table_manager()
 
 
 @pytest.fixture
 def client(app):
-    client = app.test_client()
-    yield client
+    yield app.test_client()
+
+
+@pytest.fixture
+def uninitialized_client(uninitialized_app):
+    yield uninitialized_app.test_client()
+
+
+@pytest.fixture
+def vcf_client(vcf_app):
+    yield vcf_app.test_client()
 
 
 @pytest.fixture(scope="module")

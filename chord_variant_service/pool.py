@@ -3,7 +3,13 @@ import os
 from flask import g
 from multiprocessing import Pool
 
-WORKERS = len(os.sched_getaffinity(0))
+
+try:  # pragma: no cover
+    # noinspection PyUnresolvedReferences
+    WORKERS = len(os.sched_getaffinity(0))
+except AttributeError:  # pragma: no cover
+    # sched_getaffinity isn't available on all systemps
+    WORKERS = 4
 
 
 def get_pool():

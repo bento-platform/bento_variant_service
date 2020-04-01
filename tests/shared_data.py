@@ -1,6 +1,18 @@
+import os
 from chord_variant_service.variants.models import Variant, Call
 
 __all__ = [
+    "VCF_ONE_VAR_FILE_PATH",
+    "VCF_ONE_VAR_INDEX_FILE_PATH",
+
+    "VCF_TEN_VAR_FILE_PATH",
+    "VCF_TEN_VAR_INDEX_FILE_PATH",
+
+    "VCF_MISSING_9_FILE_PATH",
+    "VCF_MISSING_9_INDEX_FILE_PATH",
+
+    "VCF_NO_TBI_FILE_PATH",
+
     "VARIANT_1",
     "VARIANT_2",
     "VARIANT_3",
@@ -10,6 +22,19 @@ __all__ = [
     "CALL_1",
     "CALL_2",
 ]
+
+TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), "data")
+
+VCF_ONE_VAR_FILE_PATH = os.path.join(TEST_DATA_PATH, "one_variant_22.vcf.gz")
+VCF_ONE_VAR_INDEX_FILE_PATH = f"{VCF_ONE_VAR_FILE_PATH}.tbi"
+
+VCF_TEN_VAR_FILE_PATH = os.path.join(TEST_DATA_PATH, "ten_variants_22.vcf.gz")
+VCF_TEN_VAR_INDEX_FILE_PATH = f"{VCF_TEN_VAR_FILE_PATH}.tbi"
+
+VCF_MISSING_9_FILE_PATH = os.path.join(TEST_DATA_PATH, "missing_9th_22.vcf.gz")
+VCF_MISSING_9_INDEX_FILE_PATH = f"{VCF_MISSING_9_FILE_PATH}.tbi"
+
+VCF_NO_TBI_FILE_PATH = os.path.join(TEST_DATA_PATH, "no_tbi_22.vcf.gz")
 
 VARIANT_1 = Variant(
     assembly_id="GRCh37",

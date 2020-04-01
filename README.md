@@ -1,6 +1,6 @@
 # CHORD Variant Service
 
-![Build Status](https://api.travis-ci.org/c3g/chord_variant_service.svg?branch=master)
+![Build Status](https://api.travis-ci.com/c3g/chord_variant_service.svg?branch=master)
 [![codecov](https://codecov.io/gh/c3g/chord_variant_service/branch/master/graph/badge.svg)](https://codecov.io/gh/c3g/chord_variant_service)
 
 Proposed quality control pipeline:
@@ -17,6 +17,16 @@ The workflows exposed by this service currently depend on:
 The service itself depends on the following non-Python utilities:
 
 * `bcftools`
+
+
+## Copyright Notice
+
+The CHORD Variant Service is copyright &copy; 2019-2020 the Canadian Centre for
+Computational Genomics.
+
+Portions of this codebase (namely, test VCF data) comes from the 1000 Genomes
+Project, and is thus subject to their copyright and 
+[terms of use](https://www.internationalgenome.org/IGSR_disclaimer).
 
 
 ## On Coordinates
@@ -46,12 +56,30 @@ All **other** endpoints use **1-based** coordinates with **half-open** ranges.
 Default values for environment variables are listed on the right-hand side.
 
 ```bash
+TABLE_MANAGER=drs
+DRS_URL_BASE_PATH=/api/drs
 SERVICE_ID=ca.c3g.chord:variant:VERSION
+INITIALIZE_IMMEDIATELY=true
 DATA=/path/to/data/directory
 CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
 ```
 
 ### Notes
+
+  * `TABLE_MANAGER` is used to specify how data will be stored in the service
+    instance, and what types of data files the service will look for in the
+    `DATA` folder. The available options are:
+       * `drs`: expects data as Data Repository Service (DRS) object links to
+         `.vcf.gz` and `.vcf.gz.tbi` files
+       * `memory`: stores data in memory for the duration of the service's
+         process uptime
+       * `vcf`: expects data as `.vcf.gz` and `.vcf.gz.tbi` files directly
+       
+  * `INITIALIZE_IMMEDIATELY` is used to specify whether to wait for a `GET` 
+    request to /private/post-start-hook to initialize the service table manager
+    
+  * `DRS_URL_BASE_PATH` is used to specify the Bento container-internal base
+    path to the container's DRS instance.
 
   * If left unset, `SERVICE_ID` will default to `ca.c3g.chord:variant:VERSION`,
     where `VERSION` is the current version of the service package.

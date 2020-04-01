@@ -1,7 +1,7 @@
 import pytest
-from chord_variant_service.variants.genotypes import *
-from chord_variant_service.variants.models import *
-from .shared_data import *
+from chord_variant_service.variants import genotypes as gt
+from chord_variant_service.variants.models import Call
+from .shared_data import VARIANT_1, VARIANT_2, VARIANT_3, CALL_1, CALL_2
 
 
 def test_variant_equality():
@@ -27,32 +27,32 @@ def test_call_genotypes():
 
     c = Call(VARIANT_1, "S0001", (0,))
     assert c.genotype_bases == ("C",)
-    assert c.genotype_type == GT_REFERENCE
+    assert c.genotype_type == gt.GT_REFERENCE
     assert not c.is_interesting
 
     c = Call(VARIANT_1, "S0001", (1,))
     assert c.genotype_bases == ("T",)
-    assert c.genotype_type == GT_ALTERNATE
+    assert c.genotype_type == gt.GT_ALTERNATE
     assert c.is_interesting
 
     # Diploid
 
     c = Call(VARIANT_1, "S0001", (0, 0))
     assert c.genotype_bases == ("C", "C")
-    assert c.genotype_type == GT_HOMOZYGOUS_REFERENCE
+    assert c.genotype_type == gt.GT_HOMOZYGOUS_REFERENCE
     assert not c.is_interesting
 
     c = Call(VARIANT_1, "S0001", (0, 1))
     assert c.genotype_bases == ("C", "T")
-    assert c.genotype_type == GT_HETEROZYGOUS
+    assert c.genotype_type == gt.GT_HETEROZYGOUS
     assert c.is_interesting
 
     c = Call(VARIANT_1, "S0001", (1, 1))
     assert c.genotype_bases == ("T", "T")
-    assert c.genotype_type == GT_HOMOZYGOUS_ALTERNATE
+    assert c.genotype_type == gt.GT_HOMOZYGOUS_ALTERNATE
     assert c.is_interesting
 
     c = Call(VARIANT_1, "S0001", (None, None))
     assert c.genotype_bases[0] is None and c.genotype_bases[1] is None
-    assert c.genotype_type == GT_UNCALLED
+    assert c.genotype_type == gt.GT_UNCALLED
     assert not c.is_interesting
