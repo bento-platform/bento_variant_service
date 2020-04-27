@@ -1,0 +1,3 @@
+[report]
+omit =
+    chord_variant_service/wsgi.py
