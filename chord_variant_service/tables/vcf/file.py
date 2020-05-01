@@ -37,8 +37,11 @@ class VCFFile:
 
         # Find row count
         try:
-            p = subprocess.Popen(("bcftools", "index", "--nrecords", vcf_path), stdout=subprocess.PIPE)
-            self._n_of_variants: int = int(p.stdout.read().strip())  # TODO: Handle error
+            # p = subprocess.Popen(("bcftools", "index", "--nrecords", vcf_path), stdout=subprocess.PIPE)
+            f = pysam.TabixFile(self.path, index=self.index_path, parser=pysam.asTuple(), threads=WORKERS)
+            self._n_of_variants: int = sum(1 for _ in f.fetch())  # TODO: Make this more efficient
+            f.close()
+            # self._n_of_variants: int = int(p.stdout.read().strip())  # TODO: Handle error
         except (subprocess.CalledProcessError, ValueError):
             # bcftools returned 1, or couldn't find number of records
             raise ValueError  # Consolidate to one exception type
