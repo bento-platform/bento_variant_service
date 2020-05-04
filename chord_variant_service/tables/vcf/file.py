@@ -37,8 +37,12 @@ class VCFFile:
 
         # Find row count
         try:
-            p = subprocess.Popen(("bcftools", "index", "--nrecords", f"${self.path}##idx##{self.index_path}"),
-                                 stdout=subprocess.PIPE)
+            p = subprocess.Popen((
+                "bcftools",
+                "index",
+                "--nrecords",
+                f"{self._path}{f'##idx##{self._index_path}' if self._index_path else ''}"
+            ), stdout=subprocess.PIPE)
             self._n_of_variants: int = int(p.stdout.read().strip())  # TODO: Handle error
         except (subprocess.CalledProcessError, ValueError):
             # bcftools returned 1, or couldn't find number of records, or couldn't find index
