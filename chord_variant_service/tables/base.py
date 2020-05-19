@@ -40,7 +40,8 @@ class VariantTable(ABC):  # pragma: no cover
             "name": self.name,
             "metadata": self.metadata,
             "assembly_ids": list(self._assembly_ids),
-            "schema": VARIANT_SCHEMA
+            "data_type": "variant",  # TODO: Make "variant" a constant somewhere, or use schema ID in the future
+            "schema": VARIANT_SCHEMA,
         }
 
     @property

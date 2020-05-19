@@ -94,6 +94,7 @@ def generic_variant_search(
     # TODO: Sane defaults
     # TODO: Figure out inclusion/exclusion with start_min/end_max
 
+    # Set of dataset IDs to include. If none, all dataset IDs are included!
     ds = set(dataset_ids) if dataset_ids is not None else None
 
     pool = get_pool()
