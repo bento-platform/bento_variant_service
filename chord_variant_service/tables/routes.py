@@ -28,11 +28,6 @@ bp_tables = Blueprint("tables", __name__)
 @bp_tables.route("/tables", methods=["GET", "POST"])
 @flask_permissions({"POST": {"owner"}})
 def table_list():
-    dt = request.args.getlist("data-type")
-
-    if "variant" not in dt or len(dt) != 1:
-        return flask_errors.flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
-
     table_manager: TableManager = get_table_manager()
 
     # TODO: This POST stuff is not compliant with the GA4GH Search API
@@ -49,10 +44,14 @@ def table_list():
             return flask_errors.flask_bad_request_error("Missing metadata field")
 
         name = request.json.get("name", "").strip()
+        data_type = request.json.get("data_type", "variant")
         metadata = request.json["metadata"]
 
         if name == "":
             return flask_errors.flask_bad_request_error("Missing or blank name field")
+
+        if data_type != "variant":
+            return flask_errors.flask_bad_request_error(f"Invalid data type for table: {data_type}")
 
         try:
             validate(metadata, VARIANT_TABLE_METADATA_SCHEMA)
@@ -68,6 +67,11 @@ def table_list():
         except IDGenerationFailure:
             print("[CHORD Variant Service] Couldn't generate new ID", file=sys.stderr)
             return flask_errors.flask_internal_server_error("Could not generate new ID for table")
+
+    dt = request.args.getlist("data-type")
+
+    if "variant" not in dt or len(dt) != 1:
+        return flask_errors.flask_bad_request_error(f"Invalid or missing data type (specified ID: {dt})")
 
     return jsonify([t.as_table_response() for t in table_manager.tables.values()])
 
