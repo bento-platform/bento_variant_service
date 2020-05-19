@@ -101,6 +101,7 @@ def test_table_detail(client):
         "id": "fixed_id",
         "name": "test table",
         "metadata": {},
+        "data_type": "variant",
         "schema": VARIANT_SCHEMA,
         "assembly_ids": ["GRCh37"],
     }, sort_keys=True)
