@@ -29,7 +29,7 @@ def test_workflow_detail(client):
 
         assert json.dumps(data, sort_keys=True) == json.dumps(WORKFLOWS["ingestion"][wa], sort_keys=True)
 
-    rv_dne = client.get(f"/workflows/does_not_exist")
+    rv_dne = client.get("/workflows/does_not_exist")
     assert rv_dne.status_code == 404
 
 
@@ -48,5 +48,5 @@ def test_workflow_wdl(client):
         # TODO: Better test for WDL validity
         assert bytes(f"workflow {wa}", encoding="utf-8") in data
 
-    rv_dne = client.get(f"/workflows/does_not_exist.wdl")
+    rv_dne = client.get("/workflows/does_not_exist.wdl")
     assert rv_dne.status_code == 404
