@@ -4,7 +4,6 @@
 Helper script for ingesting a .vcf.gz and .tbi file.
 """
 
-import json
 import os
 import requests
 import sys
@@ -30,12 +29,9 @@ def ingest(args):
         print("Missing .vcf.gz or .tbi file")
         exit(1)
 
-    workflow = json.load(open("./chord_variant_service/workflows/chord_workflows.json"))["ingestion"]["vcf_gz"]
-
     r = requests.post("http://localhost:5000/private/ingest", json={
         "table_id": table_id,
         "workflow_id": "vcf_gz",
-        "workflow_metadata": workflow,
         "workflow_params": {
             "vcf_gz.vcf_gz_files": [os.path.abspath(args[2])],
             "vcf_gz.assembly_id": assembly_id
@@ -54,8 +50,9 @@ def new_table(args):
     if len(args) != 1:
         usage()
 
-    r = requests.post("http://localhost:5000/tables?data-type=variant", json={
+    r = requests.post("http://localhost:5000/tables", json={
         "name": args[0],
+        "data_type": "variant",
         "metadata": {}
     })
 
