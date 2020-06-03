@@ -4,6 +4,7 @@
 Helper script for ingesting a .vcf.gz and .tbi file.
 """
 
+import json
 import os
 import requests
 import sys
@@ -58,10 +59,10 @@ def new_table(args):
 
     if r.status_code != 201:
         print("Error creating table")
-        print(r.json())
+        print(json.dumps(r.json(), indent=2))
         exit(1)
 
-    print(r.json())
+    print(json.dumps(r.json(), indent=2))
 
 
 def variant_search(args):
@@ -84,7 +85,7 @@ def variant_search(args):
         print(f"Error: {r.status_code}")
         exit(1)
 
-    print(r.json())
+    print(json.dumps(r.json(), indent=2))
 
 
 if __name__ == "__main__":
