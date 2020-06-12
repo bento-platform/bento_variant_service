@@ -9,11 +9,13 @@
         {
           "id": "vcf_gz_files",
           "type": "file[]",
+          "required": true,
           "extensions": [".vcf.gz"]
         },
         {
           "id": "assembly_id",
           "type": "enum",
+          "required": true,
           "values": ["GRCh38", "GRCh37", "NCBI36", "Other"],
           "default": "GRCh38"
         }
@@ -40,13 +42,15 @@
       "file": "vcf.wdl",
       "inputs": [
         {
-          "type": "file[]",
           "id": "vcf_files",
+          "type": "file[]",
+          "required": true,
           "extensions": [".vcf"]
         },
         {
-          "type": "enum",
           "id": "assembly_id",
+          "type": "enum",
+          "required": true,
           "values": ["GRCh38", "GRCh37", "NCBI36", "Other"],
           "default": "GRCh38"
         }
