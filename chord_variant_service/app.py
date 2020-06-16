@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 
-from chord_lib.responses import flask_errors
+from bento_lib.responses import flask_errors
 from flask import Flask, jsonify
 from typing import Any, Dict, Optional
 from werkzeug.exceptions import BadRequest, NotFound
