@@ -1,5 +1,5 @@
 import os
-from chord_variant_service.variants.models import Variant, Call
+from bento_variant_service.variants.models import Variant, Call
 
 __all__ = [
     "VCF_ONE_VAR_FILE_PATH",

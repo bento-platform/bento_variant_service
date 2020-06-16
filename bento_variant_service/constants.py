@@ -1,5 +1,5 @@
 import os
-from chord_variant_service import __version__
+from bento_variant_service import __version__
 
 __all__ = [
     "CHORD_URL",

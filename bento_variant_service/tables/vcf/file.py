@@ -4,7 +4,7 @@ import subprocess
 from pysam import VariantFile
 from typing import Optional, Sequence, Tuple
 
-from chord_variant_service.pool import WORKERS
+from bento_variant_service.pool import WORKERS
 
 
 __all__ = [

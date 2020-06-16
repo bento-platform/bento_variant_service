@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from bento_variant_service.tables.vcf.vcf_manager import VCFTableManager
 
 from .shared_data import (
     VCF_TEN_VAR_FILE_PATH,

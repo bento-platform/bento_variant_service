@@ -1,5 +1,5 @@
-include chord_variant_service/beacon/schemas/beacon_allele_request.schema.json
-include chord_variant_service/package.cfg
-include chord_variant_service/workflows/chord_workflows.json
-include chord_variant_service/workflows/vcf.wdl
-include chord_variant_service/workflows/vcf_gz.wdl
+include bento_variant_service/beacon/schemas/beacon_allele_request.schema.json
+include bento_variant_service/package.cfg
+include bento_variant_service/workflows/bento_workflows.json
+include bento_variant_service/workflows/vcf.wdl
+include bento_variant_service/workflows/vcf_gz.wdl

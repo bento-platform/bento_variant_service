@@ -1,6 +1,6 @@
 import pytest
-from chord_variant_service.variants import genotypes as gt
-from chord_variant_service.variants.models import Call
+from bento_variant_service.variants import genotypes as gt
+from bento_variant_service.variants.models import Call
 from .shared_data import VARIANT_1, VARIANT_2, VARIANT_3, CALL_1, CALL_2
 
 

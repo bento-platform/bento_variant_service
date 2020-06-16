@@ -2,11 +2,11 @@ import sys
 
 from flask import current_app, g
 
-from chord_variant_service.constants import SERVICE_NAME
-from chord_variant_service.tables.base import TableManager
-from chord_variant_service.tables.memory import MemoryTableManager
-from chord_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
-from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from bento_variant_service.constants import SERVICE_NAME
+from bento_variant_service.tables.base import TableManager
+from bento_variant_service.tables.memory import MemoryTableManager
+from bento_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
+from bento_variant_service.tables.vcf.vcf_manager import VCFTableManager
 
 from typing import Optional
 

@@ -5,10 +5,10 @@ import sys
 from jsonschema import validate, ValidationError
 from typing import Tuple
 
-from chord_variant_service.constants import SERVICE_NAME
-from chord_variant_service.tables.vcf.base_manager import BaseVCFTableManager, VCFTableFolder
-from chord_variant_service.tables.vcf.drs_utils import DRS_DATA_SCHEMA, drs_vcf_to_internal_paths
-from chord_variant_service.tables.vcf.file import VCFFile
+from bento_variant_service.constants import SERVICE_NAME
+from bento_variant_service.tables.vcf.base_manager import BaseVCFTableManager, VCFTableFolder
+from bento_variant_service.tables.vcf.drs_utils import DRS_DATA_SCHEMA, drs_vcf_to_internal_paths
+from bento_variant_service.tables.vcf.file import VCFFile
 
 
 class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover

@@ -21,13 +21,13 @@ from jsonschema import validate, ValidationError
 from typing import List, Tuple
 from urllib.parse import urlparse
 
-from chord_variant_service.constants import SERVICE_NAME
-from chord_variant_service.table_manager import (
+from bento_variant_service.constants import SERVICE_NAME
+from bento_variant_service.table_manager import (
     MANAGER_TYPE_DRS,
     MANAGER_TYPE_MEMORY,
     get_table_manager,
 )
-from chord_variant_service.workflows import WORKFLOWS
+from bento_variant_service.workflows import WORKFLOWS
 
 
 bp_ingest = Blueprint("ingest", __name__)

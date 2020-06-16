@@ -1,7 +1,7 @@
 from flask import g
 from multiprocessing import Pool
 
-from chord_variant_service.pool import WORKERS, get_pool, teardown_pool
+from bento_variant_service.pool import WORKERS, get_pool, teardown_pool
 
 
 def test_pool_init(app):

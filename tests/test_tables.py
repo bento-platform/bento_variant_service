@@ -5,9 +5,9 @@ import shutil
 from jsonschema import validate
 from typing import Optional, Tuple
 
-from chord_variant_service.tables.memory import MemoryTableManager
-from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
-from chord_variant_service.variants.schemas import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
+from bento_variant_service.tables.memory import MemoryTableManager
+from bento_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from bento_variant_service.variants.schemas import VARIANT_TABLE_METADATA_SCHEMA, VARIANT_SCHEMA
 
 from .shared_data import (
     VCF_ONE_VAR_FILE_PATH,

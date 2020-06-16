@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Generator, Optional, Sequence, Set, Tuple
 
-from chord_variant_service.beacon.datasets import BeaconDataset
-from chord_variant_service.variants.models import Variant
-from chord_variant_service.variants.schemas import VARIANT_SCHEMA
+from bento_variant_service.beacon.datasets import BeaconDataset
+from bento_variant_service.variants.models import Variant
+from bento_variant_service.variants.schemas import VARIANT_SCHEMA
 
 
 __all__ = [

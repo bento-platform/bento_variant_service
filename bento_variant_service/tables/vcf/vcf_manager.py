@@ -1,7 +1,7 @@
 import os
 
-from chord_variant_service.constants import SERVICE_NAME
-from chord_variant_service.tables.vcf.base_manager import BaseVCFTableManager, VCFTableFolder
+from bento_variant_service.constants import SERVICE_NAME
+from bento_variant_service.tables.vcf.base_manager import BaseVCFTableManager, VCFTableFolder
 
 
 class VCFTableManager(BaseVCFTableManager):

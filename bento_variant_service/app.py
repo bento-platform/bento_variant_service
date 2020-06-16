@@ -7,21 +7,21 @@ from flask import Flask, jsonify
 from typing import Any, Dict, Optional
 from werkzeug.exceptions import BadRequest, NotFound
 
-from chord_variant_service import __version__
-from chord_variant_service.beacon.routes import bp_beacon
-from chord_variant_service.constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ID
-from chord_variant_service.ingest import bp_ingest
-from chord_variant_service.pool import teardown_pool
-from chord_variant_service.search import bp_chord_search
-from chord_variant_service.tables.routes import bp_tables
-from chord_variant_service.table_manager import (
+from bento_variant_service import __version__
+from bento_variant_service.beacon.routes import bp_beacon
+from bento_variant_service.constants import SERVICE_NAME, SERVICE_TYPE, SERVICE_ID
+from bento_variant_service.ingest import bp_ingest
+from bento_variant_service.pool import teardown_pool
+from bento_variant_service.search import bp_chord_search
+from bento_variant_service.tables.routes import bp_tables
+from bento_variant_service.table_manager import (
     MANAGER_TYPE_DRS,
     MANAGER_TYPE_MEMORY,
     MANAGER_TYPE_VCF,
     get_table_manager,
     clear_table_manager,
 )
-from chord_variant_service.workflows import bp_workflows
+from bento_variant_service.workflows import bp_workflows
 
 
 __all__ = ["create_app"]

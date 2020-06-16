@@ -1,6 +1,6 @@
 import datetime
 from typing import Tuple
-from chord_variant_service.tables.vcf.file import VCFFile
+from bento_variant_service.tables.vcf.file import VCFFile
 
 
 __all__ = [

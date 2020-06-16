@@ -2,10 +2,10 @@ import re
 
 from typing import Generator, List, Optional, Tuple
 
-from chord_variant_service.beacon.datasets import BeaconDataset
-from chord_variant_service.tables.base import VariantTable
-from chord_variant_service.tables.vcf.file import VCFFile
-from chord_variant_service.variants.models import Variant, Call
+from bento_variant_service.beacon.datasets import BeaconDataset
+from bento_variant_service.tables.base import VariantTable
+from bento_variant_service.tables.vcf.file import VCFFile
+from bento_variant_service.variants.models import Variant, Call
 
 
 MAX_SIGNED_INT_32 = 2 ** 31 - 1

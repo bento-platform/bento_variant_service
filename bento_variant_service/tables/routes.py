@@ -5,12 +5,12 @@ from chord_lib.responses import flask_errors
 from flask import Blueprint, current_app, json, jsonify, request, url_for
 from jsonschema import validate, ValidationError
 
-from chord_variant_service.constants import SERVICE_NAME
-from chord_variant_service.tables.base import TableManager
-from chord_variant_service.tables.vcf.table import VCFVariantTable
-from chord_variant_service.tables.exceptions import IDGenerationFailure
-from chord_variant_service.table_manager import get_table_manager
-from chord_variant_service.variants.schemas import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
+from bento_variant_service.constants import SERVICE_NAME
+from bento_variant_service.tables.base import TableManager
+from bento_variant_service.tables.vcf.table import VCFVariantTable
+from bento_variant_service.tables.exceptions import IDGenerationFailure
+from bento_variant_service.table_manager import get_table_manager
+from bento_variant_service.variants.schemas import VARIANT_SCHEMA, VARIANT_TABLE_METADATA_SCHEMA
 
 
 __all__ = [

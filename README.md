@@ -100,7 +100,7 @@ pip install -r requirements.txt
 The Flask development server can be run with the following command:
 
 ```bash
-FLASK_APP=chord_variant_service.app FLASK_DEBUG=True flask run
+FLASK_APP=bento_variant_service.app FLASK_DEBUG=True flask run
 ```
 
 

@@ -1,5 +1,5 @@
-from chord_variant_service.tables.memory import MemoryTableManager
-from chord_variant_service import table_manager as tm
+from bento_variant_service.tables.memory import MemoryTableManager
+from bento_variant_service import table_manager as tm
 
 
 # noinspection PyProtectedMember

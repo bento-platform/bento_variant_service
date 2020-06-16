@@ -8,11 +8,11 @@ from collections import namedtuple
 from flask import json
 from typing import Dict, Optional, Sequence, Tuple
 
-from chord_variant_service.beacon.datasets import BeaconDatasetIDTuple, BeaconDataset
-from chord_variant_service.tables.base import TableManager
-from chord_variant_service.tables.exceptions import IDGenerationFailure
-from chord_variant_service.tables.vcf.file import VCFFile
-from chord_variant_service.tables.vcf.table import VCFVariantTable
+from bento_variant_service.beacon.datasets import BeaconDatasetIDTuple, BeaconDataset
+from bento_variant_service.tables.base import TableManager
+from bento_variant_service.tables.exceptions import IDGenerationFailure
+from bento_variant_service.tables.vcf.file import VCFFile
+from bento_variant_service.tables.vcf.table import VCFVariantTable
 
 
 __all__ = [

@@ -24,10 +24,10 @@ from flask import Blueprint, jsonify, request
 from typing import Any, Callable, List, Iterable, Optional, Tuple
 from werkzeug import Response
 
-from chord_variant_service.pool import get_pool, teardown_pool
-from chord_variant_service.tables.base import VariantTable, TableManager
-from chord_variant_service.table_manager import get_table_manager
-from chord_variant_service.variants.schemas import VARIANT_SCHEMA
+from bento_variant_service.pool import get_pool, teardown_pool
+from bento_variant_service.tables.base import VariantTable, TableManager
+from bento_variant_service.table_manager import get_table_manager
+from bento_variant_service.variants.schemas import VARIANT_SCHEMA
 
 
 CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")

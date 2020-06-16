@@ -1,7 +1,7 @@
 # Implementation of the GA4GH Beacon v1.0.1 specification
 # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml
 
-import chord_variant_service
+import bento_variant_service
 import os
 
 from bento_lib.search.queries import (
@@ -21,10 +21,10 @@ from jsonschema import validate, ValidationError
 from typing import Callable, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from chord_variant_service.search import generic_variant_search
-from chord_variant_service.tables.base import TableManager
-from chord_variant_service.table_manager import get_table_manager
-from chord_variant_service.variants.genotypes import GT_HOMOZYGOUS_REFERENCE
+from bento_variant_service.search import generic_variant_search
+from bento_variant_service.tables.base import TableManager
+from bento_variant_service.table_manager import get_table_manager
+from bento_variant_service.variants.genotypes import GT_HOMOZYGOUS_REFERENCE
 
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
@@ -78,7 +78,7 @@ def beacon_get():
             "name": "Canadian Centre for Computational Genomics"
         },
         "description": "Beacon provided for a researcher by a Bento node.",  # TODO: More specific
-        "version": chord_variant_service.__version__,
+        "version": bento_variant_service.__version__,
         "datasets": [d.as_beacon_dataset_response()
                      for d in get_table_manager().beacon_datasets.values()]
     })

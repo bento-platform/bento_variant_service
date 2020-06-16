@@ -7,7 +7,7 @@ import sys
 from typing import Dict, Optional, Tuple
 from urllib.parse import quote, urlparse
 
-from chord_variant_service.constants import CHORD_URL, DRS_URL_BASE_PATH, SERVICE_NAME
+from bento_variant_service.constants import CHORD_URL, DRS_URL_BASE_PATH, SERVICE_NAME
 
 
 __all__ = [

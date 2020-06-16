@@ -1,7 +1,7 @@
 import json
 
-from chord_variant_service.pool import get_pool, teardown_pool
-from chord_variant_service.tables.memory import MemoryTableManager
+from bento_variant_service.pool import get_pool, teardown_pool
+from bento_variant_service.tables.memory import MemoryTableManager
 
 from .shared_data import VARIANT_1, VARIANT_4, VARIANT_5
 

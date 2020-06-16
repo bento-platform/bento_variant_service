@@ -4,18 +4,18 @@ import shutil
 
 from flask import g
 
-from chord_variant_service.tables.exceptions import IDGenerationFailure
-from chord_variant_service.tables.memory import MemoryVariantTable, MemoryTableManager
-from chord_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
-from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
-from chord_variant_service.table_manager import (
+from bento_variant_service.tables.exceptions import IDGenerationFailure
+from bento_variant_service.tables.memory import MemoryVariantTable, MemoryTableManager
+from bento_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
+from bento_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from bento_variant_service.table_manager import (
     MANAGER_TYPE_DRS,
     MANAGER_TYPE_MEMORY,
     MANAGER_TYPE_VCF,
     create_table_manager_of_type,
     clear_table_manager,
 )
-from chord_variant_service.variants.models import Variant
+from bento_variant_service.variants.models import Variant
 from .shared_data import (
     VCF_ONE_VAR_FILE_PATH,
     VCF_ONE_VAR_INDEX_FILE_PATH,

@@ -4,11 +4,11 @@ import shutil
 from jsonschema import validate
 from uuid import uuid4
 
-from chord_variant_service.beacon.routes import generate_beacon_id
-from chord_variant_service.beacon.datasets import make_beacon_dataset_id
-from chord_variant_service.pool import get_pool, teardown_pool
-from chord_variant_service.tables.memory import MemoryTableManager
-from chord_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from bento_variant_service.beacon.routes import generate_beacon_id
+from bento_variant_service.beacon.datasets import make_beacon_dataset_id
+from bento_variant_service.pool import get_pool, teardown_pool
+from bento_variant_service.tables.memory import MemoryTableManager
+from bento_variant_service.tables.vcf.vcf_manager import VCFTableManager
 
 from .shared_data import (
     VCF_TEN_VAR_FILE_PATH,

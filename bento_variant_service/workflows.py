@@ -4,8 +4,8 @@ from flask import Blueprint, current_app, json, jsonify
 
 bp_workflows = Blueprint("workflows", __name__)
 
-# TODO: Add validation and then move to chord_lib.ingestion
-with bp_workflows.open_resource("workflows/chord_workflows.json") as wf:
+# TODO: Add validation and then move to bento_lib.ingestion
+with bp_workflows.open_resource("workflows/bento_workflows.json") as wf:
     # TODO: Schema
     WORKFLOWS = json.loads(wf.read())
 

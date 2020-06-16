@@ -2,8 +2,8 @@ import json
 import pytest
 import requests
 
-from chord_variant_service import table_manager as tm
-from chord_variant_service.app import create_app
+from bento_variant_service import table_manager as tm
+from bento_variant_service.app import create_app
 
 
 @pytest.fixture

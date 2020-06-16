@@ -1,5 +1,5 @@
 import os
-from chord_variant_service.tables.vcf.file import VCFFile
+from bento_variant_service.tables.vcf.file import VCFFile
 
 from .shared_data import VCF_ONE_VAR_FILE_PATH
 

@@ -1,6 +1,6 @@
 import json
 
-from chord_variant_service.workflows import WORKFLOWS
+from bento_variant_service.workflows import WORKFLOWS
 
 
 def test_workflows():
