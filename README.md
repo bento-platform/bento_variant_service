@@ -1,4 +1,4 @@
-# CHORD Variant Service
+# Bento Variant Service
 
 ![Build Status](https://api.travis-ci.com/c3g/chord_variant_service.svg?branch=master)
 [![codecov](https://codecov.io/gh/c3g/chord_variant_service/branch/master/graph/badge.svg)](https://codecov.io/gh/c3g/chord_variant_service)
@@ -21,8 +21,8 @@ The service itself depends on the following non-Python utilities:
 
 ## Copyright Notice
 
-The CHORD Variant Service is copyright &copy; 2019-2020 the Canadian Centre for
-Computational Genomics.
+The Bento Variant Service is copyright &copy; 2019-2020 the Canadian Centre for
+Computational Genomics, McGill University.
 
 Portions of this codebase (namely, test VCF data) comes from the 1000 Genomes
 Project, and is thus subject to their copyright and 
@@ -58,10 +58,10 @@ Default values for environment variables are listed on the right-hand side.
 ```bash
 TABLE_MANAGER=drs
 DRS_URL_BASE_PATH=/api/drs
-SERVICE_ID=ca.c3g.chord:variant:VERSION
+SERVICE_ID=ca.c3g.bento:variant:VERSION
 INITIALIZE_IMMEDIATELY=true
 DATA=/path/to/data/directory
-CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
+CHORD_URL=http://localhost/  # URL for the Bento node or standalone service
 ```
 
 ### Notes
@@ -81,7 +81,7 @@ CHORD_URL=http://localhost/  # URL for the CHORD node or standalone service
   * `DRS_URL_BASE_PATH` is used to specify the Bento container-internal base
     path to the container's DRS instance.
 
-  * If left unset, `SERVICE_ID` will default to `ca.c3g.chord:variant:VERSION`,
+  * If left unset, `SERVICE_ID` will default to `ca.c3g.bento:variant:VERSION`,
     where `VERSION` is the current version of the service package.
 
   * `CHORD_URL` is used to construct the reverse domain-name notation identifier
@@ -110,7 +110,7 @@ To run all tests and calculate coverage, including branch coverage, run the
 following command:
 
 ```bash
-python3 -m pytest --cov=chord_variant_service --cov-branch
+python3 -m tox
 ```
 
 

@@ -91,7 +91,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None):
             "id": SERVICE_ID,
             "name": SERVICE_NAME,
             "type": SERVICE_TYPE,
-            "description": "Variant service for a CHORD application.",
+            "description": "Variant service for a Bento platform node.",
             "organization": {
                 "name": "C3G",
                 "url": "http://c3g.ca"

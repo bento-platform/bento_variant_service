@@ -16,10 +16,10 @@ setuptools.setup(
 
     python_requires=">=3.6",
     install_requires=[
-        "chord_lib[flask]==0.9.0",
+        "bento_lib[flask]==0.11.0",
         "Flask>=1.1.2,<2.0",
         "jsonschema>=3.2,<4.0",
-        "pysam>=0.15.4,<0.16",
+        "pysam>=0.16.0,<0.17",
         "requests>=2.23,<3.0",
         "requests_unixsocket>=0.2.0,<0.3.0",
     ],
@@ -27,7 +27,7 @@ setuptools.setup(
     author=config["package"]["authors"],
     author_email=config["package"]["author_emails"],
 
-    description="An implementation of a variant store for the CHORD project.",
+    description="An implementation of a variant store for the Bento platform.",
     long_description=long_description,
     long_description_content_type="text/markdown",
 

@@ -4,7 +4,7 @@
 import chord_variant_service
 import os
 
-from chord_lib.search.queries import (
+from bento_lib.search.queries import (
     convert_query_to_ast,
     and_asts_to_ast,
 
@@ -28,7 +28,7 @@ from chord_variant_service.variants.genotypes import GT_HOMOZYGOUS_REFERENCE
 
 
 CHORD_URL = os.environ.get("CHORD_URL", "http://localhost:5000/")
-CHORD_DOMAIN = urlparse(CHORD_URL).netloc
+CHORD_HOST = urlparse(CHORD_URL).netloc
 
 BEACON_IDR_ALL = "ALL"
 BEACON_IDR_HIT = "HIT"
@@ -63,7 +63,7 @@ def beacon_error(error_code: int, error_message: Optional[str]) -> Tuple[Respons
 
 
 # Create a reverse DNS beacon ID, e.g. com.dlougheed.1.beacon
-BEACON_ID = generate_beacon_id(CHORD_DOMAIN)
+BEACON_ID = generate_beacon_id(CHORD_HOST)
 
 
 @bp_beacon.route("/beacon", methods=["GET"])
@@ -71,13 +71,13 @@ def beacon_get():
     # https://github.com/ga4gh-beacon/specification/blob/v1.0.1/beacon.yaml#L279
     return jsonify({
         "id": BEACON_ID,
-        "name": f"CHORD Beacon (ID: {BEACON_ID})",  # TODO: Nicer name
+        "name": f"Bento Beacon (ID: {BEACON_ID})",  # TODO: Nicer name
         "apiVersion": BEACON_API_VERSION,
         "organization": {  # TODO: Make this dynamic for user?
             "id": "ca.computationalgenomics",
             "name": "Canadian Centre for Computational Genomics"
         },
-        "description": "Beacon provided for a researcher by a CHORD instance.",  # TODO: More specific
+        "description": "Beacon provided for a researcher by a Bento node.",  # TODO: More specific
         "version": chord_variant_service.__version__,
         "datasets": [d.as_beacon_dataset_response()
                      for d in get_table_manager().beacon_datasets.values()]

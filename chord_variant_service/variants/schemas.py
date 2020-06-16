@@ -95,7 +95,7 @@ VARIANT_CALL_SCHEMA = {
 VARIANT_SCHEMA = {
     "$id": "TODO",
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "description": "CHORD variant data type",
+    "description": "Bento variant data type",
     "type": "object",
     "required": ["assembly_id", "chromosome", "start", "end", "ref", "alt", "calls"],
     "search": {
@@ -200,7 +200,7 @@ VARIANT_SCHEMA = {
 VARIANT_TABLE_METADATA_SCHEMA = {
     "$id": "TODO",
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "description": "CHORD variant data type metadata schema",
+    "description": "Bento variant data type metadata schema",
     "type": "object",
     "required": [],
     "properties": {

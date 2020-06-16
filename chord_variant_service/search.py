@@ -1,9 +1,9 @@
 import json
 import re
 
-from chord_lib.responses import flask_errors
-from chord_lib.search.data_structure import check_ast_against_data_structure
-from chord_lib.search.queries import (
+from bento_lib.responses import flask_errors
+from bento_lib.search.data_structure import check_ast_against_data_structure
+from bento_lib.search.queries import (
     convert_query_to_ast_and_preprocess,
     ast_to_and_asts,
     and_asts_to_ast,

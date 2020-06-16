@@ -1,5 +1,5 @@
-from chord_lib.responses import flask_errors
-from chord_lib.workflows import get_workflow, get_workflow_resource, workflow_exists
+from bento_lib.responses import flask_errors
+from bento_lib.workflows import get_workflow, get_workflow_resource, workflow_exists
 from flask import Blueprint, current_app, json, jsonify
 
 bp_workflows = Blueprint("workflows", __name__)

@@ -5,6 +5,7 @@ from chord_lib.responses import flask_errors
 from flask import Blueprint, current_app, json, jsonify, request, url_for
 from jsonschema import validate, ValidationError
 
+from chord_variant_service.constants import SERVICE_NAME
 from chord_variant_service.tables.base import TableManager
 from chord_variant_service.tables.vcf.table import VCFVariantTable
 from chord_variant_service.tables.exceptions import IDGenerationFailure
@@ -65,7 +66,7 @@ def table_list():
                                               mimetype=MIME_TYPE, status=201)
 
         except IDGenerationFailure:
-            print("[CHORD Variant Service] Couldn't generate new ID", file=sys.stderr)
+            print(f"[{SERVICE_NAME}] Couldn't generate new ID", file=sys.stderr)
             return flask_errors.flask_internal_server_error("Could not generate new ID for table")
 
     dt = request.args.getlist("data-type")

@@ -4,18 +4,18 @@ import shutil
 import sys
 
 from base64 import urlsafe_b64encode
-from chord_lib.ingestion import (
+from bento_lib.ingestion import (
     WORKFLOW_TYPE_FILE,
     WORKFLOW_TYPE_FILE_ARRAY,
 
     find_common_prefix,
     file_with_prefix,
     formatted_output,
-    make_output_params
+    make_output_params,
 )
-from chord_lib.responses import flask_errors
-from chord_lib.schemas.chord import CHORD_INGEST_SCHEMA
-from chord_lib.workflows import get_workflow, workflow_exists
+from bento_lib.responses import flask_errors
+from bento_lib.schemas.bento import BENTO_INGEST_SCHEMA
+from bento_lib.workflows import get_workflow, workflow_exists
 from flask import Blueprint, current_app, request
 from jsonschema import validate, ValidationError
 from typing import List, Tuple
@@ -120,7 +120,7 @@ def move_ingest_files(table_id: str, request_data: dict):
 @bp_ingest.route("/private/ingest", methods=["POST"])
 def ingest():
     try:
-        validate(request.json, CHORD_INGEST_SCHEMA)
+        validate(request.json, BENTO_INGEST_SCHEMA)
 
         table_id = request.json["table_id"]
 
