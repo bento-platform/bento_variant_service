@@ -8,7 +8,7 @@ with open("README.md", "r") as rf:
     long_description = rf.read()
 
 config = configparser.ConfigParser()
-config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "chord_variant_service", "package.cfg"))
+config.read(os.path.join(os.path.dirname(os.path.realpath(__file__)), "bento_variant_service", "package.cfg"))
 
 setuptools.setup(
     name=config["package"]["name"],
@@ -34,7 +34,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
 
-    url="https://github.com/c3g/chord_variant_service",
+    url="https://github.com/bento-platform/bento_variant_service",
     license="LGPLv3",
     classifiers=[
         "Programming Language :: Python :: 3",
