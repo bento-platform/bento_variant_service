@@ -1,6 +1,7 @@
 import os
 import pysam
 import subprocess
+
 from pysam import VariantFile
 from typing import Optional, Sequence, Tuple
 

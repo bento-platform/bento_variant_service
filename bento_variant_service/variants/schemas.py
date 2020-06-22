@@ -112,8 +112,8 @@ VARIANT_SCHEMA = {
                 "canNegate": False,
                 "required": True,
                 "type": "single",
-                "order": 0
-            }
+                "order": 0,
+            },
         },
         "chromosome": {
             "type": "string",
@@ -125,8 +125,8 @@ VARIANT_SCHEMA = {
                 "canNegate": False,
                 "required": True,
                 "type": "single",  # single / unlimited
-                "order": 1
-            }
+                "order": 1,
+            },
         },
         "start": {
             "type": "integer",
@@ -137,8 +137,8 @@ VARIANT_SCHEMA = {
                 "canNegate": False,
                 "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
                 "type": "unlimited",  # single / unlimited
-                "order": 2
-            }
+                "order": 2,
+            },
         },
         "end": {
             "type": "integer",
@@ -150,8 +150,8 @@ VARIANT_SCHEMA = {
                 "canNegate": True,
                 "required": False,
                 "type": "unlimited",  # single / unlimited
-                "order": 3
-            }
+                "order": 3,
+            },
         },
         "ref": {
             "type": "string",
@@ -162,8 +162,8 @@ VARIANT_SCHEMA = {
                 "canNegate": True,
                 "required": False,
                 "type": "single",  # single / unlimited
-                "order": 4
-            }
+                "order": 4,
+            },
         },
         "alt": {
             "type": "array",
@@ -182,7 +182,7 @@ VARIANT_SCHEMA = {
             },
             "search": {
                 "order": 5
-            }
+            },
         },
         "calls": {
             "type": "array",
