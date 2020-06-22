@@ -1,7 +1,7 @@
 # Possible operations: eq, lt, gt, le, ge, co
 # TODO: Regex verification with schema, to front end
 
-from chord_lib.search import operations as op
+from bento_lib.search import operations as op
 from . import genotypes as gt
 
 
