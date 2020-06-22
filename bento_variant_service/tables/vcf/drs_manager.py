@@ -15,10 +15,7 @@ class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
     def _get_table_vcf_files(self, table_folder: VCFTableFolder) -> Tuple[VCFFile, ...]:
         vcf_files = []
 
-        for file in os.listdir(table_folder.dir):
-            if not file.endswith(".drs.json"):
-                continue
-
+        for file in (f for f in os.listdir(table_folder.dir) if f.endswith(".drs.json")):
             # We define a custom .drs.json schema for dealing with DRS records
             with open(os.path.join(table_folder.dir, file)) as df:
                 drs_data = json.load(df)
