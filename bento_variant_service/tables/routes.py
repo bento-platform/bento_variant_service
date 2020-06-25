@@ -1,7 +1,7 @@
 import sys
 
-from chord_lib.auth.flask_decorators import flask_permissions, flask_permissions_owner
-from chord_lib.responses import flask_errors
+from bento_lib.auth.flask_decorators import flask_permissions, flask_permissions_owner
+from bento_lib.responses import flask_errors
 from flask import Blueprint, current_app, json, jsonify, request, url_for
 from jsonschema import validate, ValidationError
 
