@@ -102,10 +102,8 @@ class Call:
         }
 
     def eq_no_variant_check(self, other):
-        if not isinstance(other, Call):
-            return False
-
-        return all((
+        # Use and shortcutting to return False early if the other instance isn't a Call
+        return isinstance(other, Call) and all((
             self.sample_id == other.sample_id,
             self.genotype == other.genotype,  # Tuples are comparable via ==
             (self.phase_set is None and other.phase_set is None) or self.phase_set == other.phase_set
