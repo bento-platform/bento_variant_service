@@ -2,12 +2,11 @@ import json
 import os
 import sys
 
-from jsonschema import validate, ValidationError
 from typing import Tuple
 
 from bento_variant_service.constants import SERVICE_NAME
 from bento_variant_service.tables.vcf.base_manager import BaseVCFTableManager, VCFTableFolder
-from bento_variant_service.tables.vcf.drs_utils import DRS_DATA_SCHEMA, drs_vcf_to_internal_paths
+from bento_variant_service.tables.vcf.drs_utils import DRS_DATA_SCHEMA_VALIDATOR
 from bento_variant_service.tables.vcf.file import VCFFile
 
 
@@ -20,20 +19,17 @@ class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
             with open(os.path.join(table_folder.dir, file)) as df:
                 drs_data = json.load(df)
 
-                try:
-                    validate(drs_data, DRS_DATA_SCHEMA)
-                except ValidationError:
+                if not DRS_DATA_SCHEMA_VALIDATOR.is_valid(drs_data):
                     # TODO: Report this better
                     print(f"[{SERVICE_NAME}] Error processing DRS record: {os.path.join(table_folder.dir, file)}",
                           file=sys.stderr, flush=True)
                     continue
 
                 try:
-                    vcf, idx, _vh, _ih = drs_vcf_to_internal_paths(drs_data["data"], drs_data["index"])
-                    vcf_files.append(BaseVCFTableManager.get_vcf_file_record(vcf, idx))
-                except ValueError:
-                    print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}'",
-                          file=sys.stderr, flush=True)
+                    vcf_files.append(BaseVCFTableManager.get_vcf_file_record(drs_data["data"], drs_data["index"]))
+                except ValueError as e:
+                    print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}': "
+                          f"{str(e)}", file=sys.stderr, flush=True)
                 except TypeError:  # drs_vcf_to_internal_paths returned None
                     print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths", file=sys.stderr, flush=True)
 

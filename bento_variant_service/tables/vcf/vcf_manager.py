@@ -10,7 +10,8 @@ class VCFTableManager(BaseVCFTableManager):
 
         for file in (f for f in os.listdir(table_folder.dir) if f.endswith(".vcf.gz")):
             try:
-                good_files.append(BaseVCFTableManager.get_vcf_file_record(os.path.join(table_folder.dir, file)))
+                good_files.append(BaseVCFTableManager.get_vcf_file_record(
+                    f"file://{os.path.abspath(os.path.join(table_folder.dir, file))}"))
             except ValueError:
                 print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}'")
 

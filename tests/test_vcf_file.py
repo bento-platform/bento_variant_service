@@ -1,11 +1,11 @@
 import os
 from bento_variant_service.tables.vcf.file import VCFFile
 
-from .shared_data import VCF_ONE_VAR_FILE_PATH
+from .shared_data import VCF_ONE_VAR_FILE_PATH, VCF_ONE_VAR_FILE_URI
 
 
 def test_vcf_file():
-    file = VCFFile(VCF_ONE_VAR_FILE_PATH)
+    file = VCFFile(VCF_ONE_VAR_FILE_URI)
     assert file.path == os.path.realpath(VCF_ONE_VAR_FILE_PATH)
     assert file.index_path is None
     assert file.assembly_id == "GRCh37"

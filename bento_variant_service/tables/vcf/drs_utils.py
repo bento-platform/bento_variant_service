@@ -4,6 +4,7 @@ import requests
 import requests_unixsocket
 import sys
 
+from jsonschema import Draft7Validator
 from typing import Dict, Optional, Tuple
 from urllib.parse import quote, urlparse
 
@@ -12,6 +13,8 @@ from bento_variant_service.constants import CHORD_URL, DRS_URL_BASE_PATH, SERVIC
 
 __all__ = [
     "DRS_DATA_SCHEMA",
+    "DRS_DATA_SCHEMA_VALIDATOR",
+    "DRS_URI_SCHEME",
     "drs_vcf_to_internal_paths",
 ]
 
@@ -44,6 +47,10 @@ DRS_DATA_SCHEMA = {
     },
     "required": ["data", "index"]
 }
+
+DRS_DATA_SCHEMA_VALIDATOR = Draft7Validator(DRS_DATA_SCHEMA)
+
+DRS_URI_SCHEME = "drs"
 
 
 def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:  # pragma: no cover
@@ -100,8 +107,8 @@ def drs_vcf_to_internal_paths(
     idx_path = idx_access["access_url"]["url"]
 
     return (
-        str(vcf_path).replace("file://", ""),  # TODO: Leave this here?
+        str(vcf_path).replace("file://", ""),  # TODO: ??
         str(idx_path).replace("file://", ""),  # TODO: "
-        vcf_access.get("access_url", {}).get("headers", None),
-        idx_access.get("access_url", {}).get("headers", None),
+        vcf_access["access_url"].get("headers"),
+        idx_access["access_url"].get("headers"),
     )
