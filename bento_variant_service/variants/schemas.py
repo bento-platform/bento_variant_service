@@ -13,6 +13,7 @@ __all__ = [
 
 
 VARIANT_CALL_SCHEMA = {
+    "id": "variant:variant_call",  # TODO: Real ID
     "type": "object",
     "description": "An object representing a called instance of a variant.",
     "required": ["sample_id", "genotype_bases"],
@@ -93,7 +94,7 @@ VARIANT_CALL_SCHEMA = {
 
 
 VARIANT_SCHEMA = {
-    "$id": "TODO",
+    "$id": "variant:variant",  # TODO: Real ID
     "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "Bento variant data type",
     "type": "object",
@@ -198,7 +199,7 @@ VARIANT_SCHEMA = {
 }
 
 VARIANT_TABLE_METADATA_SCHEMA = {
-    "$id": "TODO",
+    "$id": "variant:table_metadata",  # TODO: Real ID
     "$schema": "http://json-schema.org/draft-07/schema#",
     "description": "Bento variant data type metadata schema",
     "type": "object",
