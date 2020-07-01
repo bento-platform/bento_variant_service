@@ -40,11 +40,10 @@ class Variant:
             "calls": [c.as_chord_representation() for c in self.calls],
         }
 
-    def __eq__(self, other):
-        if not isinstance(other, Variant):
-            return False
 
-        return all((
+    def __eq__(self, other):
+        # Use and shortcutting to return False early if the other instance isn't a Variant
+        return isinstance(other, Variant) and all((
             (self.assembly_id is None and other.assembly_id is None) or self.assembly_id == other.assembly_id,
             self.chromosome == other.chromosome,
             self.ref_bases == other.ref_bases,
