@@ -14,13 +14,15 @@ class Variant:
     """
 
     def __init__(self, assembly_id: str, chromosome: str, ref_bases: str, alt_bases: Tuple[str, ...], start_pos: int,
-                 calls: Tuple["Call"] = ()):
+                 calls: Tuple["Call"] = (), file_uri: Optional[str] = None):
         self.assembly_id: str = assembly_id  # Assembly ID for context
         self.chromosome: str = chromosome  # Chromosome where the variant occurs
         self.ref_bases: str = ref_bases  # Reference bases
         self.alt_bases: Tuple[str] = alt_bases  # Alternate bases  TODO: Structural variants
         self.start_pos: int = start_pos  # Starting position on the chromosome w/r/t the reference, 0-indexed
         self.calls: Tuple["Call"] = calls  # Variant calls, per sample  TODO: Make this a dict?
+
+        self.file_uri: Optional[str] = file_uri  # File URI, "
 
     @property
     def end_pos(self) -> int:
@@ -40,6 +42,14 @@ class Variant:
             "calls": [c.as_chord_representation() for c in self.calls],
         }
 
+    def as_augmented_chord_representation(self):
+        return {
+            **self.as_chord_representation(),
+            # _ prefix is context dependent -> immune from equality, used by Bento in weird contexts
+            "_extra": {
+                "file_uri": self.file_uri,
+            },
+        }
 
     def __eq__(self, other):
         # Use and shortcutting to return False early if the other instance isn't a Variant

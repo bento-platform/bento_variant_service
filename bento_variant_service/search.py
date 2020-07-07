@@ -54,6 +54,9 @@ def search_worker_prime(
         try:
             variant = next(possible_matches)
 
+            # TODO: Do we use as_chord_representation or as_augmented_chord_representation here?
+            #  Maybe not augmented, since we won't allow querying augmented stuff.
+
             match = rest_of_query is None or check_ast_against_data_structure(
                 rest_of_query, variant.as_chord_representation(), VARIANT_SCHEMA)
             found = found or match
@@ -62,7 +65,7 @@ def search_worker_prime(
                 break
 
             if match:  # implicitly internal_data is True here as well
-                matches.append(variant.as_chord_representation())
+                matches.append(variant.as_augmented_chord_representation())
 
         except StopIteration:
             break

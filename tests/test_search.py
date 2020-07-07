@@ -170,8 +170,11 @@ def test_chord_variant_search(app, client, table_manager):
             assert "results" in data
             assert "fixed_id" in data["results"]
             assert len(data["results"]["fixed_id"]["matches"]) == 3
-            assert json.dumps(data["results"]["fixed_id"]["matches"][0], sort_keys=True) == \
-                json.dumps(VARIANT_1.as_chord_representation(), sort_keys=True)
+            first_match = data["results"]["fixed_id"]["matches"][0]
+            assert json.dumps(first_match, sort_keys=True) == \
+                json.dumps(VARIANT_1.as_augmented_chord_representation(), sort_keys=True)
+            assert json.dumps(dict((k, v) for k, v in first_match.items() if not k.startswith("_")),
+                              sort_keys=True) == json.dumps(VARIANT_1.as_chord_representation(), sort_keys=True)
 
             # Test private table search
 
@@ -194,8 +197,8 @@ def test_chord_variant_search(app, client, table_manager):
             assert "results" in data
 
             assert len(data["results"]) == 3
-            assert json.dumps(data["results"][0], sort_keys=True) == json.dumps(VARIANT_1.as_chord_representation(),
-                                                                                sort_keys=True)
+            assert json.dumps(data["results"][0], sort_keys=True) == \
+                json.dumps(VARIANT_1.as_augmented_chord_representation(), sort_keys=True)
 
             for q, r in TEST_PRIVATE_QUERIES:
                 qj = {"query": q}

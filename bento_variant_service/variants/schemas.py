@@ -193,9 +193,31 @@ VARIANT_SCHEMA = {
                 "required": False,
                 "type": "unlimited",
                 "order": 6,
-            }
-        }
-    }
+            },
+        },
+        "_extra": {
+            "type": "object",
+            "properties": {
+                "file_uri": {
+                    "type": "string",
+                    "search": {
+                        "operations": [op.SEARCH_OP_EQ],
+                        "queryable": "internal",
+                        "canNegate": True,
+                        "required": False,
+                        "type": "single",  # single / unlimited
+                        "order": 0,
+                    },
+                },
+            },
+            "search": {
+                "queryable": "internal",
+                "required": False,
+                "type": "unlimited",
+                "order": 8,
+            },
+        },
+    },
 }
 
 VARIANT_TABLE_METADATA_SCHEMA = {

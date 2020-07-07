@@ -152,6 +152,7 @@ class VCFVariantTable(VariantTable):
                         start_pos=int(row[1]),
                         ref_bases=row[3],
                         alt_bases=tuple(row[4].split(",")),
+                        file_uri=vcf.original_index_uri,
                     )
 
                     variant.calls = tuple(VCFVariantTable._variant_calls(variant, vcf.sample_ids, row,
