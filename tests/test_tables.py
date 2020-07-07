@@ -39,7 +39,7 @@ DATASET_SCHEMA = {
 }
 
 
-def test_tables(client):
+def test_table_list(client):
     rv = client.get("/tables")
     assert rv.status_code == 400
 
@@ -48,13 +48,11 @@ def test_tables(client):
 
     assert isinstance(data, list) and len(data) == 0
 
-    rv = client.post("/tables?data-type=variant")
-    assert rv.status_code == 400
 
-    rv = client.post("/tables?data-type=invalid_data_type")
-    assert rv.status_code == 400
-
-    rv = client.post("/tables?data-type=variant", json={
+def test_table_creation(client):
+    # Valid table creation
+    rv = client.post("/tables", json={
+        "data_type": "variant",
         "name": "test table",
         "metadata": {}
     })
@@ -63,30 +61,52 @@ def test_tables(client):
     assert rv.status_code == 201
     validate(data, DATASET_SCHEMA)
 
-    rv = client.post("/tables?data-type=variant", json=["name", "metadata"])
-    assert rv.status_code == 400  # Not an object
+    # No IDs left
+    rv = client.post("/tables", json={
+        "data_type": "variant",
+        "name": "test table",
+        "metadata": {}
+    })
+    assert rv.status_code == 500
 
-    rv = client.post("/tables?data-type=variant", json={"metadata": {}})
-    assert rv.status_code == 400  # No name
 
-    rv = client.post("/tables?data-type=variant", json={"name": "test table"})
-    assert rv.status_code == 400  # No metadata
+def test_invalid_table_creation(client):
+    # No JSON body
+    rv = client.post("/tables")
+    assert rv.status_code == 400
 
-    rv = client.post("/tables?data-type=variant", json={
+    # Invalid data type
+    rv = client.post("/tables", json={
+        "data_type": "invalid_data_type",
+        "name": "test table",
+        "metadata": {},
+    })
+    assert rv.status_code == 400
+
+    # Not an object
+    rv = client.post("/tables", json=["data_type", "name", "metadata"])
+    assert rv.status_code == 400
+
+    # No name
+    rv = client.post("/tables", json={"data_type": "variant", "metadata": {}})
+    assert rv.status_code == 400
+
+    # No metadata
+    rv = client.post("/tables", json={"data_type": "variant", "name": "test table"})
+    assert rv.status_code == 400
+
+    # Invalid metadata
+    rv = client.post("/tables", json={
+        "data_type": "variant",
         "name": "test table",
         "metadata": None
     })
     assert rv.status_code == 400
 
-    rv = client.post("/tables?data-type=variant", json={
-        "name": "test table",
-        "metadata": {}
-    })
-    assert rv.status_code == 500  # No IDs left
-
 
 def test_table_detail(client):
-    client.post("/tables?data-type=variant", json={
+    client.post("/tables", json={
+        "data_type": "variant",
         "name": "test table",
         "metadata": {}
     })
