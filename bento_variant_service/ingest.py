@@ -5,7 +5,6 @@ import sys
 
 from base64 import urlsafe_b64encode
 from bento_lib.ingestion import (
-    WORKFLOW_TYPE_FILE,
     WORKFLOW_TYPE_FILE_ARRAY,
 
     find_common_prefix,
@@ -91,7 +90,7 @@ def move_ingest_files(table_id: str, request_data: dict):
     output_params = make_output_params(workflow_id, workflow_params, workflow_metadata["inputs"])
     prefix = find_common_prefix(table_path, workflow_metadata, output_params)
 
-    def ingest_file_path(f):
+    def _ingest_file_path(f):
         # Full path to to-be-newly-ingested file
         #  - Rename file if a duplicate name exists (ex. dup.vcf.gz becomes 1_dup.vcf.gz)
         #  - If prefix is None, it will not be added
@@ -99,16 +98,12 @@ def move_ingest_files(table_id: str, request_data: dict):
 
     files_to_move = []
 
-    for output in workflow_metadata["outputs"]:
-        if output["type"] == WORKFLOW_TYPE_FILE:
-            files_to_move.append((workflow_outputs[output["id"]],
-                                  ingest_file_path(formatted_output(output, output_params))))
-
-        elif output["type"] == WORKFLOW_TYPE_FILE_ARRAY:
-            files_to_move.extend(zip(
-                workflow_outputs[output["id"]],
-                map(ingest_file_path, formatted_output(output, output_params))
-            ))
+    # Currently, all workflows output file arrays, so only bother handling those.
+    for output in filter(lambda o: o["type"] == WORKFLOW_TYPE_FILE_ARRAY, workflow_metadata["outputs"]):
+        files_to_move.extend(zip(
+            workflow_outputs[output["id"]],
+            map(_ingest_file_path, formatted_output(output, output_params))
+        ))
 
     for tmp_file_path, file_path in files_to_move:
         # Move the file from its temporary location to its location in the service's data folder.
