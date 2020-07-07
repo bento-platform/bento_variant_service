@@ -18,9 +18,9 @@ setuptools.setup(
     install_requires=[
         "bento_lib[flask]==0.11.0",
         "Flask>=1.1.2,<2.0",
-        "jsonschema>=3.2,<4.0",
+        "jsonschema>=3.2.0,<4.0",
         "pysam>=0.16.0.1,<0.17",
-        "requests>=2.23,<3.0",
+        "requests>=2.24.0,<3.0",
         "requests_unixsocket>=0.2.0,<0.3.0",
     ],
 
