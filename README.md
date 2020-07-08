@@ -1,7 +1,7 @@
 # Bento Variant Service
 
-![Build Status](https://api.travis-ci.com/c3g/chord_variant_service.svg?branch=master)
-[![codecov](https://codecov.io/gh/c3g/chord_variant_service/branch/master/graph/badge.svg)](https://codecov.io/gh/c3g/chord_variant_service)
+![Build Status](https://api.travis-ci.com/bento-platform/bento_variant_service.svg?branch=master)
+[![codecov](https://codecov.io/gh/bento-platform/bento_variant_service/branch/master/graph/badge.svg)](https://codecov.io/gh/bento-platform/bento_variant_service)
 
 Proposed quality control pipeline:
 
