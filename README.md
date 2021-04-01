@@ -1,6 +1,7 @@
 # Bento Variant Service
 
-![Build Status](https://api.travis-ci.com/bento-platform/bento_variant_service.svg?branch=master)
+![Test Status](https://github.com/bento-platform/bento_variant_service/workflows/Test/badge.svg)
+![Lint Status](https://github.com/bento-platform/bento_variant_service/workflows/Lint/badge.svg)
 [![codecov](https://codecov.io/gh/bento-platform/bento_variant_service/branch/master/graph/badge.svg)](https://codecov.io/gh/bento-platform/bento_variant_service)
 
 Proposed quality control pipeline:
