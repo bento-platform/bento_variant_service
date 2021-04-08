@@ -88,7 +88,18 @@ VARIANT_CALL_SCHEMA = {
                 "type": "single",
                 "order": 3
             }
-        }
+        },
+        "read_depth": {
+            "type": ["integer", "null"],
+            "description": "Read depth at this position for this sample.",
+            "search": {
+                "operations": [op.SEARCH_OP_EQ, op.SEARCH_OP_GT, op.SEARCH_OP_GE, op.SEARCH_OP_LT, op.SEARCH_OP_LE],
+                "queryable": "all",
+                "canNegate": True,
+                "required": False,
+                "order": 4,
+            }
+        },
     }
 }
 
@@ -185,6 +196,15 @@ VARIANT_SCHEMA = {
                 "order": 5
             },
         },
+        "qual": {
+            "type": ["integer", "null"],
+            "description": "Phred-scaled quality score for the assertion made by the alt field.",
+            "search": {
+                "required": False,
+                "type": "unlimited",
+                "order": 6,
+            },
+        },
         "calls": {
             "type": "array",
             "description": "Called instances of this variant on samples.",
@@ -192,7 +212,7 @@ VARIANT_SCHEMA = {
             "search": {
                 "required": False,
                 "type": "unlimited",
-                "order": 6,
+                "order": 7,
             },
         },
         "_extra": {

@@ -14,12 +14,13 @@ class Variant:
     """
 
     def __init__(self, assembly_id: str, chromosome: str, ref_bases: str, alt_bases: Tuple[str, ...], start_pos: int,
-                 calls: Tuple["Call"] = (), file_uri: Optional[str] = None):
+                 qual: Optional[int] = None, calls: Tuple["Call"] = (), file_uri: Optional[str] = None):
         self.assembly_id: str = assembly_id  # Assembly ID for context
         self.chromosome: str = chromosome  # Chromosome where the variant occurs
         self.ref_bases: str = ref_bases  # Reference bases
         self.alt_bases: Tuple[str] = alt_bases  # Alternate bases  TODO: Structural variants
         self.start_pos: int = start_pos  # Starting position on the chromosome w/r/t the reference, 0-indexed
+        self.qual: Optional[int] = qual  # Quality score for "assertion made by alt"
         self.calls: Tuple["Call"] = calls  # Variant calls, per sample  TODO: Make this a dict?
 
         self.file_uri: Optional[str] = file_uri  # File URI, "
@@ -39,6 +40,7 @@ class Variant:
             "end": self.end_pos,  # 1-based, exclusive  TODO: Convention here? exclusive or inclusive?
             "ref": self.ref_bases,
             "alt": list(self.alt_bases),  # TODO: Change property name?
+            "qual": self.qual,
             "calls": [c.as_chord_representation() for c in self.calls],
         }
 
@@ -59,6 +61,7 @@ class Variant:
             self.ref_bases == other.ref_bases,
             self.alt_bases == other.alt_bases,
             self.start_pos == other.start_pos,
+            (self.qual is None and other.qual is None) or self.qual == other.qual,
             len(self.calls) == len(other.calls),
             all((c1.eq_no_variant_check(c2) for c1, c2 in zip(self.calls, other.calls))),
         ))
@@ -70,7 +73,7 @@ class Call:
     """
 
     def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Optional[int], ...],
-                 phase_set: Optional[int] = None):
+                 phase_set: Optional[int] = None, read_depth: Optional[int] = None):
         self.variant: Variant = variant
         self.sample_id: str = sample_id
         self.genotype: Tuple[int, ...] = genotype
@@ -78,6 +81,7 @@ class Call:
             None if g is None else (self.variant.ref_bases if g == 0 else self.variant.alt_bases[g-1])
             for g in genotype)
         self.phase_set: Optional[int] = phase_set
+        self.read_depth: Optional[int] = read_depth
 
         if len(genotype) == 0:
             raise ValueError("Calls must have a genotype length of 1 or more")
@@ -115,5 +119,6 @@ class Call:
         return isinstance(other, Call) and all((
             self.sample_id == other.sample_id,
             self.genotype == other.genotype,  # Tuples are comparable via ==
-            (self.phase_set is None and other.phase_set is None) or self.phase_set == other.phase_set
+            (self.phase_set is None and other.phase_set is None) or self.phase_set == other.phase_set,
+            (self.read_depth is None and other.read_depth is None) or self.read_depth == other.read_depth,
         ))
