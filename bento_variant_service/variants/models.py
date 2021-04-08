@@ -73,14 +73,15 @@ class Call:
     """
 
     def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Optional[int], ...],
-                 phase_set: Optional[int] = None, read_depth: Optional[int] = None):
+                 phased: bool = False, phase_set: Optional[int] = None, read_depth: Optional[int] = None):
         self.variant: Variant = variant
         self.sample_id: str = sample_id
         self.genotype: Tuple[int, ...] = genotype
         self.genotype_bases: Tuple[Optional[str], ...] = tuple(  # TODO: Structural variants
             None if g is None else (self.variant.ref_bases if g == 0 else self.variant.alt_bases[g-1])
             for g in genotype)
-        self.phase_set: Optional[int] = phase_set
+        self.phased: bool = phased
+        self.phase_set: Optional[int] = phase_set if phased else None  # Should be ignored if phased
         self.read_depth: Optional[int] = read_depth
 
         if len(genotype) == 0:
@@ -110,6 +111,7 @@ class Call:
             "sample_id": self.sample_id,
             "genotype_bases": list(self.genotype_bases),  # TODO: Structural variants
             "genotype_type": self.genotype_type,
+            "phased": self.phased,
             "phase_set": self.phase_set,
             **(self.variant.as_chord_representation() if include_variant else {}),
         }
@@ -118,7 +120,12 @@ class Call:
         # Use and shortcutting to return False early if the other instance isn't a Call
         return isinstance(other, Call) and all((
             self.sample_id == other.sample_id,
-            self.genotype == other.genotype,  # Tuples are comparable via ==
+            self.phased == other.phased,
             (self.phase_set is None and other.phase_set is None) or self.phase_set == other.phase_set,
+
+            # Tuples are comparable via ==
+            # If unphased, genotype order doesn't matter, so we compare using sets
+            self.genotype == other.genotype if self.phased else set(self.genotype) == set(other.genotype),
+
             (self.read_depth is None and other.read_depth is None) or self.read_depth == other.read_depth,
         ))

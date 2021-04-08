@@ -13,6 +13,7 @@ MAX_SIGNED_INT_32 = 2 ** 31 - 1
 REGEX_GENOTYPE_SPLIT = re.compile(r"[|/]")
 VCF_GENOTYPE = "GT"
 VCF_READ_DEPTH = "DP"
+VCF_PHASE_SET = "PS"
 
 
 class VCFVariantTable(VariantTable):
@@ -63,11 +64,14 @@ class VCFVariantTable(VariantTable):
                 # Only include samples which have genotypes
                 continue
 
+            gt = row_info[VCF_GENOTYPE]
             call = Call(
                 variant=variant,
                 genotype=tuple(
                     VCFVariantTable._int_or_none_from_vcf(g)
-                    for g in re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE])),
+                    for g in re.split(REGEX_GENOTYPE_SPLIT, gt)),
+                phased="/" in gt,
+                phase_set=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_PHASE_SET, "")),
                 sample_id=sample_id,
                 read_depth=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_READ_DEPTH, ".")),
             )

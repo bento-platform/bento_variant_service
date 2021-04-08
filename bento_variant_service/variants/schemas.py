@@ -74,7 +74,19 @@ VARIANT_CALL_SCHEMA = {
                 "canNegate": True,
                 "required": True,  # TODO: Shouldn't be "required" here; but should show up by default anyway
                 "type": "single",
-                "order": 2
+                "order": 2.
+            }
+        },
+        "phased": {
+            "type": "boolean",
+            "description": "Whether the called genotype is phased.",
+            "search": {
+                "operations": [op.SEARCH_OP_EQ],
+                "queryable": "all",
+                "canNegate": True,
+                "required": False,
+                "type": "single",
+                "order": 3,
             }
         },
         "phase_set": {
@@ -86,7 +98,7 @@ VARIANT_CALL_SCHEMA = {
                 "canNegate": True,
                 "required": False,
                 "type": "single",
-                "order": 3
+                "order": 4
             }
         },
         "read_depth": {
@@ -97,7 +109,7 @@ VARIANT_CALL_SCHEMA = {
                 "queryable": "all",
                 "canNegate": True,
                 "required": False,
-                "order": 4,
+                "order": 5,
             }
         },
     }

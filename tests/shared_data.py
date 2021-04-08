@@ -46,7 +46,7 @@ VARIANT_1 = Variant(
     alt_bases=("T",),
 )
 
-CALL_1 = Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phase_set=None)
+CALL_1 = Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None)
 VARIANT_1.calls = (CALL_1,)
 
 VARIANT_2 = Variant(
@@ -57,7 +57,7 @@ VARIANT_2 = Variant(
     alt_bases=("T", "A"),
 )
 
-CALL_2 = Call(variant=VARIANT_2, sample_id="S0001", genotype=(0, 1), phase_set=None)
+CALL_2 = Call(variant=VARIANT_2, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None)
 VARIANT_2.calls = (CALL_2,)
 
 VARIANT_3 = Variant(
@@ -68,7 +68,7 @@ VARIANT_3 = Variant(
     alt_bases=("T", "G"),
 )
 
-VARIANT_3.calls = (Call(variant=VARIANT_3, sample_id="S0001", genotype=(0, 0), phase_set=None),)
+VARIANT_3.calls = (Call(variant=VARIANT_3, sample_id="S0001", genotype=(0, 0), phased=True, phase_set=None),)
 
 VARIANT_4 = Variant(
     assembly_id="GRCh37",
@@ -78,7 +78,7 @@ VARIANT_4 = Variant(
     alt_bases=("T",),
 )
 
-VARIANT_4.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phase_set=None),)
+VARIANT_4.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None),)
 
 VARIANT_5 = Variant(
     assembly_id="GRCh37",
@@ -88,4 +88,4 @@ VARIANT_5 = Variant(
     alt_bases=("T",),
 )
 
-VARIANT_5.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phase_set=None),)
+VARIANT_5.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None),)
