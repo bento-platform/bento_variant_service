@@ -5,6 +5,7 @@ import sys
 from bento_lib.responses import flask_errors
 from flask import Flask, jsonify
 from typing import Any, Dict, Optional
+from urllib.parse import quote
 from werkzeug.exceptions import BadRequest, NotFound
 
 from bento_variant_service import __version__
@@ -27,6 +28,10 @@ from bento_variant_service.workflows import bp_workflows
 __all__ = ["create_app"]
 
 
+NGINX_INTERNAL_SOCKET = quote(os.environ.get("NGINX_INTERNAL_SOCKET", "/chord/tmp/nginx_internal.sock"), safe="")
+UNIX_DRS_BASE_PATH = f"http+unix://{NGINX_INTERNAL_SOCKET}/api/drs"
+
+
 def post_start_hook():
     # Force initialization of table manager
     get_table_manager()
@@ -39,6 +44,9 @@ def create_app(test_config: Optional[Dict[str, Any]] = None):
         "DATA_PATH": os.environ.get("DATA", "data/"),
         "INITIALIZE_IMMEDIATELY": os.environ.get("INITIALIZE_IMMEDIATELY", "true").strip().lower() == "true",
         "TABLE_MANAGER": os.environ.get("TABLE_MANAGER", MANAGER_TYPE_VCF),  # Options: drs, memory, vcf
+
+        # Override host for all DRS requests. If set to blank, this will fetch from the 'true' DRS host instead.
+        "DRS_URL": os.environ.get("DRS_URL", UNIX_DRS_BASE_PATH),
     }
 
     if test_config:  # pragma: no cover

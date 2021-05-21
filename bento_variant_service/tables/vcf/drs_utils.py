@@ -1,14 +1,14 @@
-import os
 import re
 import requests
 import requests_unixsocket
 import sys
 
+from flask import current_app
 from jsonschema import Draft7Validator
 from typing import Dict, Optional, Tuple
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
-from bento_variant_service.constants import CHORD_URL, DRS_URL_BASE_PATH, SERVICE_NAME
+from bento_variant_service.constants import SERVICE_NAME
 
 
 __all__ = [
@@ -26,14 +26,8 @@ requests_unixsocket.monkeypatch()
 
 OptionalHeaders = Optional[Dict[str, str]]
 
-
 HTTP_PATTERN = re.compile(r"^https?")
 STARTING_SLASH_PATTERN = re.compile(r"^/")
-NGINX_INTERNAL_SOCKET = quote(os.environ.get("NGINX_INTERNAL_SOCKET", "/chord/tmp/nginx_internal.sock"), safe="")
-
-# TODO: Use urljoin
-UNIX_DRS_BASE_PATH = f"http+unix://{NGINX_INTERNAL_SOCKET}/{re.sub(STARTING_SLASH_PATTERN, '', DRS_URL_BASE_PATH)}"
-
 
 DRS_DATA_SCHEMA = {
     "type": "object",
@@ -53,6 +47,14 @@ DRS_DATA_SCHEMA_VALIDATOR = Draft7Validator(DRS_DATA_SCHEMA)
 DRS_URI_SCHEME = "drs"
 
 
+def _get_drs_decoded_url(parsed_url):
+    # TODO: Make this not CHORD-specific in its URL format - switch to ga4gh namespace
+
+    config_drs_url = current_app.config["DRS_URL"]
+    base = config_drs_url if config_drs_url else f"https://{parsed_url.netloc}"
+    return f"{base}/objects/{parsed_url.path.split('/')[-1]}"
+
+
 def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:  # pragma: no cover
     return next((a for a in drs_object_record.get("access_methods", []) if a.get("type", None) == "file"), None)
 
@@ -69,16 +71,8 @@ def drs_vcf_to_internal_paths(
               file=sys.stderr, flush=True)
         return None
 
-    # TODO: Support external DRS providers?
-    chord_url_no_protocol = re.sub(HTTP_PATTERN, "", CHORD_URL)
-    if chord_url_no_protocol not in vcf_url or chord_url_no_protocol not in index_url:
-        print(f"[{SERVICE_NAME}] External DRS url supplied (not implemented): '{vcf_url}' or '{index_url}'",
-              file=sys.stderr, flush=True)
-        return None
-
-    # TODO: Make this not CHORD-specific in its URL format
-    vcf_decoded_url = f"{UNIX_DRS_BASE_PATH}/objects/{parsed_vcf_url.path.split('/')[-1]}"
-    idx_decoded_url = f"{UNIX_DRS_BASE_PATH}/objects/{parsed_index_url.path.split('/')[-1]}"
+    vcf_decoded_url = _get_drs_decoded_url(parsed_vcf_url)
+    idx_decoded_url = _get_drs_decoded_url(parsed_index_url)
 
     print(f"[{SERVICE_NAME}] Attempting to fetch {vcf_decoded_url}", flush=True)
     vcf_res = requests.get(vcf_decoded_url)

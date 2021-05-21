@@ -79,8 +79,10 @@ CHORD_URL=http://localhost/  # URL for the Bento node or standalone service
   * `INITIALIZE_IMMEDIATELY` is used to specify whether to wait for a `GET` 
     request to /private/post-start-hook to initialize the service table manager
     
-  * `DRS_URL_BASE_PATH` is used to specify the Bento container-internal base
-    path to the container's DRS instance.
+  * `DRS_URL` is used to specify an optional override DRS base URL for the 
+    Bento container-internal-network DRS instance. If left unset, a 
+    `chord_singularity`-compatible value is assumed:
+    `http+unix://%2Fchord%2Ftmp%2Fnginx_internal.sock/api/drs`
 
   * If left unset, `SERVICE_ID` will default to `ca.c3g.bento:variant:VERSION`,
     where `VERSION` is the current version of the service package.
