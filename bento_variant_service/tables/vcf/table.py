@@ -71,7 +71,7 @@ class VCFVariantTable(VariantTable):
                     VCFVariantTable._int_or_none_from_vcf(g)
                     for g in re.split(REGEX_GENOTYPE_SPLIT, gt)),
                 phased="/" in gt,
-                phase_set=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_PHASE_SET, "")),
+                phase_set=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_PHASE_SET, ".")),
                 sample_id=sample_id,
                 read_depth=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_READ_DEPTH, ".")),
             )
@@ -180,6 +180,7 @@ class VCFVariantTable(VariantTable):
 
                     variants_seen += 1
 
-            except ValueError:
-                # Region not found in Tabix file
+            except ValueError as e:
+                # Sometimes this can occur if a region not found in Tabix file, so continue searching but log it
+                print(f"[Bento Variant Service] Encountered ValueError: {e}")
                 continue
