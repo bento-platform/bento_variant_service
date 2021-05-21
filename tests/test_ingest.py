@@ -85,15 +85,17 @@ EMPTY_WORKFLOW_OUTPUTS = {
 }
 
 
-def test_ingest_vcf(tmpdir, vcf_client, vcf_table_manager: VCFTableManager):
+def _create_dummy_table(client):
     # Create a dummy table
-    tr = vcf_client.post("/tables?data-type=variant", json={
+    tr = client.post("/tables?data-type=variant", json={
         "name": "test table",
         "metadata": {}
     })
-    t = tr.get_json()
+    return tr.get_json()
 
-    # TODO: Test bad params - this currently yields a 500; it should be a 400
+
+def test_ingest_vcf_missing_prefix(vcf_client):
+    t = _create_dummy_table(vcf_client)
 
     # Valid workflow ID, invalid params (missing prefix)
     rv = vcf_client.post("/private/ingest", json=make_ingest(
@@ -107,6 +109,10 @@ def test_ingest_vcf(tmpdir, vcf_client, vcf_table_manager: VCFTableManager):
     ), headers=TEST_HEADERS)
     assert rv.status_code == 400
 
+
+def test_ingest_vcf_missing_files(vcf_client):
+    t = _create_dummy_table(vcf_client)
+
     # Valid workflow ID, empty file arrays
     rv = vcf_client.post("/private/ingest", json=make_ingest(
         t["id"],
@@ -118,6 +124,10 @@ def test_ingest_vcf(tmpdir, vcf_client, vcf_table_manager: VCFTableManager):
         }
     ), headers=TEST_HEADERS)
     assert rv.status_code == 204
+
+
+def test_ingest_vcf_valid(tmpdir, vcf_client, vcf_table_manager: VCFTableManager):
+    t = _create_dummy_table(vcf_client)
 
     data_path = tmpdir / "data_to_ingest"
     data_path.mkdir()
