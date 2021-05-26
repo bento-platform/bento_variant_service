@@ -1,7 +1,9 @@
 import os
+import pytest
+
 from bento_variant_service.tables.vcf.file import VCFFile
 
-from .shared_data import VCF_ONE_VAR_FILE_PATH, VCF_ONE_VAR_FILE_URI
+from .shared_data import VCF_ONE_VAR_FILE_PATH, VCF_ONE_VAR_FILE_URI, DRS_VCF_ID
 
 
 def test_vcf_file():
@@ -14,3 +16,8 @@ def test_vcf_file():
     assert file.n_of_variants == 1
     assert len(tuple(file.fetch())) == 1
     assert repr(file) == f"<VCFFile {file.path}>"
+
+
+def test_vcf_file_error():
+    with pytest.raises(ValueError):
+        VCFFile(VCF_ONE_VAR_FILE_URI, f"drs://drs.local/{DRS_VCF_ID}")

@@ -54,6 +54,24 @@ def test_drs_vcf_to_internal_paths_404(client_drs_mode, drs_table_manager: DRSVC
 
 # noinspection PyUnusedLocal
 @responses.activate
+def test_drs_vcf_to_internal_paths_no_access(client_drs_mode, drs_table_manager: DRSVCFTableManager):
+    no_vcf_a_r = DRS_VCF_RESPONSE.copy()
+    no_vcf_a_r["access_methods"] = []
+
+    no_idx_a_r = DRS_IDX_RESPONSE.copy()
+    no_idx_a_r["access_methods"] = []
+
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_VCF_ID}", json=no_vcf_a_r)
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_IDX_ID}", json=no_idx_a_r)
+
+    assert drs_vcf_to_internal_paths(
+        f"drs://drs.local/{DRS_VCF_ID}",
+        f"drs://drs.local/{DRS_IDX_ID}",
+    ) is None
+
+
+# noinspection PyUnusedLocal
+@responses.activate
 def test_drs_vcf_to_internal_paths_valid(client_drs_mode, drs_table_manager: DRSVCFTableManager):
     responses.add(responses.GET, f"http://drs.local/objects/{DRS_VCF_ID}", json=DRS_VCF_RESPONSE)
     responses.add(responses.GET, f"http://drs.local/objects/{DRS_IDX_ID}", json=DRS_IDX_RESPONSE)
