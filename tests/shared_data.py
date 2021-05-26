@@ -14,6 +14,12 @@ __all__ = [
 
     "VCF_NO_TBI_FILE_PATH",
 
+    "DRS_RECORD_PATH",
+    "DRS_VCF_ID",
+    "DRS_IDX_ID",
+    "DRS_VCF_RESPONSE",
+    "DRS_IDX_RESPONSE",
+
     "VARIANT_1",
     "VARIANT_2",
     "VARIANT_3",
@@ -37,6 +43,37 @@ VCF_MISSING_9_FILE_PATH = os.path.join(TEST_DATA_PATH, "missing_9th_22.vcf.gz")
 VCF_MISSING_9_INDEX_FILE_PATH = f"{VCF_MISSING_9_FILE_PATH}.tbi"
 
 VCF_NO_TBI_FILE_PATH = os.path.join(TEST_DATA_PATH, "no_tbi_22.vcf.gz")
+
+DRS_RECORD_PATH = os.path.join(TEST_DATA_PATH, "test.drs.json")
+
+DRS_VCF_ID = "e120a041-dd95-4d18-95cb-4ea31fd06a96"
+DRS_IDX_ID = "33d4c424-8197-4835-be65-91f7d9d54fa1"
+
+DRS_VCF_RESPONSE = {
+    "id": DRS_VCF_ID,
+    "access_methods": [
+        {"type": "file", "access_url": {"url": f"file://{os.path.abspath(VCF_TEN_VAR_FILE_PATH)}"}},
+    ],
+    "checksums": [
+        {"checksum": "067a0009ffc1b21e6850f711c8b67422d381405bc53c904a5c1f75ee93c665c4", "type": "sha-256"},
+    ],
+    "created_time": "2021-05-26T14:00:00Z",
+    "size": os.path.getsize(VCF_TEN_VAR_FILE_PATH),
+    "self_uri": f"drs://drs.local/{DRS_VCF_ID}",
+}
+
+DRS_IDX_RESPONSE = {
+    "id": DRS_IDX_ID,
+    "access_methods": [
+        {"type": "file", "access_url": {"url": f"file://{os.path.abspath(VCF_TEN_VAR_INDEX_FILE_PATH)}"}},
+    ],
+    "checksums": [
+        {"checksum": "9d3c5ba95b114d9617bf79cc347eb66fb98ad926eacb342c75a1f7ebf6814b0c", "type": "sha-256"},
+    ],
+    "created_time": "2021-05-26T14:00:00Z",
+    "size": os.path.getsize(VCF_TEN_VAR_INDEX_FILE_PATH),
+    "self_uri": f"drs://drs.local/{DRS_IDX_ID}",
+}
 
 VARIANT_1 = Variant(
     assembly_id="GRCh37",

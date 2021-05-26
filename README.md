@@ -80,8 +80,8 @@ CHORD_URL=http://localhost/  # URL for the Bento node or standalone service
     request to /private/post-start-hook to initialize the service table manager
     
   * `DRS_URL` is used to specify an optional override DRS base URL for the 
-    Bento container-internal-network DRS instance. If left unset, a 
-    `chord_singularity`-compatible value is assumed:
+    Bento container-internal-network DRS instance, with **no trailing slash**. 
+    If left unset, a `chord_singularity`-compatible value is assumed:
     `http+unix://%2Fchord%2Ftmp%2Fnginx_internal.sock/api/drs`
 
   * If left unset, `SERVICE_ID` will default to `ca.c3g.bento:variant:VERSION`,

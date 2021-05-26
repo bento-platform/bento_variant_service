@@ -38,6 +38,20 @@ def app_vcf_mode(tmpdir):
     })
 
 
+@pytest.fixture
+def app_drs_mode(tmpdir):
+    data_path = tmpdir / "drs_data"
+    data_path.mkdir()
+
+    tm._table_manager = None
+    yield create_app({
+        "TESTING": True,
+        "DATA_PATH": str(data_path),
+        "TABLE_MANAGER": tm.MANAGER_TYPE_DRS,
+        "DRS_URL": "http://drs.local",
+    })
+
+
 @pytest.fixture()
 def table_manager(app):
     with app.app_context():
@@ -47,6 +61,12 @@ def table_manager(app):
 @pytest.fixture()
 def vcf_table_manager(app_vcf_mode):
     with app_vcf_mode.app_context():
+        yield tm.get_table_manager()
+
+
+@pytest.fixture()
+def drs_table_manager(app_drs_mode):
+    with app_drs_mode.app_context():
         yield tm.get_table_manager()
 
 
@@ -63,6 +83,11 @@ def uninitialized_client(uninitialized_app):
 @pytest.fixture
 def client_vcf_mode(app_vcf_mode):
     yield app_vcf_mode.test_client()
+
+
+@pytest.fixture
+def client_drs_mode(app_drs_mode):
+    yield app_drs_mode.test_client()
 
 
 @pytest.fixture(scope="module")

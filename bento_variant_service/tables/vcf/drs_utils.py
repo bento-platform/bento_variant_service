@@ -55,14 +55,15 @@ def _get_drs_decoded_url(parsed_url):
     return f"{base}/objects/{parsed_url.path.split('/')[-1]}"
 
 
-def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:  # pragma: no cover
+def _get_file_access_method_if_any(drs_object_record: dict) -> Optional[dict]:
+    # TODO: Handle malformed DRS responses
     return next((a for a in drs_object_record.get("access_methods", []) if a.get("type", None) == "file"), None)
 
 
 def drs_vcf_to_internal_paths(
     vcf_url: str,
     index_url: str,
-) -> Optional[Tuple[str, str, OptionalHeaders, OptionalHeaders]]:  # pragma: no cover
+) -> Optional[Tuple[str, str, OptionalHeaders, OptionalHeaders]]:
     parsed_vcf_url = urlparse(vcf_url)
     parsed_index_url = urlparse(index_url)
 
@@ -80,8 +81,7 @@ def drs_vcf_to_internal_paths(
     idx_res = requests.get(idx_decoded_url)
 
     if vcf_res.status_code != 200 or idx_res.status_code != 200:
-        print(f"[{SERVICE_NAME}] Could not fetch: '{vcf_url}' or '{index_url}'",
-              file=sys.stderr, flush=True)
+        print(f"[{SERVICE_NAME}] Could not fetch: '{vcf_url}' or '{index_url}'", file=sys.stderr, flush=True)
         print(f"\tAttempted VCF URL: {vcf_decoded_url} (Status: {vcf_res.status_code})", file=sys.stderr, flush=True)
         print(f"\tAttempted TBI URL: {idx_decoded_url} (Status: {idx_res.status_code})", file=sys.stderr, flush=True)
         return None

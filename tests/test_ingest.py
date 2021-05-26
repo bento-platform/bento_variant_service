@@ -1,11 +1,18 @@
 import os
 import shutil
+import responses
 
 from bento_variant_service.tables.vcf.vcf_manager import VCFTableManager
+from bento_variant_service.tables.vcf.drs_manager import DRSVCFTableManager
 
 from .shared_data import (
     VCF_TEN_VAR_FILE_PATH,
     VCF_TEN_VAR_INDEX_FILE_PATH,
+
+    DRS_VCF_ID,
+    DRS_IDX_ID,
+    DRS_VCF_RESPONSE,
+    DRS_IDX_RESPONSE,
 )
 
 
@@ -153,3 +160,28 @@ def test_ingest_vcf_valid(tmpdir, client_vcf_mode, vcf_table_manager: VCFTableMa
     assert rv.status_code == 204
 
     assert len(list(vcf_table_manager.get_table(t["id"]).variants())) == 10
+
+
+@responses.activate
+def test_ingest_vcf_valid_drs(client_drs_mode, drs_table_manager: DRSVCFTableManager):
+    t = _create_dummy_table(client_drs_mode)
+
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_VCF_ID}", json=DRS_VCF_RESPONSE)
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_IDX_ID}", json=DRS_IDX_RESPONSE)
+
+    # Valid workflow ID with a file
+    rv = client_drs_mode.post("/private/ingest", json=make_ingest(
+        t["id"],
+        "vcf_gz",
+        workflow_outputs={
+            "vcf_gz_files": [f"drs://drs.local/{DRS_VCF_ID}"],
+            "tbi_files": [f"drs://drs.local/{DRS_IDX_ID}"],
+        },
+        workflow_params={
+            "vcf_gz.vcf_gz_files": ["test.vcf.gz"],
+            "vcf_gz.assembly_id": "GRCh37"
+        }
+    ), headers=TEST_HEADERS)
+    assert rv.status_code == 204
+
+    assert len(list(drs_table_manager.get_table(t["id"]).variants())) == 10
