@@ -26,7 +26,7 @@ def uninitialized_app():
 
 
 @pytest.fixture
-def vcf_app(tmpdir):
+def app_vcf_mode(tmpdir):
     data_path = tmpdir / "vcf_data"
     data_path.mkdir()
 
@@ -45,8 +45,8 @@ def table_manager(app):
 
 
 @pytest.fixture()
-def vcf_table_manager(vcf_app):
-    with vcf_app.app_context():
+def vcf_table_manager(app_vcf_mode):
+    with app_vcf_mode.app_context():
         yield tm.get_table_manager()
 
 
@@ -61,8 +61,8 @@ def uninitialized_client(uninitialized_app):
 
 
 @pytest.fixture
-def vcf_client(vcf_app):
-    yield vcf_app.test_client()
+def client_vcf_mode(app_vcf_mode):
+    yield app_vcf_mode.test_client()
 
 
 @pytest.fixture(scope="module")

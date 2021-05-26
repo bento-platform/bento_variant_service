@@ -94,11 +94,11 @@ def _create_dummy_table(client):
     return tr.get_json()
 
 
-def test_ingest_vcf_missing_prefix(vcf_client):
-    t = _create_dummy_table(vcf_client)
+def test_ingest_vcf_missing_prefix(client_vcf_mode):
+    t = _create_dummy_table(client_vcf_mode)
 
     # Valid workflow ID, invalid params (missing prefix)
-    rv = vcf_client.post("/private/ingest", json=make_ingest(
+    rv = client_vcf_mode.post("/private/ingest", json=make_ingest(
         t["id"],
         "vcf_gz",
         workflow_outputs=EMPTY_WORKFLOW_OUTPUTS,
@@ -110,11 +110,11 @@ def test_ingest_vcf_missing_prefix(vcf_client):
     assert rv.status_code == 400
 
 
-def test_ingest_vcf_missing_files(vcf_client):
-    t = _create_dummy_table(vcf_client)
+def test_ingest_vcf_missing_files(client_vcf_mode):
+    t = _create_dummy_table(client_vcf_mode)
 
     # Valid workflow ID, empty file arrays
-    rv = vcf_client.post("/private/ingest", json=make_ingest(
+    rv = client_vcf_mode.post("/private/ingest", json=make_ingest(
         t["id"],
         "vcf_gz",
         workflow_outputs=EMPTY_WORKFLOW_OUTPUTS,
@@ -126,8 +126,8 @@ def test_ingest_vcf_missing_files(vcf_client):
     assert rv.status_code == 204
 
 
-def test_ingest_vcf_valid(tmpdir, vcf_client, vcf_table_manager: VCFTableManager):
-    t = _create_dummy_table(vcf_client)
+def test_ingest_vcf_valid(tmpdir, client_vcf_mode, vcf_table_manager: VCFTableManager):
+    t = _create_dummy_table(client_vcf_mode)
 
     data_path = tmpdir / "data_to_ingest"
     data_path.mkdir()
@@ -138,7 +138,7 @@ def test_ingest_vcf_valid(tmpdir, vcf_client, vcf_table_manager: VCFTableManager
     shutil.copyfile(VCF_TEN_VAR_INDEX_FILE_PATH, os.path.join(data_path, "test.vcf.gz.tbi"))
 
     # Valid workflow ID with a file
-    rv = vcf_client.post("/private/ingest", json=make_ingest(
+    rv = client_vcf_mode.post("/private/ingest", json=make_ingest(
         t["id"],
         "vcf_gz",
         workflow_outputs={
@@ -152,4 +152,4 @@ def test_ingest_vcf_valid(tmpdir, vcf_client, vcf_table_manager: VCFTableManager
     ), headers=TEST_HEADERS)
     assert rv.status_code == 204
 
-    assert len(list(vcf_table_manager.get_table(t["id"]).variants()))
+    assert len(list(vcf_table_manager.get_table(t["id"]).variants())) == 10

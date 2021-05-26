@@ -287,7 +287,7 @@ def test_vcf_table_error_handling(vcf_table_manager):
 
 
 # noinspection DuplicatedCode
-def test_vcf_table_pagination(vcf_client, vcf_table_manager):
+def test_vcf_table_pagination(client_vcf_mode, vcf_table_manager):
     vm: VCFTableManager = vcf_table_manager
 
     # Create a new table named test
@@ -301,10 +301,10 @@ def test_vcf_table_pagination(vcf_client, vcf_table_manager):
     vm.update_tables()
 
     for q, sc, r in VCF_QUERY_STRINGS_AND_RESULTS:
-        rv = vcf_client.get(f"/private/tables/{t.table_id}/variants", query_string=q)
+        rv = client_vcf_mode.get(f"/private/tables/{t.table_id}/variants", query_string=q)
         assert rv.status_code == sc
 
-        rv = vcf_client.get(f"/private/tables/{t.table_id}/data", query_string=q)
+        rv = client_vcf_mode.get(f"/private/tables/{t.table_id}/data", query_string=q)
         assert rv.status_code == sc
 
         if r is not None:
