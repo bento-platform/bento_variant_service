@@ -13,3 +13,4 @@ def test_vcf_file():
     assert len(file.sample_ids) == 835
     assert file.n_of_variants == 1
     assert len(tuple(file.fetch())) == 1
+    assert repr(file) == f"<VCFFile {file.path}>"
