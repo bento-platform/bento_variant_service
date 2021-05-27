@@ -10,7 +10,7 @@ from bento_variant_service.tables.vcf.drs_utils import DRS_DATA_SCHEMA_VALIDATOR
 from bento_variant_service.tables.vcf.file import VCFFile
 
 
-class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
+class DRSVCFTableManager(BaseVCFTableManager):
     def _get_table_vcf_files(self, table_folder: VCFTableFolder) -> Tuple[VCFFile, ...]:
         vcf_files = []
 
@@ -30,7 +30,10 @@ class DRSVCFTableManager(BaseVCFTableManager):  # pragma: no cover
                 except ValueError as e:
                     print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}': "
                           f"{str(e)}", file=sys.stderr, flush=True)
-                except TypeError:  # drs_vcf_to_internal_paths returned None
-                    print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths", file=sys.stderr, flush=True)
+                except TypeError as e:  # drs_vcf_to_internal_paths returned None
+                    # TODO: This is a bad error handler since it also catches random other TypeErrors
+                    #  Also, we should probably return if errors occur...
+                    print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths or encountered ValueError "
+                          f"({str(e)})", file=sys.stderr, flush=True)
 
         return tuple(vcf_files)

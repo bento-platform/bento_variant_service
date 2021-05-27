@@ -12,6 +12,8 @@ MAX_SIGNED_INT_32 = 2 ** 31 - 1
 
 REGEX_GENOTYPE_SPLIT = re.compile(r"[|/]")
 VCF_GENOTYPE = "GT"
+VCF_READ_DEPTH = "DP"
+VCF_PHASE_SET = "PS"
 
 
 class VCFVariantTable(VariantTable):
@@ -50,6 +52,10 @@ class VCFVariantTable(VariantTable):
         )
 
     @staticmethod
+    def _int_or_none_from_vcf(val):
+        return None if val == "." else int(val)
+
+    @staticmethod
     def _variant_calls(variant: Variant, sample_ids: tuple, row: tuple, only_interesting: bool = False):
         for sample_id, row_data in zip(sample_ids, row[9:]):
             row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
@@ -58,10 +64,17 @@ class VCFVariantTable(VariantTable):
                 # Only include samples which have genotypes
                 continue
 
-            genotype = tuple(None if g == "." else int(g) for g in
-                             re.split(REGEX_GENOTYPE_SPLIT, row_info[VCF_GENOTYPE]))
-
-            call = Call(variant=variant, genotype=genotype, sample_id=sample_id)
+            gt = row_info[VCF_GENOTYPE]
+            call = Call(
+                variant=variant,
+                genotype=tuple(
+                    VCFVariantTable._int_or_none_from_vcf(g)
+                    for g in re.split(REGEX_GENOTYPE_SPLIT, gt)),
+                phased="/" in gt,
+                phase_set=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_PHASE_SET, ".")),
+                sample_id=sample_id,
+                read_depth=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_READ_DEPTH, ".")),
+            )
 
             if only_interesting and not call.is_interesting:
                 # Uninteresting, not present on sample
@@ -152,6 +165,7 @@ class VCFVariantTable(VariantTable):
                         start_pos=int(row[1]),
                         ref_bases=row[3],
                         alt_bases=tuple(row[4].split(",")),
+                        qual=int(row[5]) if row[5] != "." else None,
                         file_uri=vcf.original_index_uri,
                     )
 
@@ -166,6 +180,7 @@ class VCFVariantTable(VariantTable):
 
                     variants_seen += 1
 
-            except ValueError:
-                # Region not found in Tabix file
+            except ValueError as e:
+                # Sometimes this can occur if a region not found in Tabix file, so continue searching but log it
+                print(f"[Bento Variant Service] Encountered ValueError: {e}")
                 continue

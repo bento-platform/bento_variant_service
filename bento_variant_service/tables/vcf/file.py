@@ -114,3 +114,6 @@ class VCFFile:
             yield from f.fetch(*args)
         finally:
             f.close()
+
+    def __repr__(self):
+        return f"<VCFFile {self._path}>"
