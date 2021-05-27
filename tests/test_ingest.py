@@ -13,6 +13,7 @@ from .shared_data import (
     DRS_IDX_ID,
     DRS_VCF_RESPONSE,
     DRS_IDX_RESPONSE,
+    DRS_404_RESPONSE,
 )
 
 
@@ -185,3 +186,31 @@ def test_ingest_vcf_valid_drs(client_drs_mode, drs_table_manager: DRSVCFTableMan
     assert rv.status_code == 204
 
     assert len(list(drs_table_manager.get_table(t["id"]).variants())) == 10
+
+
+@responses.activate
+def test_ingest_vcf_404(client_drs_mode, drs_table_manager: DRSVCFTableManager):
+    # TODO: This funcionality is as expected but kind of weird, as no error is returned
+
+    t = _create_dummy_table(client_drs_mode)
+
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_VCF_ID}", json=DRS_404_RESPONSE, status=404)
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_IDX_ID}", json=DRS_404_RESPONSE, status=404)
+
+    # Valid workflow ID with a file
+    rv = client_drs_mode.post("/private/ingest", json=make_ingest(
+        t["id"],
+        "vcf_gz",
+        workflow_outputs={
+            "vcf_gz_files": [f"drs://drs.local/{DRS_VCF_ID}"],
+            "tbi_files": [f"drs://drs.local/{DRS_IDX_ID}"],
+        },
+        workflow_params={
+            "vcf_gz.vcf_gz_files": ["test.vcf.gz"],
+            "vcf_gz.assembly_id": "GRCh37"
+        }
+    ), headers=TEST_HEADERS)
+    assert rv.status_code == 204
+
+    # TODO: We expect 0 variants here because the VCFs aren't valid - this is expected, albeit probably not good.
+    assert len(list(drs_table_manager.get_table(t["id"]).variants())) == 0

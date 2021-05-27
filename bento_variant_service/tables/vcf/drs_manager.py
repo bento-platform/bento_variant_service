@@ -32,6 +32,7 @@ class DRSVCFTableManager(BaseVCFTableManager):
                           f"{str(e)}", file=sys.stderr, flush=True)
                 except TypeError as e:  # drs_vcf_to_internal_paths returned None
                     # TODO: This is a bad error handler since it also catches random other TypeErrors
+                    #  Also, we should probably return if errors occur...
                     print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths or encountered ValueError "
                           f"({str(e)})", file=sys.stderr, flush=True)
 

@@ -19,6 +19,7 @@ __all__ = [
     "DRS_IDX_ID",
     "DRS_VCF_RESPONSE",
     "DRS_IDX_RESPONSE",
+    "DRS_404_RESPONSE",
 
     "VARIANT_1",
     "VARIANT_2",
@@ -73,6 +74,11 @@ DRS_IDX_RESPONSE = {
     "created_time": "2021-05-26T14:00:00Z",
     "size": os.path.getsize(VCF_TEN_VAR_INDEX_FILE_PATH),
     "self_uri": f"drs://drs.local/{DRS_IDX_ID}",
+}
+
+DRS_404_RESPONSE = {
+    "status_code": 404,
+    "message": "Not found",
 }
 
 VARIANT_1 = Variant(

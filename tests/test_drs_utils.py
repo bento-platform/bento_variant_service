@@ -12,6 +12,7 @@ from .shared_data import (
     DRS_IDX_ID,
     DRS_VCF_RESPONSE,
     DRS_IDX_RESPONSE,
+    DRS_404_RESPONSE,
 )
 
 
@@ -37,14 +38,8 @@ def test_drs_vcf_to_internal_paths_errors(client_drs_mode, drs_table_manager: DR
 # noinspection PyUnusedLocal
 @responses.activate
 def test_drs_vcf_to_internal_paths_404(client_drs_mode, drs_table_manager: DRSVCFTableManager):
-    responses.add(responses.GET, f"http://drs.local/objects/{DRS_VCF_ID}", json={
-        "status_code": 404,
-        "message": "Not found",
-    }, status=404)
-    responses.add(responses.GET, f"http://drs.local/objects/{DRS_IDX_ID}", json={
-        "status_code": 404,
-        "message": "Not found",
-    }, status=404)
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_VCF_ID}", json=DRS_404_RESPONSE, status=404)
+    responses.add(responses.GET, f"http://drs.local/objects/{DRS_IDX_ID}", json=DRS_404_RESPONSE, status=404)
 
     assert drs_vcf_to_internal_paths(
         f"drs://drs.local/{DRS_VCF_ID}",
