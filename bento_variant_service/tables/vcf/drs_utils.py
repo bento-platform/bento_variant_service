@@ -47,6 +47,10 @@ DRS_DATA_SCHEMA_VALIDATOR = Draft7Validator(DRS_DATA_SCHEMA)
 
 DRS_URI_SCHEME = "drs"
 
+DRS_REQUEST_HEADERS = {
+    "X-CHORD-Internal": "1",
+}
+
 
 def _get_drs_decoded_url(parsed_url):
     # TODO: Make this not CHORD-specific in its URL format - switch to ga4gh namespace
@@ -77,10 +81,15 @@ def drs_vcf_to_internal_paths(
     idx_decoded_url = _get_drs_decoded_url(parsed_index_url)
 
     try:
+        # Request the VCF and Tabix DRS records from the service.
+        # Set X-CHORD-Internal to 1; If this making an external request it'll
+        # either get ignored or cleared by the host (assuming the system is
+        # properly secured.) This lets us get file access from bento_drs.
+
         print(f"[{SERVICE_NAME}] Attempting to fetch {vcf_decoded_url}", flush=True)
-        vcf_res = requests.get(vcf_decoded_url)
+        vcf_res = requests.get(vcf_decoded_url, headers=DRS_REQUEST_HEADERS)
         print(f"[{SERVICE_NAME}] Attempting to fetch {idx_decoded_url}", flush=True)
-        idx_res = requests.get(idx_decoded_url)
+        idx_res = requests.get(idx_decoded_url, headers=DRS_REQUEST_HEADERS)
 
         if vcf_res.status_code != 200 or idx_res.status_code != 200:
             print(f"[{SERVICE_NAME}] Could not fetch: '{vcf_url}' or '{index_url}'", file=sys.stderr, flush=True)
