@@ -29,11 +29,11 @@ class DRSVCFTableManager(BaseVCFTableManager):
                     vcf_files.append(BaseVCFTableManager.get_vcf_file_record(drs_data["data"], drs_data["index"]))
                 except ValueError as e:
                     print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}': "
-                          f"{str(e)}", file=sys.stderr, flush=True)
+                          f"encountered ValueError ({str(e)})", file=sys.stderr, flush=True)
                 except TypeError as e:  # drs_vcf_to_internal_paths returned None
                     # TODO: This is a bad error handler since it also catches random other TypeErrors
                     #  Also, we should probably return if errors occur...
-                    print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths or encountered ValueError "
+                    print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths or encountered TypeError "
                           f"({str(e)})", file=sys.stderr, flush=True)
 
         return tuple(vcf_files)
