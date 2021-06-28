@@ -18,7 +18,7 @@ workflow vcf {
         # Need to pass TBI file in here, otherwise execution occurs out-of-order
         call vcf_annotate {
             input: vcf_gz_file = file,
-                   tbi_file = generate_tbi_1.tbi_file,
+                   tbi_files = generate_tbi_1.tbi_file,
                    assembly_id = assembly_id
         }
     }
@@ -42,7 +42,7 @@ task vcf_compress {
 
 task vcf_annotate {
     File vcf_gz_file
-    File tbi_file
+    Array[File] tbi_files
     String assembly_id
     command {
         echo "##chord_assembly_id=${assembly_id}" > chord_assembly_id &&
