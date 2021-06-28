@@ -6,20 +6,26 @@ workflow vcf {
         call vcf_compress {
             input: vcf_file = file
         }
+    }
 
+    scatter(file in vcf_compress.vcf_gz_file) {
         call generate_tbi as generate_tbi_1 {
-            input: vcf_gz_file = vcf_compress.vcf_gz_file
+            input: vcf_gz_file = file
         }
+    }
 
+    scatter(file in vcf_compress.vcf_gz_file) {
         # Need to pass TBI file in here, otherwise execution occurs out-of-order
         call vcf_annotate {
-            input: vcf_gz_file = vcf_compress.vcf_gz_file,
+            input: vcf_gz_file = file,
                    tbi_file = generate_tbi_1.tbi_file,
                    assembly_id = assembly_id
         }
+    }
 
+    scatter(file in vcf_annotate.annotated_vcf_gz_file) {
         call generate_tbi as generate_tbi_2 {
-            input: vcf_gz_file = vcf_annotate.annotated_vcf_gz_file
+            input: vcf_gz_file = file
         }
     }
 }

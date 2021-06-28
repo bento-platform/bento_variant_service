@@ -10,7 +10,6 @@ workflow vcf_gz {
 
     scatter(file in vcf_gz_files) {
         # Need to pass TBI file in here, otherwise execution occurs out-of-order
-        #
         call vcf_annotate {
             input: vcf_gz_file = file,
                    tbi_files = generate_tbi_1.tbi_file,  # Array now due to scatter
