@@ -314,9 +314,14 @@ def table_search(table_id, internal=False) -> Optional[Response]:
 
     else:
         if "query" not in request.args:
-            return flask_errors.flask_bad_request_error("Query not included in params")
+            return flask_errors.flask_bad_request_error("Missing query argument")
 
         query = request.args["query"]
+
+        try:
+            query = json.loads(query)
+        except json.decoder.JSONDecodeError:
+            return flask_errors.flask_bad_request_error("Invalid query JSON")
 
     # If it exists in the variant table manager, it's of data type 'variant'
     search = chord_search(get_table_manager(), "variant", query, internal_data=internal)
