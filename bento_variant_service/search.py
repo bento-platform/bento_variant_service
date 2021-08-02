@@ -300,19 +300,26 @@ def table_search(table_id, internal=False) -> Optional[Response]:
         # TODO: Refresh cache if needed?
         return flask_errors.flask_not_found_error(f"No table with ID {table_id}")
 
-    if request.json is None:
-        return flask_errors.flask_bad_request_error("Missing search body")
+    if request.method == "POST":
+        if request.json is None:
+            return flask_errors.flask_bad_request_error("Missing search body")
 
-    # TODO: Schema for request body
+        if not isinstance(request.json, dict):  # TODO: Schema for request body
+            return flask_errors.flask_bad_request_error("Search body must be an object")
 
-    if not isinstance(request.json, dict):
-        return flask_errors.flask_bad_request_error("Search body must be an object")
+        if "query" not in request.json:
+            return flask_errors.flask_bad_request_error("Query not included in search body")
 
-    if "query" not in request.json:
-        return flask_errors.flask_bad_request_error("Query not included in search body")
+        query = request.json["query"]
+
+    else:
+        if "query" not in request.args:
+            return flask_errors.flask_bad_request_error("Query not included in params")
+
+        query = request.args["query"]
 
     # If it exists in the variant table manager, it's of data type 'variant'
-    search = chord_search(get_table_manager(), "variant", request.json["query"], internal_data=internal)
+    search = chord_search(get_table_manager(), "variant", query, internal_data=internal)
 
     if internal:
         return jsonify({"results": search.get(table_id, {}).get("matches", [])})
@@ -320,11 +327,11 @@ def table_search(table_id, internal=False) -> Optional[Response]:
     return jsonify(next((s for s in search if s["id"] == table.table_id), None) is not None)
 
 
-@bp_chord_search.route("/tables/<string:table_id>/search", methods=["POST"])
+@bp_chord_search.route("/tables/<string:table_id>/search", methods=["GET", "POST"])
 def public_table_search(table_id):
     return table_search(table_id, internal=False)
 
 
-@bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["POST"])
+@bp_chord_search.route("/private/tables/<string:table_id>/search", methods=["GET", "POST"])
 def private_table_search(table_id):
     return table_search(table_id, internal=True)
