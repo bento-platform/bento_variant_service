@@ -190,25 +190,50 @@ def test_chord_variant_search(app, client, table_manager):
             rv = client.post("/private/tables/fixed_id/search", json=["query"])
             assert rv.status_code == 400
 
+            # - POST
             rv = client.post("/private/tables/fixed_id/search", json={"query": QUERY_1})
             assert rv.status_code == 200
-
             data = rv.get_json()
             assert "results" in data
+            assert len(data["results"]) == 3
+            assert json.dumps(data["results"][0], sort_keys=True) == \
+                   json.dumps(VARIANT_1.as_augmented_chord_representation(), sort_keys=True)
 
+            # - GET
+            rv = client.get("/private/tables/fixed_id/search", query_string={"query": json.dumps(QUERY_1)})
+            print(rv.get_json())
+            assert rv.status_code == 200
+            data = rv.get_json()
+            assert "results" in data
             assert len(data["results"]) == 3
             assert json.dumps(data["results"][0], sort_keys=True) == \
                 json.dumps(VARIANT_1.as_augmented_chord_representation(), sort_keys=True)
 
             for q, r in TEST_PRIVATE_QUERIES:
                 qj = {"query": q}
+                qjg = {"query": json.dumps(q)}
 
+                # - POST
                 rv = client.post("/tables/fixed_id/search", json=qj)
                 assert rv.status_code == 200
                 data = rv.get_json()
                 assert data == (r > 0)
 
+                # - GET
+                rv = client.get("/tables/fixed_id/search", query_string=qjg)
+                assert rv.status_code == 200
+                data = rv.get_json()
+                assert data == (r > 0)
+
+                # - POST
                 rv = client.post("/private/tables/fixed_id/search", json=qj)
+                assert rv.status_code == 200
+                data = rv.get_json()
+                assert "results" in data
+                assert len(data["results"]) == r
+
+                # - GET
+                rv = client.get("/private/tables/fixed_id/search", query_string=qjg)
                 assert rv.status_code == 200
                 data = rv.get_json()
                 assert "results" in data
