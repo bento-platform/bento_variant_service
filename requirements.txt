@@ -6,8 +6,8 @@ bento-lib==3.0.1
 certifi==2021.5.30
 chardet==4.0.0
 charset-normalizer==2.0.4
-click==7.1.2
-codecov==2.1.11
+click==8.0.1
+codecov==2.1.12
 coverage==5.5
 distlib==0.3.2
 entrypoints==0.3
