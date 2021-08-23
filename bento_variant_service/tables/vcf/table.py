@@ -165,7 +165,7 @@ class VCFVariantTable(VariantTable):
                         start_pos=int(row[1]),
                         ref_bases=row[3],
                         alt_bases=tuple(row[4].split(",")),
-                        qual=int(row[5]) if row[5] != "." else None,
+                        qual=float(row[5]) if row[5] != "." else None,
                         file_uri=vcf.original_index_uri,
                     )
 
