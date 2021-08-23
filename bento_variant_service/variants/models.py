@@ -14,13 +14,13 @@ class Variant:
     """
 
     def __init__(self, assembly_id: str, chromosome: str, ref_bases: str, alt_bases: Tuple[str, ...], start_pos: int,
-                 qual: Optional[int] = None, calls: Tuple["Call"] = (), file_uri: Optional[str] = None):
+                 qual: Optional[float] = None, calls: Tuple["Call"] = (), file_uri: Optional[str] = None):
         self.assembly_id: str = assembly_id  # Assembly ID for context
         self.chromosome: str = chromosome  # Chromosome where the variant occurs
         self.ref_bases: str = ref_bases  # Reference bases
         self.alt_bases: Tuple[str] = alt_bases  # Alternate bases  TODO: Structural variants
         self.start_pos: int = start_pos  # Starting position on the chromosome w/r/t the reference, 0-indexed
-        self.qual: Optional[int] = qual  # Quality score for "assertion made by alt"
+        self.qual: Optional[float] = qual  # Quality score for "assertion made by alt"
         self.calls: Tuple["Call"] = calls  # Variant calls, per sample  TODO: Make this a dict?
 
         self.file_uri: Optional[str] = file_uri  # File URI, "

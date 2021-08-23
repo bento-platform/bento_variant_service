@@ -209,7 +209,7 @@ VARIANT_SCHEMA = {
             },
         },
         "qual": {
-            "type": ["integer", "null"],
+            "type": ["number", "null"],
             "description": "Phred-scaled quality score for the assertion made by the alt field.",
             "search": {
                 "required": False,
