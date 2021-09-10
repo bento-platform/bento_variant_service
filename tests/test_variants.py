@@ -4,6 +4,18 @@ from bento_variant_service.variants.models import ALLELE_MISSING, ALLELE_MISSING
 from .shared_data import T_ALLELE, C_ALLELE, VARIANT_1, VARIANT_2, VARIANT_3, CALL_1, CALL_2
 
 
+def test_allele_equality():
+    assert T_ALLELE != 5
+    assert T_ALLELE != "test"
+    assert T_ALLELE != VARIANT_1
+    assert T_ALLELE == T_ALLELE
+    assert C_ALLELE == C_ALLELE
+    assert T_ALLELE != C_ALLELE
+    assert C_ALLELE != T_ALLELE
+
+    assert hash(C_ALLELE) == hash("C")
+
+
 def test_variant_equality():
     assert VARIANT_1 == VARIANT_1
     assert VARIANT_2 == VARIANT_2
