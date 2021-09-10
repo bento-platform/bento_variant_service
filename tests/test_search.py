@@ -150,6 +150,7 @@ def test_chord_variant_search(app, client, table_manager):
             assert len(data["results"]) == 1
 
             for q, r in TEST_QUERIES:
+                print(f"Executing query {q} with expected result {r}", flush=True)
                 for rv in (client.post("/search", json={"data_type": "variant", "query": q}),
                            client.get("/search", query_string={"data_type": "variant", "query": json.dumps(q)})):
                     data = rv.get_json()

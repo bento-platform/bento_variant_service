@@ -1,4 +1,5 @@
 import re
+import sys
 
 from typing import Generator, List, Optional, Tuple
 
@@ -126,6 +127,7 @@ class VCFVariantTable(VariantTable):
             ):
                 # If the entire file is covered by the remaining offset, skip it. This saves time crawling through an
                 # entire VCF if we cannot use any of them.
+                print(f"[Bento Variant Service] [DEBUG] Skipping VCF due to offset: {vcf}", flush=True)
                 variants_seen += vcf.n_of_variants
                 continue
 
@@ -182,5 +184,5 @@ class VCFVariantTable(VariantTable):
 
             except ValueError as e:
                 # Sometimes this can occur if a region not found in Tabix file, so continue searching but log it
-                print(f"[Bento Variant Service] Encountered ValueError: {e}")
+                print(f"[Bento Variant Service] Encountered ValueError: {e}", file=sys.stderr, flush=True)
                 continue

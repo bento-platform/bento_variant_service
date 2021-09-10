@@ -1,11 +1,13 @@
 import os
 import pysam
 import subprocess
+import traceback
 
 from pysam import VariantFile
 from typing import Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
+from bento_variant_service.constants import SERVICE_NAME
 from bento_variant_service.pool import WORKERS
 from .drs_utils import DRS_URI_SCHEME, drs_vcf_to_internal_paths
 
@@ -72,9 +74,11 @@ class VCFFile:
                 f"{self._path}{f'##idx##{self._index_path}' if self._index_path else ''}"
             ), stdout=subprocess.PIPE)
             self._n_of_variants: int = int(p.stdout.read().strip())  # TODO: Handle error
-        except (subprocess.CalledProcessError, ValueError):
+        except (subprocess.CalledProcessError, ValueError) as e:
             # bcftools returned 1, or couldn't find number of records, or couldn't find index
-            raise ValueError  # Consolidate to one exception type
+            print(f"[{SERVICE_NAME}] [DEBUG] Consolidating bcftools call error {str(e)} to ValueError", flush=True)
+            traceback.print_exc()
+            raise ValueError(str(e))  # Consolidate to one exception type
         finally:
             vcf.close()
 
