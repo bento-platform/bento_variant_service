@@ -1,5 +1,5 @@
 import os
-from bento_variant_service.variants.models import Variant, Call
+from bento_variant_service.variants.models import AlleleClass, Allele, Variant, Call
 
 __all__ = [
     "VCF_ONE_VAR_FILE_PATH",
@@ -20,6 +20,11 @@ __all__ = [
     "DRS_VCF_RESPONSE",
     "DRS_IDX_RESPONSE",
     "DRS_404_RESPONSE",
+
+    "T_ALLELE",
+    "A_ALLELE",
+    "G_ALLELE",
+    "C_ALLELE",
 
     "VARIANT_1",
     "VARIANT_2",
@@ -81,12 +86,17 @@ DRS_404_RESPONSE = {
     "message": "Not found",
 }
 
+T_ALLELE = Allele(AlleleClass.SEQUENCE, "T")
+A_ALLELE = Allele(AlleleClass.SEQUENCE, "A")
+G_ALLELE = Allele(AlleleClass.SEQUENCE, "G")
+C_ALLELE = Allele(AlleleClass.SEQUENCE, "C")
+
 VARIANT_1 = Variant(
     assembly_id="GRCh37",
     chromosome="1",
     start_pos=5000,
     ref_bases="C",
-    alt_bases=("T",),
+    alt_alleles=(T_ALLELE,),
 )
 
 CALL_1 = Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None)
@@ -97,7 +107,7 @@ VARIANT_2 = Variant(
     chromosome="1",
     start_pos=5003,
     ref_bases="C",
-    alt_bases=("T", "A"),
+    alt_alleles=(T_ALLELE, A_ALLELE),
 )
 
 CALL_2 = Call(variant=VARIANT_2, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None)
@@ -108,7 +118,7 @@ VARIANT_3 = Variant(
     chromosome="1",
     start_pos=5003,
     ref_bases="C",
-    alt_bases=("T", "G"),
+    alt_alleles=(T_ALLELE, G_ALLELE),
 )
 
 VARIANT_3.calls = (Call(variant=VARIANT_3, sample_id="S0001", genotype=(0, 0), phased=True, phase_set=None),)
@@ -118,7 +128,7 @@ VARIANT_4 = Variant(
     chromosome="1",
     start_pos=7000,
     ref_bases="C",
-    alt_bases=("T",),
+    alt_alleles=(T_ALLELE,),
 )
 
 VARIANT_4.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None),)
@@ -128,7 +138,7 @@ VARIANT_5 = Variant(
     chromosome="1",
     start_pos=7001,
     ref_bases="C",
-    alt_bases=("T",),
+    alt_alleles=(T_ALLELE,),
 )
 
 VARIANT_5.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None),)

@@ -16,7 +16,7 @@ VARIANT_CALL_SCHEMA = {
     "id": "variant:variant_call",  # TODO: Real ID
     "type": "object",
     "description": "An object representing a called instance of a variant.",
-    "required": ["sample_id", "genotype_bases"],
+    "required": ["sample_id", "genotype_alleles"],
     "properties": {
         "sample_id": {
             "type": "string",
@@ -30,12 +30,12 @@ VARIANT_CALL_SCHEMA = {
                 "order": 0
             }
         },
-        "genotype_bases": {
+        "genotype_alleles": {
             "type": "array",
             "description": "Variant call genotype.",
             "items": {
                 "type": ["string", "null"],
-                "description": "Variant call bases on a chromosome.",
+                "description": "Variant call alleles on a chromosome.",
                 "search": {
                     "operations": [op.SEARCH_OP_EQ],
                     "queryable": "all",
@@ -191,10 +191,10 @@ VARIANT_SCHEMA = {
         },
         "alt": {
             "type": "array",
-            "description": "Alternate (non-reference) base sequences for the variant.",
+            "description": "Alternate (non-reference) alleles for the variant.",
             "items": {
                 "type": "string",
-                "description": "Alternate base sequence for the variant.",
+                "description": "Alternate allele for the variant.",
                 "search": {
                     "operations": [op.SEARCH_OP_EQ],
                     "queryable": "all",

@@ -6,7 +6,7 @@ from typing import Generator, List, Optional, Tuple
 from bento_variant_service.beacon.datasets import BeaconDataset
 from bento_variant_service.tables.base import VariantTable
 from bento_variant_service.tables.vcf.file import VCFFile
-from bento_variant_service.variants.models import Variant, Call
+from bento_variant_service.variants.models import Allele, Variant, Call
 
 
 MAX_SIGNED_INT_32 = 2 ** 31 - 1
@@ -161,12 +161,13 @@ class VCFVariantTable(VariantTable):
                         elif start_max is not None and int(row[1]) >= start_max:
                             continue
 
+                    alt_alleles = tuple(Allele(Allele.class_from_vcf(a), a) for a in row[4].split(","))
                     variant = Variant(
                         assembly_id=vcf.assembly_id,
                         chromosome=row[0],
                         start_pos=int(row[1]),
                         ref_bases=row[3],
-                        alt_bases=tuple(row[4].split(",")),
+                        alt_alleles=alt_alleles,
                         qual=float(row[5]) if row[5] != "." else None,
                         file_uri=vcf.original_index_uri,
                     )
