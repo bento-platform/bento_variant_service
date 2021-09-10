@@ -58,22 +58,29 @@ def search_worker_prime(
 
     possible_matches = table.variants(assembly_id, chromosome, start_min, start_max)
 
+    checked_schema = False
+
     while True:
         try:
             variant = next(possible_matches)
 
-            # TODO: Do we use as_chord_representation or as_augmented_chord_representation here?
-            #  Maybe not augmented, since we won't allow querying augmented stuff.
+            # Schema controls whether these augmented fields will be queryable or not.
+            # Cache this value to avoid having to compute it for check_ast... and append at end.
+            v = variant.as_augmented_chord_representation()
 
             match = rest_of_query is None or check_ast_against_data_structure(
-                rest_of_query, variant.as_chord_representation(), VARIANT_SCHEMA)
+                rest_of_query, v, VARIANT_SCHEMA, secure_errors=False, skip_schema_validation=checked_schema)
             found = found or match
 
             if not internal_data and found:
                 break
 
+            # Avoid re-checking the schema over and over, since it's exceedingly slow
+            # Check it once to make sure someone hasn't screwed up somewhere
+            checked_schema = True
+
             if match:  # implicitly internal_data is True here as well
-                matches.append(variant.as_augmented_chord_representation())
+                matches.append(v)
 
         except StopIteration:
             break
