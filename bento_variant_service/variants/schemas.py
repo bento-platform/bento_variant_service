@@ -57,7 +57,8 @@ VARIANT_CALL_SCHEMA = {
             "description": "Variant call genotype type.",
             "enum": [
                 # No call
-                gt.GT_UNCALLED,
+                gt.GT_MISSING,
+                gt.GT_MISSING_UPSTREAM_DELETION,
 
                 # Haploid
                 gt.GT_REFERENCE,

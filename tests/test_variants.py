@@ -1,6 +1,6 @@
 import pytest
 from bento_variant_service.variants import genotypes as gt
-from bento_variant_service.variants.models import Call
+from bento_variant_service.variants.models import ALLELE_MISSING, ALLELE_MISSING_UPSTREAM, Call
 from .shared_data import T_ALLELE, C_ALLELE, VARIANT_1, VARIANT_2, VARIANT_3, CALL_1, CALL_2
 
 
@@ -52,7 +52,12 @@ def test_call_genotypes():
     assert c.genotype_type == gt.GT_HOMOZYGOUS_ALTERNATE
     assert c.is_interesting
 
-    c = Call(VARIANT_1, "S0001", (None, None))
-    assert c.genotype_alleles[0] is None and c.genotype_alleles[1] is None
-    assert c.genotype_type == gt.GT_UNCALLED
+    c = Call(VARIANT_1, "S0001", (".",))
+    assert c.genotype_alleles[0] is ALLELE_MISSING
+    assert c.genotype_type == gt.GT_MISSING
+    assert not c.is_interesting
+
+    c = Call(VARIANT_1, "S0001", ("*",))
+    assert c.genotype_alleles[0] is ALLELE_MISSING_UPSTREAM
+    assert c.genotype_type == gt.GT_MISSING_UPSTREAM_DELETION
     assert not c.is_interesting

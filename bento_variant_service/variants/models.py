@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from . import genotypes as gt
 
 
@@ -8,6 +8,11 @@ __all__ = [
     "Allele",
     "Variant",
     "Call",
+
+    "VCF_MISSING_VAL",
+    "VCF_MISSING_UPSTREAM_VAL",
+    "ALLELE_MISSING",
+    "ALLELE_MISSING_UPSTREAM",
 ]
 
 
@@ -18,26 +23,42 @@ __all__ = [
 AlleleClass = Enum("AlleleClass", ("SEQUENCE", "SYMBOLIC", "MISSING_UPSTREAM", "MISSING"))
 
 
+VCF_MISSING_VAL = "."
+VCF_MISSING_UPSTREAM_VAL = "*"
+
+
 class Allele:
-    def __init__(self, allele_class: AlleleClass, value: str):
+    def __init__(self, allele_class: AlleleClass, value: Optional[str]):
         self.allele_class: AlleleClass = allele_class
-        self.value = value  # Include angle brackets here for extra clarity / unambiguity
+        self.value: Optional[str] = value  # Include angle brackets here for extra clarity / unambiguity
+
+        if self.value is None and self.allele_class not in (AlleleClass.MISSING, AlleleClass.MISSING_UPSTREAM):
+            raise ValueError(f"Invalid None value for allele of class {self.allele_class}")
 
     def __eq__(self, other):
         if not isinstance(other, Allele):
             return False
 
-        return self.allele_class == other.allele_class and self.value == other.value
+        return self.allele_class == other.allele_class \
+            and ((self.value is None and other.value is None) or self.value == other.value)
 
     def __hash__(self):
-        return int(str(hash(self.allele_class)) + str(hash(self.value)))
+        return hash(str(self))
+
+    def __str__(self):
+        if self.allele_class == AlleleClass.MISSING:
+            return VCF_MISSING_VAL
+        elif self.allele_class == AlleleClass.MISSING_UPSTREAM:
+            return VCF_MISSING_UPSTREAM_VAL
+        else:
+            return self.value
 
     @classmethod
     def class_from_vcf(cls, allele: str):
-        if allele == "*":
-            return AlleleClass.MISSING_UPSTREAM
-        elif allele == ".":
+        if allele == VCF_MISSING_VAL:
             return AlleleClass.MISSING
+        elif allele == VCF_MISSING_UPSTREAM_VAL:
+            return AlleleClass.MISSING_UPSTREAM
         elif allele[0] == "<" and allele[-1] == ">":  # Should be of length 1 at least due to VCF spec
             return AlleleClass.SYMBOLIC
         else:
@@ -109,19 +130,33 @@ class Variant:
         ))
 
 
+ALLELE_MISSING = Allele(AlleleClass.MISSING, ".")
+ALLELE_MISSING_UPSTREAM = Allele(AlleleClass.MISSING_UPSTREAM, "*")
+
+
 class Call:
     """
     Instance of a called variant on a particular sample.
     """
 
-    def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Optional[int], ...],
+    def _genotype_to_allele(self, g) -> Allele:
+        if g == VCF_MISSING_VAL:
+            return ALLELE_MISSING
+        elif g == VCF_MISSING_UPSTREAM_VAL:
+            return ALLELE_MISSING_UPSTREAM
+        elif g == 0:
+            return self.variant.ref_allele
+        else:
+            return self.variant.alt_alleles[g - 1]
+
+    # TODO: py3.8: More refined typing for genotype: Tuple[Union[int, Literal["*"], Literal["."]], ...]
+
+    def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Union[int, str], ...],
                  phased: bool = False, phase_set: Optional[int] = None, read_depth: Optional[int] = None):
         self.variant: Variant = variant
         self.sample_id: str = sample_id
-        self.genotype: Tuple[int, ...] = genotype
-        self.genotype_alleles: Tuple[Optional[Allele], ...] = tuple(
-            None if g is None else (self.variant.ref_allele if g == 0 else self.variant.alt_alleles[g - 1])
-            for g in genotype)
+        self.genotype: Tuple[Union[int, str], ...] = genotype
+        self.genotype_alleles: Tuple[Allele, ...] = tuple(map(self._genotype_to_allele, genotype))
         self.phased: bool = phased
         self.phase_set: Optional[int] = phase_set if phased else None  # Should be ignored if phased
         self.read_depth: Optional[int] = read_depth
@@ -129,9 +164,12 @@ class Call:
         if len(genotype) == 0:
             raise ValueError("Calls must have a genotype length of 1 or more")
 
-        if genotype[0] is None:
-            # Cannot make a call
-            genotype_type = gt.GT_UNCALLED
+        if genotype[0] == VCF_MISSING_VAL:
+            # Missing call
+            genotype_type = gt.GT_MISSING
+        elif genotype[0] == VCF_MISSING_UPSTREAM_VAL:
+            # Missing call due to an upstream deletion
+            genotype_type = gt.GT_MISSING_UPSTREAM_DELETION
         elif len(self.genotype) == 1:
             genotype_type = gt.GT_REFERENCE if self.genotype[0] == 0 else gt.GT_ALTERNATE
         else:  # len(self.genotype) > 1; not haploid

@@ -57,6 +57,10 @@ class VCFVariantTable(VariantTable):
         return None if val == "." else int(val)
 
     @staticmethod
+    def _int_or_missing_from_vcf(val):
+        return val if val in (".", "*") else int(val)
+
+    @staticmethod
     def _variant_calls(variant: Variant, sample_ids: tuple, row: tuple, only_interesting: bool = False):
         for sample_id, row_data in zip(sample_ids, row[9:]):
             row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
@@ -68,9 +72,7 @@ class VCFVariantTable(VariantTable):
             gt = row_info[VCF_GENOTYPE]
             call = Call(
                 variant=variant,
-                genotype=tuple(
-                    VCFVariantTable._int_or_none_from_vcf(g)
-                    for g in re.split(REGEX_GENOTYPE_SPLIT, gt)),
+                genotype=tuple(map(VCFVariantTable._int_or_missing_from_vcf, re.split(REGEX_GENOTYPE_SPLIT, gt))),
                 phased="/" in gt,
                 phase_set=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_PHASE_SET, ".")),
                 sample_id=sample_id,
