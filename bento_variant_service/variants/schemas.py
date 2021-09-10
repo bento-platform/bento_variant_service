@@ -231,7 +231,7 @@ VARIANT_SCHEMA = {
             "type": "object",
             "properties": {
                 "file_uri": {
-                    "type": "string",
+                    "type": ["string", "null"],
                     "search": {
                         "operations": [op.SEARCH_OP_EQ],
                         "queryable": "internal",
