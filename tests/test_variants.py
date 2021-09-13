@@ -1,7 +1,7 @@
 import pytest
 from bento_variant_service.variants import genotypes as gt
-from bento_variant_service.variants.models import ALLELE_MISSING, ALLELE_MISSING_UPSTREAM, Call
-from .shared_data import T_ALLELE, C_ALLELE, VARIANT_1, VARIANT_2, VARIANT_3, CALL_1, CALL_2
+from bento_variant_service.variants.models import AlleleClass, ALLELE_MISSING, ALLELE_MISSING_UPSTREAM, Call
+from .shared_data import T_ALLELE, C_ALLELE, VARIANT_1, VARIANT_2, VARIANT_3, VARIANT_6, CALL_1, CALL_2
 
 
 def test_allele_equality():
@@ -20,8 +20,12 @@ def test_variant_equality():
     assert VARIANT_1 == VARIANT_1
     assert VARIANT_2 == VARIANT_2
     assert VARIANT_3 == VARIANT_3
+
     assert VARIANT_1 != "test"
     assert VARIANT_2 != VARIANT_2.as_chord_representation()
+
+    assert VARIANT_6 != VARIANT_3
+    assert VARIANT_3 != VARIANT_6
 
 
 def test_call_fake_equality():
@@ -73,3 +77,8 @@ def test_call_genotypes():
     assert c.genotype_alleles[0] is ALLELE_MISSING_UPSTREAM
     assert c.genotype_type == gt.GT_MISSING_UPSTREAM_DELETION
     assert not c.is_interesting
+
+    c = Call(VARIANT_6, "S0001", (1, 1))  # TODO: We need to decide if this is really HOMOZYGOUS_ALTERNATE or not
+    assert c.genotype_alleles[0].allele_class == AlleleClass.STRUCTURAL
+    assert c.genotype_type == gt.GT_HOMOZYGOUS_ALTERNATE
+    assert c.is_interesting

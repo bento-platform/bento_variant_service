@@ -31,6 +31,7 @@ __all__ = [
     "VARIANT_3",
     "VARIANT_4",
     "VARIANT_5",
+    "VARIANT_6",
 
     "CALL_1",
     "CALL_2",
@@ -91,6 +92,8 @@ A_ALLELE = Allele(AlleleClass.SEQUENCE, "A")
 G_ALLELE = Allele(AlleleClass.SEQUENCE, "G")
 C_ALLELE = Allele(AlleleClass.SEQUENCE, "C")
 
+INS_ME_ALLELE = Allele(AlleleClass.STRUCTURAL, "<INS:ME>")
+
 VARIANT_1 = Variant(
     assembly_id="GRCh37",
     chromosome="1",
@@ -142,3 +145,13 @@ VARIANT_5 = Variant(
 )
 
 VARIANT_5.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None),)
+
+VARIANT_6 = Variant(
+    assembly_id="GRCh37",
+    chromosome="1",
+    start_pos=7001,
+    ref_bases="C",
+    alt_alleles=(INS_ME_ALLELE,),
+)
+
+VARIANT_6.calls = (Call(variant=VARIANT_1, sample_id="S0001", genotype=(0, 1), phased=True, phase_set=None),)

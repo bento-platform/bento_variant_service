@@ -17,10 +17,10 @@ __all__ = [
 
 
 # SEQUENCE: Sequence of base pairs e.g. CAG
-# SYMBOLIC: <ID>; need to check it's valid (out of scope for the enum)
+# STRUCTURAL: <ID>; need to check it's valid (out of scope for the enum)
 # MISSING_UPSTREAM: *
 # MISSING: .
-AlleleClass = Enum("AlleleClass", ("SEQUENCE", "SYMBOLIC", "MISSING_UPSTREAM", "MISSING"))
+AlleleClass = Enum("AlleleClass", ("SEQUENCE", "STRUCTURAL", "MISSING_UPSTREAM", "MISSING"))
 
 
 VCF_MISSING_VAL = "."
@@ -60,7 +60,7 @@ class Allele:
         elif allele == VCF_MISSING_UPSTREAM_VAL:
             return AlleleClass.MISSING_UPSTREAM
         elif allele[0] == "<" and allele[-1] == ">":  # Should be of length 1 at least due to VCF spec
-            return AlleleClass.SYMBOLIC
+            return AlleleClass.STRUCTURAL
         else:
             return AlleleClass.SEQUENCE
 
