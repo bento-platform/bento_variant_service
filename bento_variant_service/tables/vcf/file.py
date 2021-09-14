@@ -144,7 +144,8 @@ class VCFFile:
                 print(f"[{SERVICE_NAME}] [DEBUG] Skipping fetching from VCF {self._path}:")
                 print(f"[{SERVICE_NAME}] [DEBUG]     Queried contig '{contig}' not in available contigs: "
                       f"{self._contigs}", flush=True)
-                return ()
+                yield from ()
+                return
 
         # Takes pysam coordinates rather than CHORD coordinates
         # Parse as a Tabix file instead of a Variant file for performance reasons, and to get rows as tuples.
