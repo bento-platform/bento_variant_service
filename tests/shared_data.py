@@ -96,7 +96,7 @@ INS_ME_ALLELE = Allele(AlleleClass.STRUCTURAL, "<INS:ME>")
 
 VARIANT_1 = Variant(
     assembly_id="GRCh37",
-    chromosome="1",
+    chromosome="chr1",
     start_pos=5000,
     ref_bases="C",
     alt_alleles=(T_ALLELE,),

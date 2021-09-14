@@ -185,7 +185,7 @@ def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Opt
     other_query_items = []
 
     for q in query_items:
-        # format: [#eq [#resolve chromosome] "chr1"]
+        # format: [#eq [#resolve chromosome] "1"]
 
         state_changed = False
 

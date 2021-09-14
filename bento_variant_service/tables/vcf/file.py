@@ -4,7 +4,7 @@ import subprocess
 import traceback
 
 from pysam import VariantFile
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Set, Sequence, Tuple
 from urllib.parse import urlparse
 
 from bento_variant_service.constants import SERVICE_NAME
@@ -19,6 +19,13 @@ __all__ = [
 
 
 ASSEMBLY_ID_VCF_HEADER = "chord_assembly_id"
+CONTIG_VCF_HEADER = "contig"
+
+CHR_PREFIX = "chr"
+STANDARD_CHROMOSOMES = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
+    "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y", "MT",
+]
 
 
 class VCFFile:
@@ -61,6 +68,15 @@ class VCFFile:
         for h in vcf.header.records:
             if h.key == ASSEMBLY_ID_VCF_HEADER:
                 self._assembly_id = h.value
+                break
+
+        # - Find contigs and detect contig format (e.g. chr1 vs 1)
+        self._contigs: Set[str] = set(vcf.header.contigs)
+
+        #    - This will still work for an VCF that is on a non-standard contig, since it won't be picked up as a
+        #      standard chromosome. We mostly don't want to prepend this, so erring on the side of not is a good move.
+        self._use_chr_prefix: bool = any(
+            c.startswith(CHR_PREFIX) and c.lstrip(CHR_PREFIX) in STANDARD_CHROMOSOMES for c in self._contigs)
 
         # - Find sample IDs
         self._sample_ids: Tuple[str] = tuple(vcf.header.samples)
@@ -83,6 +99,7 @@ class VCFFile:
             vcf.close()
 
         print(f"[{SERVICE_NAME}] [DEBUG] Loaded VCF file from path {self._path} with:")
+        print(f"[{SERVICE_NAME}] [DEBUG]   chr prefixes = {self._use_chr_prefix}")
         print(f"[{SERVICE_NAME}] [DEBUG]    assembly id = {self._assembly_id}")
         print(f"[{SERVICE_NAME}] [DEBUG]      # samples = {len(self._sample_ids)}")
         print(f"[{SERVICE_NAME}] [DEBUG]         # rows = {self._n_of_variants}", flush=True)
@@ -116,9 +133,23 @@ class VCFFile:
         return self._n_of_variants
 
     def fetch(self, *args) -> Sequence[tuple]:
+        if args:
+            # If we need to prepend a chr prefix, do so here
+            contig = f"{CHR_PREFIX}{str(args[0]).lstrip(CHR_PREFIX)}" if self._use_chr_prefix else args[0]
+            args = (contig, *args[1:])
+
+            if contig not in self._contigs:
+                # If the contig is not present in this file, skip it to not trigger a ValueError later (which is a bit
+                # confusing for anyone reading the logs.)
+                print(f"[{SERVICE_NAME}] [DEBUG] Skipping fetching from VCF {self._path}:")
+                print(f"[{SERVICE_NAME}] [DEBUG]     Queried contig '{contig}' not in available contigs: "
+                      f"{self._contigs}", flush=True)
+                return ()
+
         # Takes pysam coordinates rather than CHORD coordinates
         # Parse as a Tabix file instead of a Variant file for performance reasons, and to get rows as tuples.
         f = pysam.TabixFile(self.path, index=self.index_path, parser=pysam.asTuple(), threads=WORKERS)
+
         try:
             yield from f.fetch(*args)
         finally:

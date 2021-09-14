@@ -1,6 +1,6 @@
 .coverage
 .coverage.*
-data/**/.*
+data/**/*
 htmlcov/
 env
 __pycache__

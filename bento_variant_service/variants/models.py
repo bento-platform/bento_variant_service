@@ -74,7 +74,7 @@ class Variant:
                  start_pos: int, qual: Optional[float] = None, calls: Tuple["Call"] = (),
                  file_uri: Optional[str] = None):
         self.assembly_id: str = assembly_id  # Assembly ID for context
-        self.chromosome: str = chromosome  # Chromosome where the variant occurs
+        self.chromosome: str = chromosome.lstrip("chr")  # Chromosome where the variant occurs; standardized (no chr)
         self.ref_bases: str = ref_bases  # Reference bases
         self.alt_alleles: Tuple[Allele, ...] = alt_alleles  # Alternate alleles - tuple makes them comparable
         self.start_pos: int = start_pos  # Starting position on the chromosome w/r/t the reference, 0-indexed
