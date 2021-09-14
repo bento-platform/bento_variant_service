@@ -11,6 +11,15 @@ def test_allele_bad_formatting():
         Allele(AlleleClass.STRUCTURAL, None)
 
 
+def test_allele_repr():
+    assert str(T_ALLELE) == "T"
+    assert str(Allele(AlleleClass.STRUCTURAL, "<INS>")) == "<INS>"
+    assert str(Allele(AlleleClass.MISSING, None)) == "."
+    assert str(Allele(AlleleClass.MISSING_UPSTREAM, None)) == "*"
+
+    assert repr(T_ALLELE) == "<Allele T>"
+
+
 def test_allele_equality():
     assert T_ALLELE != 5
     assert T_ALLELE != "test"
@@ -21,6 +30,13 @@ def test_allele_equality():
     assert C_ALLELE != T_ALLELE
 
     assert hash(C_ALLELE) == hash("C")
+
+
+def test_allele_from_str():
+    assert Allele.class_from_vcf(".") == AlleleClass.MISSING
+    assert Allele.class_from_vcf("*") == AlleleClass.MISSING_UPSTREAM
+    assert Allele.class_from_vcf("A") == AlleleClass.SEQUENCE
+    assert Allele.class_from_vcf("<A>") == AlleleClass.STRUCTURAL
 
 
 def test_variant_equality():
