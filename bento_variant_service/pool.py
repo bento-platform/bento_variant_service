@@ -14,9 +14,9 @@ except ValueError:  # pragma: no cover
         WORKERS = int(os.environ.get("WORKERS", "1"))
 
 
-if WORKERS == 1:
+if WORKERS == 1:  # pragma: no cover
     from multiprocessing.dummy import Pool
-else:
+else:  # pragma: no cover
     from multiprocessing import Pool
 
 

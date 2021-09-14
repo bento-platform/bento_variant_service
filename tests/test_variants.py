@@ -1,7 +1,14 @@
 import pytest
 from bento_variant_service.variants import genotypes as gt
-from bento_variant_service.variants.models import AlleleClass, ALLELE_MISSING, ALLELE_MISSING_UPSTREAM, Call
+from bento_variant_service.variants.models import AlleleClass, Allele, ALLELE_MISSING, ALLELE_MISSING_UPSTREAM, Call
 from .shared_data import T_ALLELE, C_ALLELE, VARIANT_1, VARIANT_2, VARIANT_3, VARIANT_6, CALL_1, CALL_2
+
+
+def test_allele_bad_formatting():
+    with pytest.raises(ValueError):
+        Allele(AlleleClass.SEQUENCE, None)
+    with pytest.raises(ValueError):
+        Allele(AlleleClass.STRUCTURAL, None)
 
 
 def test_allele_equality():
