@@ -353,7 +353,7 @@ def table_search(table_id, internal=False) -> Optional[Response]:
 
     if internal:
         results = {"results": search.get(table_id, {}).get("matches", [])}
-        print(f"[{SERVICE_NAME}] [DEBUG] Got {len(results)} results for internal search", flush=True)
+        print(f"[{SERVICE_NAME}] [DEBUG] Got {len(results['results'])} results for internal search", flush=True)
         return jsonify(results)
 
     return jsonify(next((s for s in search if s["id"] == table.table_id), None) is not None)

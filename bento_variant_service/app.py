@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from bento_lib.responses import flask_errors
-from flask import Flask, jsonify
+from flask import Flask, jsonify, current_app
 from typing import Any, Dict, Optional
 from urllib.parse import quote
 from werkzeug.exceptions import BadRequest, NotFound
@@ -34,7 +34,10 @@ UNIX_DRS_BASE_PATH = f"http+unix://{NGINX_INTERNAL_SOCKET}/api/drs"
 
 def post_start_hook():
     # Force initialization of table manager
-    get_table_manager()
+    tm = get_table_manager()
+    print(f"[{SERVICE_NAME}] [DEBUG] Initialized table manager (type: {current_app.config['TABLE_MANAGER']}) with:")
+    print(f"[{SERVICE_NAME}] [DEBUG] # beacon datasets = {len(tm.beacon_datasets)}")
+    print(f"[{SERVICE_NAME}] [DEBUG]          # tables = {len(tm.tables)}")
 
 
 def create_app(test_config: Optional[Dict[str, Any]] = None):

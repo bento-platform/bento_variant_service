@@ -82,6 +82,11 @@ class VCFFile:
         finally:
             vcf.close()
 
+        print(f"[{SERVICE_NAME}] [DEBUG] Loaded VCF file from path {self._path} with:")
+        print(f"[{SERVICE_NAME}] [DEBUG]    assembly id = {self._assembly_id}")
+        print(f"[{SERVICE_NAME}] [DEBUG]      # samples = {len(self._sample_ids)}")
+        print(f"[{SERVICE_NAME}] [DEBUG]         # rows = {self._n_of_variants}", flush=True)
+
     @property
     def original_uri(self) -> str:
         return self._original_uri
