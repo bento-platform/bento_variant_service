@@ -53,6 +53,9 @@ class Allele:
         else:
             return self.value
 
+    def __repr__(self):
+        return f"<Allele {str(self)}>"
+
     @classmethod
     def class_from_vcf(cls, allele: str):
         if allele == VCF_MISSING_VAL:
