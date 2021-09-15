@@ -63,6 +63,7 @@ SERVICE_ID=ca.c3g.bento:variant:VERSION
 INITIALIZE_IMMEDIATELY=true
 DATA=/path/to/data/directory
 CHORD_URL=http://localhost/  # URL for the Bento node or standalone service
+WORKERS=  # If set and more than one, a multiprocessing pool will be used.
 ```
 
 ### Notes
@@ -89,6 +90,10 @@ CHORD_URL=http://localhost/  # URL for the Bento node or standalone service
 
   * `CHORD_URL` is used to construct the reverse domain-name notation identifier
     for the GA4GH Beacon endpoints.
+
+  * `WORKERS` sets the number of processes used to parallel-search tables
+    with large numbers of VCFs. If set to 1, this will not use any
+    multiprocessing, which may be better in some situations.
 
 
 ## Running in Development
