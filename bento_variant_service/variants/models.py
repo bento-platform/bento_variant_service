@@ -1,11 +1,71 @@
-from typing import Optional, Tuple
+from enum import Enum
+from typing import Optional, Tuple, Union
 from . import genotypes as gt
 
 
 __all__ = [
+    "AlleleClass",
+    "Allele",
     "Variant",
     "Call",
+
+    "VCF_MISSING_VAL",
+    "VCF_MISSING_UPSTREAM_VAL",
+    "ALLELE_MISSING",
+    "ALLELE_MISSING_UPSTREAM",
 ]
+
+
+# SEQUENCE: Sequence of base pairs e.g. CAG
+# STRUCTURAL: <ID>; need to check it's valid (out of scope for the enum)
+# MISSING_UPSTREAM: *
+# MISSING: .
+AlleleClass = Enum("AlleleClass", ("SEQUENCE", "STRUCTURAL", "MISSING_UPSTREAM", "MISSING"))
+
+
+VCF_MISSING_VAL = "."
+VCF_MISSING_UPSTREAM_VAL = "*"
+
+
+class Allele:
+    def __init__(self, allele_class: AlleleClass, value: Optional[str]):
+        self.allele_class: AlleleClass = allele_class
+        self.value: Optional[str] = value  # Include angle brackets here for extra clarity / unambiguity
+
+        if self.value is None and self.allele_class not in (AlleleClass.MISSING, AlleleClass.MISSING_UPSTREAM):
+            raise ValueError(f"Invalid None value for allele of class {self.allele_class}")
+
+    def __eq__(self, other):
+        if not isinstance(other, Allele):
+            return False
+
+        return self.allele_class == other.allele_class \
+            and ((self.value is None and other.value is None) or self.value == other.value)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __str__(self):
+        if self.allele_class == AlleleClass.MISSING:
+            return VCF_MISSING_VAL
+        elif self.allele_class == AlleleClass.MISSING_UPSTREAM:
+            return VCF_MISSING_UPSTREAM_VAL
+        else:
+            return self.value
+
+    def __repr__(self):
+        return f"<Allele {str(self)}>"
+
+    @classmethod
+    def class_from_vcf(cls, allele: str):
+        if allele == VCF_MISSING_VAL:
+            return AlleleClass.MISSING
+        elif allele == VCF_MISSING_UPSTREAM_VAL:
+            return AlleleClass.MISSING_UPSTREAM
+        elif allele[0] == "<" and allele[-1] == ">":  # Should be of length 1 at least due to VCF spec
+            return AlleleClass.STRUCTURAL
+        else:
+            return AlleleClass.SEQUENCE
 
 
 class Variant:
@@ -13,17 +73,23 @@ class Variant:
     Instance of a particular variant and all calls made.
     """
 
-    def __init__(self, assembly_id: str, chromosome: str, ref_bases: str, alt_bases: Tuple[str, ...], start_pos: int,
-                 qual: Optional[float] = None, calls: Tuple["Call"] = (), file_uri: Optional[str] = None):
+    def __init__(self, assembly_id: str, chromosome: str, ref_bases: str, alt_alleles: Tuple[Allele, ...],
+                 start_pos: int, qual: Optional[float] = None, calls: Tuple["Call"] = (),
+                 file_uri: Optional[str] = None):
         self.assembly_id: str = assembly_id  # Assembly ID for context
-        self.chromosome: str = chromosome  # Chromosome where the variant occurs
+        self.chromosome: str = chromosome.lstrip("chr")  # Chromosome where the variant occurs; standardized (no chr)
         self.ref_bases: str = ref_bases  # Reference bases
-        self.alt_bases: Tuple[str] = alt_bases  # Alternate bases  TODO: Structural variants
+        self.alt_alleles: Tuple[Allele, ...] = alt_alleles  # Alternate alleles - tuple makes them comparable
         self.start_pos: int = start_pos  # Starting position on the chromosome w/r/t the reference, 0-indexed
         self.qual: Optional[float] = qual  # Quality score for "assertion made by alt"
         self.calls: Tuple["Call"] = calls  # Variant calls, per sample  TODO: Make this a dict?
 
         self.file_uri: Optional[str] = file_uri  # File URI, "
+
+    @property
+    def ref_allele(self) -> Allele:
+        # Ref alleles have to be bases to my knowledge
+        return Allele(AlleleClass.SEQUENCE, self.ref_bases)
 
     @property
     def end_pos(self) -> int:
@@ -39,7 +105,7 @@ class Variant:
             "start": self.start_pos,  # 1-based, inclusive
             "end": self.end_pos,  # 1-based, exclusive  TODO: Convention here? exclusive or inclusive?
             "ref": self.ref_bases,
-            "alt": list(self.alt_bases),  # TODO: Change property name?
+            "alt": [a.value for a in self.alt_alleles],  # TODO: Include both value and class here?
             "qual": self.qual,
             "calls": [c.as_chord_representation() for c in self.calls],
         }
@@ -59,7 +125,7 @@ class Variant:
             (self.assembly_id is None and other.assembly_id is None) or self.assembly_id == other.assembly_id,
             self.chromosome == other.chromosome,
             self.ref_bases == other.ref_bases,
-            self.alt_bases == other.alt_bases,
+            self.alt_alleles == other.alt_alleles,
             self.start_pos == other.start_pos,
             (self.qual is None and other.qual is None) or self.qual == other.qual,
             len(self.calls) == len(other.calls),
@@ -67,19 +133,33 @@ class Variant:
         ))
 
 
+ALLELE_MISSING = Allele(AlleleClass.MISSING, ".")
+ALLELE_MISSING_UPSTREAM = Allele(AlleleClass.MISSING_UPSTREAM, "*")
+
+
 class Call:
     """
     Instance of a called variant on a particular sample.
     """
 
-    def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Optional[int], ...],
+    def _genotype_to_allele(self, g) -> Allele:
+        if g == VCF_MISSING_VAL:
+            return ALLELE_MISSING
+        elif g == VCF_MISSING_UPSTREAM_VAL:
+            return ALLELE_MISSING_UPSTREAM
+        elif g == 0:
+            return self.variant.ref_allele
+        else:
+            return self.variant.alt_alleles[g - 1]
+
+    # TODO: py3.8: More refined typing for genotype: Tuple[Union[int, Literal["*"], Literal["."]], ...]
+
+    def __init__(self, variant: Variant, sample_id: str, genotype: Tuple[Union[int, str], ...],
                  phased: bool = False, phase_set: Optional[int] = None, read_depth: Optional[int] = None):
         self.variant: Variant = variant
         self.sample_id: str = sample_id
-        self.genotype: Tuple[int, ...] = genotype
-        self.genotype_bases: Tuple[Optional[str], ...] = tuple(  # TODO: Structural variants
-            None if g is None else (self.variant.ref_bases if g == 0 else self.variant.alt_bases[g-1])
-            for g in genotype)
+        self.genotype: Tuple[Union[int, str], ...] = genotype
+        self.genotype_alleles: Tuple[Allele, ...] = tuple(map(self._genotype_to_allele, genotype))
         self.phased: bool = phased
         self.phase_set: Optional[int] = phase_set if phased else None  # Should be ignored if phased
         self.read_depth: Optional[int] = read_depth
@@ -87,12 +167,15 @@ class Call:
         if len(genotype) == 0:
             raise ValueError("Calls must have a genotype length of 1 or more")
 
-        if genotype[0] is None:
-            # Cannot make a call
-            genotype_type = gt.GT_UNCALLED
+        if genotype[0] == VCF_MISSING_VAL:
+            # Missing call
+            genotype_type = gt.GT_MISSING
+        elif genotype[0] == VCF_MISSING_UPSTREAM_VAL:
+            # Missing call due to an upstream deletion
+            genotype_type = gt.GT_MISSING_UPSTREAM_DELETION
         elif len(self.genotype) == 1:
             genotype_type = gt.GT_REFERENCE if self.genotype[0] == 0 else gt.GT_ALTERNATE
-        else:  # len(self.genotype) > 1:
+        else:  # len(self.genotype) > 1; not haploid
             genotype_type = gt.GT_HOMOZYGOUS_ALTERNATE
             if len(set(self.genotype)) > 1:
                 genotype_type = gt.GT_HETEROZYGOUS
@@ -109,7 +192,7 @@ class Call:
     def as_chord_representation(self, include_variant: bool = False):
         return {
             "sample_id": self.sample_id,
-            "genotype_bases": list(self.genotype_bases),  # TODO: Structural variants
+            "genotype_alleles": [a.value for a in self.genotype_alleles],  # TODO: Include allele class?
             "genotype_type": self.genotype_type,
             "phased": self.phased,
             "phase_set": self.phase_set,

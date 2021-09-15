@@ -1,15 +1,23 @@
 import os
 
 from flask import g
-from multiprocessing import Pool
 
 
 try:  # pragma: no cover
-    # noinspection PyUnresolvedReferences
-    WORKERS = len(os.sched_getaffinity(0))
-except AttributeError:  # pragma: no cover
-    # sched_getaffinity isn't available on all systemps
-    WORKERS = 4
+    WORKERS = int(os.environ.get("WORKERS", ""))
+except ValueError:  # pragma: no cover
+    try:
+        # noinspection PyUnresolvedReferences
+        WORKERS = len(os.sched_getaffinity(0))
+    except AttributeError:  # pragma: no cover
+        # sched_getaffinity isn't available on all systemps
+        WORKERS = int(os.environ.get("WORKERS", "1"))
+
+
+if WORKERS == 1:  # pragma: no cover
+    from multiprocessing.dummy import Pool
+else:  # pragma: no cover
+    from multiprocessing import Pool
 
 
 def get_pool():

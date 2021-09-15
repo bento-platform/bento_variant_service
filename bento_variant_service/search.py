@@ -1,5 +1,7 @@
 import json
 import re
+import sys
+import traceback
 
 from bento_lib.responses import flask_errors
 from bento_lib.search.data_structure import check_ast_against_data_structure
@@ -24,6 +26,7 @@ from flask import Blueprint, jsonify, request
 from typing import Any, Callable, List, Iterable, Optional, Tuple
 from werkzeug import Response
 
+from bento_variant_service.constants import SERVICE_NAME
 from bento_variant_service.pool import get_pool, teardown_pool
 from bento_variant_service.tables.base import VariantTable, TableManager
 from bento_variant_service.table_manager import get_table_manager
@@ -34,6 +37,11 @@ CHROMOSOME_REGEX = re.compile(r"([^\s:.]{1,100}|\.|<[^\s;]+>)")
 BASE_REGEX = re.compile(r"([acgtnACGTN]+|\.|<[^\s;]+>)")
 
 CHORD_SEARCH_TIMEOUT = 180
+
+
+def _err(response_callable, message: str):
+    print(f"[{SERVICE_NAME}] [ERROR] {message}", file=sys.stderr)
+    return response_callable(message)
 
 
 def search_worker_prime(
@@ -50,22 +58,29 @@ def search_worker_prime(
 
     possible_matches = table.variants(assembly_id, chromosome, start_min, start_max)
 
+    checked_schema = False
+
     while True:
         try:
             variant = next(possible_matches)
 
-            # TODO: Do we use as_chord_representation or as_augmented_chord_representation here?
-            #  Maybe not augmented, since we won't allow querying augmented stuff.
+            # Schema controls whether these augmented fields will be queryable or not.
+            # Cache this value to avoid having to compute it for check_ast... and append at end.
+            v = variant.as_augmented_chord_representation()
 
             match = rest_of_query is None or check_ast_against_data_structure(
-                rest_of_query, variant.as_chord_representation(), VARIANT_SCHEMA)
+                rest_of_query, v, VARIANT_SCHEMA, secure_errors=False, skip_schema_validation=checked_schema)
             found = found or match
 
             if not internal_data and found:
                 break
 
+            # Avoid re-checking the schema over and over, since it's exceedingly slow
+            # Check it once to make sure someone hasn't screwed up somewhere
+            checked_schema = True
+
             if match:  # implicitly internal_data is True here as well
-                matches.append(variant.as_augmented_chord_representation())
+                matches.append(v)
 
         except StopIteration:
             break
@@ -73,7 +88,9 @@ def search_worker_prime(
         except ValueError as e:  # pragma: no cover
             # int casts from VCF
             # TODO
-            print(str(e))
+            print(f"[{SERVICE_NAME}] [ERROR] Encountered ValueError while iterating on search matches: {str(e)}",
+                  file=sys.stderr)
+            traceback.print_exc()
             break
 
     return (table if found else None), matches
@@ -168,7 +185,7 @@ def parse_query_for_tabix(query: AST) -> Tuple[Optional[str], Optional[int], Opt
     other_query_items = []
 
     for q in query_items:
-        # format: [#eq [#resolve chromosome] "chr1"]
+        # format: [#eq [#resolve chromosome] "1"]
 
         state_changed = False
 
@@ -202,12 +219,18 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
 
     if dt != "variant":
         # TODO: Don't silently ignore errors
-        return null_result
+        return _err(lambda _m: null_result, f"Encountered non-variant data type: {dt}")
 
     # TODO: Parser error handling
     query_ast = convert_query_to_ast_and_preprocess(query)
 
+    print(f"[{SERVICE_NAME}] [DEBUG] Performing search using query {query_ast}, internal_data={internal_data}",
+          flush=True)
+
     chromosome, start_min, start_max, rest_of_query = parse_query_for_tabix(query_ast)
+
+    print(f"[{SERVICE_NAME}] [DEBUG] For search, using chromosome={chromosome}, start_min={start_min}, "
+          f"start_max={start_max}, rest_of_query={rest_of_query}", flush=True)
 
     dataset_results = {} if internal_data else []
 
@@ -234,7 +257,8 @@ def chord_search(table_manager: TableManager, dt: str, query: List, internal_dat
 
     except (ValueError, AssertionError) as e:
         # TODO
-        print(str(e))
+        print(f"[{SERVICE_NAME}] [ERROR] Encountered error during search: {str(e)}", file=sys.stderr, flush=True)
+        traceback.print_exc()
 
     return dataset_results
 
@@ -247,16 +271,16 @@ def _search_endpoint(internal_data=False):
 
     if request.method == "POST":
         if request.json is None:
-            return flask_errors.flask_bad_request_error("Missing request body")
+            return _err(flask_errors.flask_bad_request_error, "Missing request body")
 
         if not isinstance(request.json, dict):
-            return flask_errors.flask_bad_request_error("Request body is not an object")
+            return _err(flask_errors.flask_bad_request_error, "Request body is not an object")
 
         if "data_type" not in request.json:
-            return flask_errors.flask_bad_request_error("Missing data type in request body")
+            return _err(flask_errors.flask_bad_request_error, "Missing data type in request body")
 
         if "query" not in request.json:
-            return flask_errors.flask_bad_request_error("Missing data type in request body")
+            return _err(flask_errors.flask_bad_request_error, "Missing query in request body")
 
         data_type = request.json["data_type"]
         query = request.json["query"]
@@ -266,15 +290,15 @@ def _search_endpoint(internal_data=False):
         query = request.args.get("query", "").strip()
 
         if data_type == "":
-            return flask_errors.flask_bad_request_error("Missing data type argument")
+            return _err(flask_errors.flask_bad_request_error, "Missing data type argument")
 
         if query == "":
-            return flask_errors.flask_bad_request_error("Missing query argument")
+            return _err(flask_errors.flask_bad_request_error, "Missing query argument")
 
         try:
             query = json.loads(query)
         except json.decoder.JSONDecodeError:
-            return flask_errors.flask_bad_request_error("Invalid query JSON")
+            return _err(flask_errors.flask_bad_request_error, f"Invalid query JSON: {query}")
 
     return jsonify({"results": chord_search(get_table_manager(), data_type, query, internal_data=internal_data)})
 
@@ -298,36 +322,39 @@ def table_search(table_id, internal=False) -> Optional[Response]:
 
     if table is None:
         # TODO: Refresh cache if needed?
+        print(f"[Bento Variant Service] Table not found: {table_id}", file=sys.stderr)
         return flask_errors.flask_not_found_error(f"No table with ID {table_id}")
 
     if request.method == "POST":
         if request.json is None:
-            return flask_errors.flask_bad_request_error("Missing search body")
+            return _err(flask_errors.flask_bad_request_error, "Missing search body")
 
         if not isinstance(request.json, dict):  # TODO: Schema for request body
-            return flask_errors.flask_bad_request_error("Search body must be an object")
+            return _err(flask_errors.flask_bad_request_error, "Search body must be an object")
 
         if "query" not in request.json:
-            return flask_errors.flask_bad_request_error("Query not included in search body")
+            return _err(flask_errors.flask_bad_request_error, "Query not included in search body")
 
         query = request.json["query"]
 
     else:
         if "query" not in request.args:
-            return flask_errors.flask_bad_request_error("Missing query argument")
+            return _err(flask_errors.flask_bad_request_error, "Missing query argument")
 
         query = request.args["query"]
 
         try:
             query = json.loads(query)
         except json.decoder.JSONDecodeError:
-            return flask_errors.flask_bad_request_error("Invalid query JSON")
+            return _err(flask_errors.flask_bad_request_error, f"Invalid query JSON: {query}")
 
     # If it exists in the variant table manager, it's of data type 'variant'
     search = chord_search(get_table_manager(), "variant", query, internal_data=internal)
 
     if internal:
-        return jsonify({"results": search.get(table_id, {}).get("matches", [])})
+        results = {"results": search.get(table_id, {}).get("matches", [])}
+        print(f"[{SERVICE_NAME}] [DEBUG] Got {len(results['results'])} results for internal search", flush=True)
+        return jsonify(results)
 
     return jsonify(next((s for s in search if s["id"] == table.table_id), None) is not None)
 

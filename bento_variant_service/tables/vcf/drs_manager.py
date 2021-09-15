@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import traceback
 
 from typing import Tuple
 
@@ -21,19 +22,22 @@ class DRSVCFTableManager(BaseVCFTableManager):
 
                 if not DRS_DATA_SCHEMA_VALIDATOR.is_valid(drs_data):
                     # TODO: Report this better
-                    print(f"[{SERVICE_NAME}] Error processing DRS record: {os.path.join(table_folder.dir, file)}",
-                          file=sys.stderr, flush=True)
+                    print(f"[{SERVICE_NAME}] [ERROR] Error processing DRS record: "
+                          f"{os.path.join(table_folder.dir, file)}", file=sys.stderr, flush=True)
                     continue
 
                 try:
                     vcf_files.append(BaseVCFTableManager.get_vcf_file_record(drs_data["data"], drs_data["index"]))
                 except ValueError as e:
-                    print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}': "
-                          f"encountered ValueError ({str(e)})", file=sys.stderr, flush=True)
+                    print(f"[{SERVICE_NAME}] [ERROR] Could not load variant file "
+                          f"'{os.path.join(table_folder.dir, file)}': encountered ValueError ({str(e)})",
+                          file=sys.stderr, flush=True)
+                    traceback.print_exc()
                 except TypeError as e:  # drs_vcf_to_internal_paths returned None
                     # TODO: This is a bad error handler since it also catches random other TypeErrors
                     #  Also, we should probably return if errors occur...
                     print(f"[{SERVICE_NAME}] No result from drs_vcf_to_internal_paths or encountered TypeError "
                           f"({str(e)})", file=sys.stderr, flush=True)
+                    traceback.print_exc()
 
         return tuple(vcf_files)

@@ -12,7 +12,8 @@ class VCFTableManager(BaseVCFTableManager):
             try:
                 good_files.append(BaseVCFTableManager.get_vcf_file_record(
                     f"file://{os.path.abspath(os.path.join(table_folder.dir, file))}"))
-            except ValueError:
-                print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}'")
+            except ValueError as e:
+                print(f"[{SERVICE_NAME}] Could not load variant file '{os.path.join(table_folder.dir, file)}' "
+                      f"(encountered error: {e})")
 
         return tuple(good_files)

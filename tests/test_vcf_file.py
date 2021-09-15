@@ -18,6 +18,11 @@ def test_vcf_file():
     assert repr(file) == f"<VCFFile {file.path}>"
 
 
+def test_vcf_file_no_contig():
+    file = VCFFile(VCF_ONE_VAR_FILE_URI)
+    assert len(tuple(file.fetch("chr22", "1", "1000"))) == 0
+
+
 def test_vcf_file_error():
     with pytest.raises(ValueError):
         VCFFile(VCF_ONE_VAR_FILE_URI, f"drs://drs.local/{DRS_VCF_ID}")

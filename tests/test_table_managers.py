@@ -17,6 +17,8 @@ from bento_variant_service.table_manager import (
 )
 from bento_variant_service.variants.models import Variant
 from .shared_data import (
+    T_ALLELE,
+
     VCF_ONE_VAR_FILE_PATH,
     VCF_ONE_VAR_INDEX_FILE_PATH,
 
@@ -67,7 +69,7 @@ def test_memory_table_manager():
         chromosome="1",
         start_pos=5000,
         ref_bases="C",
-        alt_bases=("T",),
+        alt_alleles=(T_ALLELE,),
     ))
 
     tbl.variant_store.append(Variant(
@@ -75,7 +77,7 @@ def test_memory_table_manager():
         chromosome="5",
         start_pos=5000,
         ref_bases="C",
-        alt_bases=("T",),
+        alt_alleles=(T_ALLELE,),
     ))
 
     tbl.variant_store.append(VARIANT_1)

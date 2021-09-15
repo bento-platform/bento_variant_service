@@ -150,6 +150,7 @@ def test_chord_variant_search(app, client, table_manager):
             assert len(data["results"]) == 1
 
             for q, r in TEST_QUERIES:
+                print(f"Executing query {q} with expected result {r}", flush=True)
                 for rv in (client.post("/search", json={"data_type": "variant", "query": q}),
                            client.get("/search", query_string={"data_type": "variant", "query": json.dumps(q)})):
                     data = rv.get_json()
@@ -180,14 +181,24 @@ def test_chord_variant_search(app, client, table_manager):
 
             rv = client.post("/private/tables/dne/search", json={"query": QUERY_1})
             assert rv.status_code == 404
+            rv = client.get("/private/tables/dne/search", json={"query": QUERY_1})
+            assert rv.status_code == 404
 
             rv = client.post("/private/tables/fixed_id/search")
+            assert rv.status_code == 400
+            rv = client.get("/private/tables/fixed_id/search")
             assert rv.status_code == 400
 
             rv = client.post("/private/tables/fixed_id/search", json={})
             assert rv.status_code == 400
+            rv = client.get("/private/tables/fixed_id/search", query_string={"queri": "hello"})  # Mis-spell!
+            assert rv.status_code == 400
 
             rv = client.post("/private/tables/fixed_id/search", json=["query"])
+            assert rv.status_code == 400
+            rv = client.get("/private/tables/fixed_id/search", query_string={"query": ""})
+            assert rv.status_code == 400
+            rv = client.get("/private/tables/fixed_id/search", query_string={"query": "[9832f["})
             assert rv.status_code == 400
 
             # - POST

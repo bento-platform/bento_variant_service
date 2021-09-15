@@ -66,7 +66,7 @@ def table_list():
                                               mimetype=MIME_TYPE, status=201)
 
         except IDGenerationFailure:
-            print(f"[{SERVICE_NAME}] Couldn't generate new ID", file=sys.stderr)
+            print(f"[{SERVICE_NAME}] [ERROR] Could not generate new ID for table", file=sys.stderr, flush=True)
             return flask_errors.flask_internal_server_error("Could not generate new ID for table")
 
     dt = request.args.getlist("data-type")

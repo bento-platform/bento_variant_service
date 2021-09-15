@@ -172,10 +172,10 @@ def beacon_query():
 
     ref = query.get("referenceBases", None)
 
-    alt_bases = query.get("alternateBases", None)
+    alt_allele = query.get("alternateBases", None)
     alt_id = query.get("variantType", None)  # e.g. DUP, DEL [symbolic alternates]
 
-    if (alt_bases is None and alt_id is None) or (alt_bases is not None and alt_id is not None):
+    if (alt_allele is None and alt_id is None) or (alt_allele is not None and alt_id is not None):
         # Error one or the other is required
         return beacon_error(400, "Exactly one of alternateBases or variantType must be specified")
 
@@ -199,9 +199,8 @@ def beacon_query():
                 (FUNCTION_EQ, ("ref",), ref),
 
                 # One of the two below will be none
-                (FUNCTION_EQ, ("calls", "[item]", "genotype_bases", "[item]"), alt_bases),
-                # TODO: genotype_bases is a misnomer for structural variants...
-                (FUNCTION_EQ, ("calls", "[item]", "genotype_bases", "[item]"), alt_id),
+                (FUNCTION_EQ, ("calls", "[item]", "genotype_alleles", "[item]"), alt_allele),
+                (FUNCTION_EQ, ("calls", "[item]", "genotype_alleles", "[item]"), alt_id),
             ) if value is not None
         ),
 

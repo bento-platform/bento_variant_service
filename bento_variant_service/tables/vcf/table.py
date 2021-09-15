@@ -1,11 +1,13 @@
 import re
+import sys
 
 from typing import Generator, List, Optional, Tuple
 
 from bento_variant_service.beacon.datasets import BeaconDataset
+from bento_variant_service.constants import SERVICE_NAME
 from bento_variant_service.tables.base import VariantTable
 from bento_variant_service.tables.vcf.file import VCFFile
-from bento_variant_service.variants.models import Variant, Call
+from bento_variant_service.variants.models import Allele, Variant, Call
 
 
 MAX_SIGNED_INT_32 = 2 ** 31 - 1
@@ -56,6 +58,10 @@ class VCFVariantTable(VariantTable):
         return None if val == "." else int(val)
 
     @staticmethod
+    def _int_or_missing_from_vcf(val):
+        return val if val in (".", "*") else int(val)
+
+    @staticmethod
     def _variant_calls(variant: Variant, sample_ids: tuple, row: tuple, only_interesting: bool = False):
         for sample_id, row_data in zip(sample_ids, row[9:]):
             row_info = {k: v for k, v in zip(row[8].split(":"), row_data.split(":"))}
@@ -67,9 +73,7 @@ class VCFVariantTable(VariantTable):
             gt = row_info[VCF_GENOTYPE]
             call = Call(
                 variant=variant,
-                genotype=tuple(
-                    VCFVariantTable._int_or_none_from_vcf(g)
-                    for g in re.split(REGEX_GENOTYPE_SPLIT, gt)),
+                genotype=tuple(map(VCFVariantTable._int_or_missing_from_vcf, re.split(REGEX_GENOTYPE_SPLIT, gt))),
                 phased="/" in gt,
                 phase_set=VCFVariantTable._int_or_none_from_vcf(row_info.get(VCF_PHASE_SET, ".")),
                 sample_id=sample_id,
@@ -126,6 +130,7 @@ class VCFVariantTable(VariantTable):
             ):
                 # If the entire file is covered by the remaining offset, skip it. This saves time crawling through an
                 # entire VCF if we cannot use any of them.
+                print(f"[{SERVICE_NAME}] [DEBUG] Skipping VCF due to offset: {vcf}", flush=True)
                 variants_seen += vcf.n_of_variants
                 continue
 
@@ -159,12 +164,13 @@ class VCFVariantTable(VariantTable):
                         elif start_max is not None and int(row[1]) >= start_max:
                             continue
 
+                    alt_alleles = tuple(Allele(Allele.class_from_vcf(a), a) for a in row[4].split(","))
                     variant = Variant(
                         assembly_id=vcf.assembly_id,
                         chromosome=row[0],
                         start_pos=int(row[1]),
                         ref_bases=row[3],
-                        alt_bases=tuple(row[4].split(",")),
+                        alt_alleles=alt_alleles,
                         qual=float(row[5]) if row[5] != "." else None,
                         file_uri=vcf.original_index_uri,
                     )
@@ -182,5 +188,6 @@ class VCFVariantTable(VariantTable):
 
             except ValueError as e:
                 # Sometimes this can occur if a region not found in Tabix file, so continue searching but log it
-                print(f"[Bento Variant Service] Encountered ValueError: {e}")
+                print(f"[{SERVICE_NAME}] [ERROR] Encountered ValueError: {e}", file=sys.stderr, flush=True)
+                print(f"[{SERVICE_NAME}] [ERROR]     In VCF: {repr(vcf)}", file=sys.stderr, flush=True)
                 continue
