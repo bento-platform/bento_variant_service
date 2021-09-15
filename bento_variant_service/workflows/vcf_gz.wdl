@@ -10,21 +10,21 @@ workflow vcf_gz {
 
     scatter(file in vcf_gz_files) {
         # Need to pass TBI file in here, otherwise execution occurs out-of-order
-        call vcf_annotate {
+        call vcf_gz_annotate {
             input: vcf_gz_file = file,
                    tbi_files = generate_tbi_1.tbi_file,  # Array now due to scatter
                    assembly_id = assembly_id
         }
     }
 
-    scatter(file in vcf_annotate.annotated_vcf_gz_file) {  # Array now due to scatter
+    scatter(file in vcf_gz_annotate.annotated_vcf_gz_file) {  # Array now due to scatter
         call generate_tbi as generate_tbi_2 {
             input: vcf_gz_file=file
         }
     }
 }
 
-task vcf_annotate {
+task vcf_gz_annotate {
     File vcf_gz_file
     Array[File] tbi_files
     String assembly_id
